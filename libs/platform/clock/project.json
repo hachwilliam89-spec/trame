@@ -1,0 +1,8 @@
+{
+  "name": "platform-clock",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/platform/clock/src",
+  "projectType": "library",
+  "tags": ["scope:platform"],
+  "targets": {}
+}
