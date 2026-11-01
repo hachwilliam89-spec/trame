@@ -1,0 +1,23 @@
+# ADR-0027 — Dates : Temporal
+
+- **Statut** : Proposé (2026-11-01), avec US-002. Précise ADR-0019.
+- **Contexte** :
+  - ADR-0019 impose une seule bibliothèque de dates avec fuseaux côté TypeScript, choisie au scaffolding.
+  - Les règles de planification raisonnent en instants UTC, en dates et heures locales du site, et en durées. Les nuits de changement d'heure doivent être exactes.
+  - Node 26 (V8 14.6) fournit Temporal nativement, et TypeScript 6.0 en livre les types (`lib: esnext.temporal`).
+- **Décision** :
+  - Temporal partout côté TypeScript : `Temporal.Instant` pour un instant, `Temporal.ZonedDateTime` pour un calcul dans le fuseau du site, `Temporal.PlainDate` et `Temporal.PlainTime` pour les créneaux types, `Temporal.Duration` pour les durées.
+  - Aucune bibliothèque de dates dans l'API : Temporal est natif dans Node 26.
+  - Dans le front, `temporal-polyfill` est ajouté avec le premier écran qui manipule des dates, et chargé seulement quand le navigateur ne fournit pas `Temporal`.
+  - Les contrats échangent des chaînes ISO 8601 (ADR-0018) : `Instant.toString()` et `Instant.from()` aux frontières.
+  - Le port `Clock` (`@trame/platform/clock`) renvoie un `Temporal.Instant`. La lint interdit `new Date()`, `Date()`, `Date.now()` et `Temporal.Now` hors de l'adaptateur d'horloge.
+  - Côté Python : `datetime` avec fuseau (`zoneinfo`), jamais de date naïve.
+- **Conséquences** :
+  - (+) Objets immuables, fuseaux IANA et changements d'heure gérés par le standard, durées exactes, aucune dépendance côté API.
+  - (+) Le test de la nuit du passage à l'heure d'hiver s'écrit directement : 22 h + 9 h donne 6 h à Paris.
+  - (−) API récente, moins connue que `Date` : le module de référence (US-030) sert d'exemple.
+  - (−) Un polyfill d'environ 20 ko côté front tant que tous les navigateurs ciblés ne fournissent pas Temporal.
+- **Alternatives écartées** :
+  - date-fns avec `@date-fns/tz` : repose sur `Date`, mutable, et le fuseau passe par une seconde bibliothèque ;
+  - Luxon : solide, mais non standard et plus lourd ;
+  - Day.js : les fuseaux passent par un plugin, avec des écarts connus sur les changements d'heure.
