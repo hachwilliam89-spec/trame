@@ -12,7 +12,13 @@
       "!{projectRoot}/jest.config.[jt]s",
       "!{projectRoot}/test-setup.[jt]s"
     ],
-    "sharedGlobals": ["{workspaceRoot}/tsconfig.base.json", "{workspaceRoot}/.node-version"]
+    "sharedGlobals": [
+      "{workspaceRoot}/tsconfig.base.json",
+      "{workspaceRoot}/.node-version",
+      {
+        "runtime": "node --version"
+      }
+    ]
   },
   "targetDefaults": {
     "@angular/build:application": {
