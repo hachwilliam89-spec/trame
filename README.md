@@ -17,7 +17,7 @@ Le cadrage est dans [`docs/cadrage.md`](docs/cadrage.md), les décisions dans [`
 
 ## Démarrer
 
-Prérequis : Node 26, pnpm 12, uv 0.11 ; Docker pour les tests d'intégration.
+Prérequis : Node 26, pnpm 12, uv 0.13 ; Docker pour les tests d'intégration.
 
 ```bash
 pnpm install

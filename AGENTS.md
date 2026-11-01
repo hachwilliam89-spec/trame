@@ -49,7 +49,7 @@ Le module `organization` est le **module de référence** : tout nouveau context
 
 > Figées et vérifiées par US-002. Toujours lancer la vérification avant de déclarer une tâche terminée.
 
-Prérequis : Node 26 (`.node-version`), pnpm 12, uv 0.11, Python 3.14 (installé par uv), Docker pour les tests d'intégration.
+Prérequis : Node 26 (`.node-version`), pnpm 12, uv 0.13, Python 3.14 (installé par uv), Docker pour les tests d'intégration.
 
 ```bash
 pnpm install                                       # installe aussi les hooks Git (lefthook)
