@@ -1,0 +1,14 @@
+// Schéma Prisma de l'API (ADR-0008, ADR-0022).
+// Un schéma Postgres par bounded context, sans relation entre contextes : les références passent par identifiant.
+// Les modèles arrivent avec leur contexte (US-030 : `organization`).
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["organization"]
+}
