@@ -1,0 +1,52 @@
+# Dépendances
+node_modules
+
+# Sorties de build et de tests
+dist
+tmp
+out-tsc
+coverage
+.vitest
+__screenshots__/
+
+# Code généré (ne jamais commiter)
+libs/api/shared/database/src/generated/
+
+# Nx
+.nx/cache
+.nx/workspace-data
+.nx/polygraph
+.nx/self-healing
+.nx/migrate-runs
+vite.config.*.timestamp*
+vitest.config.*.timestamp*
+
+# Angular et Astro
+.angular
+.astro
+apps/docs/node_modules
+
+# Python (moteur)
+.venv
+__pycache__/
+*.py[cod]
+.mypy_cache
+.ruff_cache
+.pytest_cache
+.hypothesis
+.coverage
+htmlcov
+
+# Secrets : jamais dans le dépôt (AGENTS.md)
+.env
+.env.*
+!.env.example
+
+# Éditeurs et système
+/.idea
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.DS_Store
+Thumbs.db
+*.log
