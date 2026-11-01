@@ -1,0 +1,15 @@
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  esbuild: true
+  lmdb: true
+  msgpackr-extract: true
+  nx: true
+  unrs-resolver: true
+  '@nestjs/core': false
+  '@prisma/engines': true
+  cpu-features: false
+  lefthook: true
+  prisma: true
+  protobufjs: false
+  ssh2: false

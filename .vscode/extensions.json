@@ -1,0 +1,13 @@
+{
+  "recommendations": [
+    "nrwl.angular-console",
+    "angular.ng-template",
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "vitest.explorer",
+    "prisma.prisma",
+    "charliermarsh.ruff",
+    "ms-python.python",
+    "astro-build.astro-vscode"
+  ]
+}

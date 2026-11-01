@@ -1,0 +1,33 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "bundler",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2022",
+    "module": "esnext",
+    "lib": ["es2024", "esnext.temporal", "dom"],
+    "strict": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "paths": {
+      "@trame/shared/contracts": ["./libs/shared/contracts/src/index.ts"],
+      "@trame/platform/clock": ["./libs/platform/clock/src/index.ts"],
+      "@trame/platform/problem-details": ["./libs/platform/problem-details/src/index.ts"],
+      "@trame/platform/zod-validation": ["./libs/platform/zod-validation/src/index.ts"],
+      "@trame/platform/config": ["./libs/platform/config/src/index.ts"],
+      "@trame/platform/logging": ["./libs/platform/logging/src/index.ts"],
+      "@trame/platform/health": ["./libs/platform/health/src/index.ts"],
+      "@trame/api/database": ["./libs/api/shared/database/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}

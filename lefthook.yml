@@ -1,0 +1,23 @@
+# Hooks Git (installés par `pnpm install`). La CI reste la référence.
+pre-commit:
+  parallel: true
+  commands:
+    prettier:
+      glob: '*.{ts,mts,mjs,js,json,md,yml,yaml,html,css}'
+      run: pnpm prettier --write --ignore-unknown {staged_files}
+      stage_fixed: true
+    ruff:
+      root: apps/engine/
+      glob: '*.py'
+      run: uv run ruff format {staged_files} && uv run ruff check --fix {staged_files}
+      stage_fixed: true
+
+commit-msg:
+  commands:
+    commitlint:
+      run: pnpm commitlint --edit {1}
+
+pre-push:
+  commands:
+    verify:
+      run: pnpm nx affected -t lint typecheck test --base=origin/main

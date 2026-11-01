@@ -1,0 +1,35 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "apps/api/src/main.ts",
+    "apps/web/src/main.ts",
+    "apps/docs/src/content.config.ts",
+    "libs/platform/*/src/index.ts",
+    "libs/shared/*/src/index.ts",
+    "libs/api/shared/*/src/index.ts",
+    "libs/shared/contracts/scripts/*.ts",
+    "libs/api/shared/database/prisma.config.ts"
+  ],
+  "project": ["apps/**/*.{ts,mts}", "libs/**/*.{ts,mts}"],
+  "vitest": {
+    "config": ["apps/*/vitest.config.mts", "libs/**/vitest*.config.mts"],
+    "entry": ["**/*.spec.ts"]
+  },
+  "ignoreBinaries": ["uv"],
+  "ignoreExportsUsedInFile": true,
+  "ignoreDependencies": [
+    "@angular/cli",
+    "@angular/language-service",
+    "@nestjs/schematics",
+    "@nx/devkit",
+    "@nx/nest",
+    "@nx/node",
+    "@nx/workspace",
+    "@eslint/js",
+    "@typescript-eslint/utils",
+    "angular-eslint",
+    "typescript-eslint",
+    "@tailwindcss/postcss",
+    "pino-pretty"
+  ]
+}
