@@ -1,0 +1,38 @@
+{
+  "name": "contracts",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/shared/contracts/src",
+  "projectType": "library",
+  "tags": ["scope:shared", "type:contracts"],
+  "targets": {
+    "export-json-schema": {
+      "command": "tsx libs/shared/contracts/scripts/export-json-schema.ts tmp/contracts/engine-contracts.schema.json",
+      "inputs": ["{projectRoot}/src/**/*.ts", "{projectRoot}/scripts/**/*.ts"],
+      "outputs": ["{workspaceRoot}/tmp/contracts"],
+      "cache": true
+    },
+    "generate": {
+      "dependsOn": ["export-json-schema"],
+      "command": "uv run datamodel-codegen",
+      "options": { "cwd": "apps/engine" },
+      "inputs": [
+        "{workspaceRoot}/tmp/contracts/**/*",
+        "{workspaceRoot}/apps/engine/pyproject.toml"
+      ],
+      "outputs": ["{workspaceRoot}/apps/engine/src/trame_engine/contracts"],
+      "cache": false
+    },
+    "check": {
+      "dependsOn": ["generate"],
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "git diff --exit-code -- apps/engine/src/trame_engine/contracts",
+          "test -z \"$(git status --porcelain -- apps/engine/src/trame_engine/contracts)\""
+        ],
+        "parallel": false
+      },
+      "cache": false
+    }
+  }
+}
