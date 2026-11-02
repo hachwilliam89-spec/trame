@@ -4,8 +4,9 @@ Logs JSON structurés via `nestjs-pino` : une ligne par requête HTTP, avec son 
 
 - `LoggingModule.forRoot(options)` / `forRootAsync({ inject, useFactory })`.
 - Options : `level`, `pretty` (sortie lisible en local), `redact` (chemins à masquer en plus), `quietPaths` (requêtes réussies non journalisées, pour les healthchecks).
-- Requêtes journalisées sans query string ni paramètres : seuls la méthode et le chemin (`serializeRequest`, `pathOnly`).
-- Masqués par défaut : `Authorization`, `Cookie`, `X-Api-Key`, `Referer`, `Set-Cookie` (`[masqué]`).
+- Requête journalisée champ par champ (`serializeRequest`) : identifiant, méthode, chemin sans query string, et les seuls en-têtes de `LOGGED_REQUEST_HEADERS` (`User-Agent`, `Content-Type`, `Content-Length`). Ni paramètres, ni adresse IP, ni autre en-tête : un en-tête libre comme `X-Forwarded-Uri` peut porter une query string.
+- Réponse journalisée par son seul statut (`serializeResponse`).
+- Masqués en défense en profondeur, si une requête brute est journalisée ailleurs : `Authorization`, `Cookie`, `X-Api-Key`, `Referer`, `Set-Cookie` (`[masqué]`).
 - `X-Request-Id` : repris s'il est sûr (8 à 128 caractères `[A-Za-z0-9_-]`), généré sinon, et renvoyé dans la réponse.
 - Niveau par statut : `info` (2xx-3xx), `warn` (4xx), `error` (5xx).
 

@@ -33,28 +33,43 @@ describe('journal des requêtes HTTP', () => {
     await new Promise<void>((resolve) => capture.server.close(() => resolve()));
   });
 
-  it("n'écrit ni la query string ni les paramètres, seulement le chemin", async () => {
+  it("n'écrit que les champs autorisés : ni query string, ni en-têtes libres, ni adresse IP", async () => {
     const { port } = capture.server.address() as AddressInfo;
 
     await request(`http://127.0.0.1:${port}`)
       .get('/api/v1/sites?token=secret123&email=jane@example.org')
       .set('Referer', 'https://exemple.test/page?session=abc987')
-      .set('Authorization', 'Bearer jeton-secret');
+      .set('Authorization', 'Bearer jeton-secret')
+      .set('Cookie', 'sid=cookie-secret')
+      .set('X-Forwarded-Uri', '/api/v1/sites?token=transfere-secret')
+      .set('X-Original-Url', '/api/v1/sites?token=original-secret')
+      .set('User-Agent', 'trame-test/1.0');
 
     const log = capture.lines.join('\n');
-    expect(log).not.toContain('secret123');
-    expect(log).not.toContain('jane@example.org');
-    expect(log).not.toContain('abc987');
-    expect(log).not.toContain('jeton-secret');
+    for (const secret of [
+      'secret123',
+      'jane@example.org',
+      'abc987',
+      'jeton-secret',
+      'cookie-secret',
+      'transfere-secret',
+      'original-secret',
+      '127.0.0.1',
+    ]) {
+      expect(log).not.toContain(secret);
+    }
 
     const entry = JSON.parse(capture.lines.at(-1) ?? '{}') as {
-      req: { url: string; query?: unknown; params?: unknown; headers: Record<string, string> };
+      req: Record<string, unknown>;
+      res: Record<string, unknown>;
     };
-    expect(entry.req.url).toBe('/api/v1/sites');
-    expect(entry.req).not.toHaveProperty('query');
-    expect(entry.req).not.toHaveProperty('params');
-    expect(entry.req.headers['authorization']).toBe('[masqué]');
-    expect(entry.req.headers['referer']).toBe('[masqué]');
+    expect(entry.req).toEqual({
+      id: expect.any(String),
+      method: 'GET',
+      url: '/api/v1/sites',
+      headers: { 'user-agent': 'trame-test/1.0' },
+    });
+    expect(entry.res).toEqual({ statusCode: 200 });
   });
 });
 

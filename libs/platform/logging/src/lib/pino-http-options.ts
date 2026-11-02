@@ -14,7 +14,10 @@ export interface LoggingOptions {
   quietPaths?: string[];
 }
 
-/** En-têtes et champs jamais écrits en clair dans les logs. */
+/**
+ * Chemins masqués en défense en profondeur, si un objet de requête brut est journalisé
+ * ailleurs que par `serializeRequest`.
+ */
 export const DEFAULT_REDACTIONS = [
   'req.headers.authorization',
   'req.headers.cookie',
@@ -35,23 +38,37 @@ interface SerializedRequestLike {
   method?: string;
   url?: string;
   headers?: Record<string, unknown>;
-  remoteAddress?: string;
-  remotePort?: number;
+}
+
+/** Champs de la réponse déjà sérialisée par pino-http. */
+interface SerializedResponseLike {
+  statusCode?: number;
 }
 
 /**
- * Requête telle qu'écrite dans les logs : ni query string ni paramètres de requête,
- * qui peuvent porter des jetons ou des données personnelles.
+ * En-têtes de requête journalisés : liste fermée. Tout autre en-tête peut transporter un secret
+ * (`Authorization`, `Cookie`, `X-Forwarded-Uri` avec sa query string…) et n'est jamais écrit.
+ */
+export const LOGGED_REQUEST_HEADERS = ['user-agent', 'content-type', 'content-length'] as const;
+
+/**
+ * Requête telle qu'écrite dans les logs, champ par champ : identifiant, méthode, chemin sans
+ * query string, et les en-têtes de `LOGGED_REQUEST_HEADERS`. Ni paramètres, ni adresse IP
+ * (donnée personnelle), ni autre en-tête.
  */
 export function serializeRequest(req: SerializedRequestLike): Record<string, unknown> {
-  return {
-    id: req.id,
-    method: req.method,
-    url: pathOnly(req.url),
-    headers: req.headers,
-    remoteAddress: req.remoteAddress,
-    remotePort: req.remotePort,
-  };
+  const headers = Object.fromEntries(
+    LOGGED_REQUEST_HEADERS.flatMap((name) => {
+      const value = req.headers?.[name];
+      return typeof value === 'string' ? [[name, value]] : [];
+    }),
+  );
+  return { id: req.id, method: req.method, url: pathOnly(req.url), headers };
+}
+
+/** Réponse telle qu'écrite dans les logs : le statut seulement. */
+export function serializeResponse(res: SerializedResponseLike): Record<string, unknown> {
+  return { statusCode: res.statusCode };
 }
 
 const REQUEST_ID_HEADER = 'x-request-id';
@@ -72,7 +89,7 @@ export function createPinoHttpOptions(options: LoggingOptions): Options {
   return {
     level: options.level,
     genReqId: requestIdFor,
-    serializers: { req: serializeRequest },
+    serializers: { req: serializeRequest, res: serializeResponse },
     redact: { paths: [...DEFAULT_REDACTIONS, ...(options.redact ?? [])], censor: '[masqué]' },
     autoLogging: {
       ignore: (req) => quietPaths.some((path) => req.url?.startsWith(path) ?? false),
