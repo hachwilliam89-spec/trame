@@ -14,6 +14,10 @@ export interface CreatePositionCommand {
   skillIds: readonly string[];
 }
 
+/**
+ * Crée un poste sur un site de l'organisation, avec ses compétences requises. Une compétence
+ * absente ou d'une autre organisation donne la même erreur « introuvable ».
+ */
 export class CreatePosition {
   constructor(
     private readonly sites: SiteRepository,

@@ -10,11 +10,13 @@ export interface GetPositionQuery {
   positionId: string;
 }
 
+/** Lit un poste d'un site de l'organisation. */
 export class GetPosition {
   constructor(
     private readonly sites: SiteRepository,
     private readonly positions: PositionRepository,
   ) {}
+
   async execute(query: GetPositionQuery): Promise<Position> {
     await findSiteOrThrow(this.sites, query.organizationId, query.siteId);
     const position = await this.positions.findById(

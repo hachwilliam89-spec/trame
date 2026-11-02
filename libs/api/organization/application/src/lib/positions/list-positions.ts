@@ -10,11 +10,13 @@ export interface ListPositionsQuery {
   page: PageRequest;
 }
 
+/** Liste les postes d'un site de l'organisation, par ordre de création. */
 export class ListPositions {
   constructor(
     private readonly sites: SiteRepository,
     private readonly positions: PositionRepository,
   ) {}
+
   async execute(query: ListPositionsQuery): Promise<Page<Position>> {
     await findSiteOrThrow(this.sites, query.organizationId, query.siteId);
     return this.positions.listBySite(query.organizationId, query.siteId, query.page);

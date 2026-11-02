@@ -7,6 +7,7 @@ export interface GetSkillQuery {
   skillId: string;
 }
 
+/** Lit une compétence du catalogue de l'organisation. */
 export class GetSkill {
   constructor(private readonly skills: SkillRepository) {}
 

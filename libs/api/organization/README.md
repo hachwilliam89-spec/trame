@@ -47,10 +47,11 @@ C'est le **module de référence** (AGENTS.md) : tout nouveau contexte reproduit
 
 - Création d'une compétence : `{ "name": "CACES R489" }`.
 - Création d'un poste : `{ "name": "Cariste", "skillIds": ["<uuid>"] }`. `skillIds` est obligatoire ; `[]` signifie qu'aucune compétence spécifique n'est exigée.
-- Les noms contiennent entre 1 et 100 caractères, au moins un caractère non blanc, et aucun caractère NUL (non stockable dans PostgreSQL).
+- Les noms contiennent entre 1 et 100 caractères, dont au moins un caractère visible.
+- Aucun texte saisi (nom de site, libellé de créneau, nom de compétence ou de poste) n'accepte le caractère NUL, que PostgreSQL ne peut pas stocker : le contrat partagé `requiredText` le refuse en 400, à la frontière.
 - Une compétence absente ou étrangère dans `skillIds` donne le même 404. La création ne laisse jamais de poste partiel.
 - Supprimer une compétence requise par un poste donne un 409 de type `problemTypes.skillInUse` (`tag:wkhach.dev,2026-11-02:trame:problem:skill-in-use`). Une suppression réussie donne un 204 sans corps ; une deuxième tentative donne 404.
-- `createdAt` des compétences et des postes est exposé en UTC à la milliseconde, dès la création, pour rester identique après relecture PostgreSQL.
+- `createdAt` est à la milliseconde pour toutes les ressources : l'horloge système est tronquée à la précision de `timestamptz(3)`, si bien que la réponse de création et la relecture donnent la même date.
 
 ## Heures et durées
 
@@ -71,7 +72,7 @@ C'est le **module de référence** (AGENTS.md) : tout nouveau contexte reproduit
 - Un créneau type porte l'organisation de son site. La clé étrangère composite (`site_id`, `organization_id`) → `sites (id, organization_id)` garantit en base qu'ils sont identiques, même pour une écriture qui ne passerait pas par l'API.
 - Un poste porte la même clé étrangère composite vers son site. L'association `position_skills` porte deux clés étrangères composites vers le poste et la compétence, avec `organization_id` dans chacune.
 - Le poste et ses associations sont créés dans une seule transaction. Une compétence supprimée entre la vérification applicative et l'écriture fait annuler toute la création.
-- La suppression d'une compétence utilisée est interdite par une clé étrangère `ON DELETE RESTRICT`. Cette protection couvre aussi une suppression concurrente à la création d'un poste. Les habilitations des employés restent dans le contexte `staff` (US-031).
+- `DeleteSkill` vérifie qu'aucun poste n'exige la compétence (`PositionRepository.isSkillRequired`). La clé étrangère `ON DELETE RESTRICT` est le filet d'une création de poste concurrente : la suppression échoue alors aussi en 409. Les habilitations des employés restent dans le contexte `staff` (US-031).
 - La migration de la PR B ajoute trois tables et leurs contraintes. Elle ne modifie pas les migrations ni les tables utilisées par l'API précédente.
 
 ## Tests
@@ -86,4 +87,4 @@ C'est le **module de référence** (AGENTS.md) : tout nouveau contexte reproduit
 - Chaque endpoint a un test d'isolation : une ressource étrangère donne 404 et une liste ne contient que les ressources autorisées.
 - Un test vérifie que chaque erreur du domaine et de l'application a sa traduction HTTP : une erreur oubliée deviendrait un 500.
 - Les points d'entrée `testing` exposent les doublures : dépôts en mémoire, `createOrganizationTestApp()`, `TestClient`, `testActors`.
-- La [spécification BDD de la PR B](../../../docs/stories/us-030-b-competences-postes.md) relie les scénarios métier à leurs tests. Les tests PostgreSQL vérifient les références croisées, la transaction et la concurrence ; les tests HTTP sur vraie base vérifient aussi l'assemblage des adaptateurs et les réponses 400/404/409.
+- Les scénarios BDD vivent dans l'issue de la story (US-030 B : #10), et la PR relie chacun à ses tests. Les tests PostgreSQL vérifient les références croisées, la transaction et la concurrence ; les tests HTTP sur vraie base vérifient aussi l'assemblage des adaptateurs et les réponses 400/404/409.

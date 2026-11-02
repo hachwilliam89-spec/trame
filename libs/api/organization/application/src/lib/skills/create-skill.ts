@@ -8,6 +8,7 @@ export interface CreateSkillCommand {
   name: string;
 }
 
+/** Ajoute une compétence au catalogue de l'organisation. Son nom n'a pas à être unique. */
 export class CreateSkill {
   constructor(
     private readonly skills: SkillRepository,

@@ -7,8 +7,10 @@ export interface ListSkillsQuery {
   page: PageRequest;
 }
 
+/** Liste le catalogue de l'organisation, par ordre de création. */
 export class ListSkills {
   constructor(private readonly skills: SkillRepository) {}
+
   execute(query: ListSkillsQuery): Promise<Page<Skill>> {
     return this.skills.list(query.organizationId, query.page);
   }

@@ -11,9 +11,10 @@
 const PROBLEM_TYPE_PREFIX = 'tag:wkhach.dev,2026-11-02:trame:problem:';
 
 export const problemTypes = {
-  skillInUse: `${PROBLEM_TYPE_PREFIX}skill-in-use`,
   /** Un autre site de l'organisation porte déjà ce code. */
   siteCodeAlreadyUsed: `${PROBLEM_TYPE_PREFIX}site-code-already-used`,
+  /** La compétence est exigée par au moins un poste : elle ne peut pas être supprimée. */
+  skillInUse: `${PROBLEM_TYPE_PREFIX}skill-in-use`,
 } as const;
 
 export type ProblemType = (typeof problemTypes)[keyof typeof problemTypes];

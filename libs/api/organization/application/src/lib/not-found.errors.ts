@@ -15,6 +15,7 @@ export class ShiftTemplateNotFoundError extends Error {
     this.name = 'ShiftTemplateNotFoundError';
   }
 }
+
 export class SkillNotFoundError extends Error {
   constructor() {
     super('Compétence introuvable.');
