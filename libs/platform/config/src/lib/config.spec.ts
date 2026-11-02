@@ -28,19 +28,26 @@ describe('validateEnv', () => {
 });
 
 describe('ConfigModule', () => {
-  it('expose la configuration validée via ConfigService', async () => {
-    process.env['DATABASE_URL'] = 'postgresql://localhost:5432/trame';
-    try {
-      const moduleRef = await Test.createTestingModule({
-        imports: [ConfigModule.forRoot({ schema: envSchema })],
-      }).compile();
-      const config = moduleRef.get<ConfigService<Env, true>>(ConfigService);
+  // Isolation : Nx injecte le `.env` de la racine dans chaque tâche.
+  beforeEach(() => {
+    vi.stubEnv('PORT', undefined);
+    vi.stubEnv('DATABASE_URL', undefined);
+  });
 
-      expect(config.get('PORT', { infer: true })).toBe(3000);
-      expect(config.get('DATABASE_URL', { infer: true })).toBe('postgresql://localhost:5432/trame');
-    } finally {
-      delete process.env['DATABASE_URL'];
-    }
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it('expose la configuration validée via ConfigService', async () => {
+    vi.stubEnv('DATABASE_URL', 'postgresql://localhost:5432/trame');
+
+    const moduleRef = await Test.createTestingModule({
+      imports: [ConfigModule.forRoot({ schema: envSchema })],
+    }).compile();
+    const config = moduleRef.get<ConfigService<Env, true>>(ConfigService);
+
+    expect(config.get('PORT', { infer: true })).toBe(3000);
+    expect(config.get('DATABASE_URL', { infer: true })).toBe('postgresql://localhost:5432/trame');
   });
 
   it("refuse de compiler le module quand l'environnement est invalide", async () => {
