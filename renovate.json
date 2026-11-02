@@ -1,0 +1,83 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    "helpers:pinGitHubActionDigestsToSemver",
+    ":semanticCommits",
+    ":semanticCommitScope(deps)"
+  ],
+  "timezone": "Europe/Paris",
+  "schedule": ["before 6am on monday"],
+  "minimumReleaseAge": "3 days",
+  "prConcurrentLimit": 5,
+  "labels": ["dependencies"],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["before 6am on monday"]
+  },
+  "packageRules": [
+    {
+      "description": "Les majeures attendent une validation dans le tableau de bord.",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "pnpm ne fournit pas l'âge des versions pour la maintenance du lockfile : sans cette exception, la branche ne serait jamais créée.",
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "minimumReleaseAge": null
+    },
+    {
+      "description": "Angular 22 n'accepte que TypeScript 6.0.",
+      "matchPackageNames": ["typescript"],
+      "allowedVersions": "<6.1"
+    },
+    {
+      "description": "Node 26 (Temporal natif, ADR-0027) : pas de passage automatique à une autre majeure.",
+      "matchDepNames": ["node"],
+      "allowedVersions": "<27"
+    },
+    {
+      "groupName": "Nx",
+      "matchPackageNames": ["nx", "@nx/**"]
+    },
+    {
+      "groupName": "Angular",
+      "matchPackageNames": [
+        "@angular/**",
+        "@angular-devkit/**",
+        "@schematics/angular",
+        "angular-eslint"
+      ]
+    },
+    {
+      "groupName": "NestJS",
+      "matchPackageNames": ["@nestjs/**"]
+    },
+    {
+      "groupName": "Prisma",
+      "matchPackageNames": ["prisma", "@prisma/**"]
+    },
+    {
+      "groupName": "Vitest",
+      "matchPackageNames": ["vitest", "@vitest/**"]
+    },
+    {
+      "groupName": "Lint et formatage",
+      "matchPackageNames": [
+        "eslint",
+        "@eslint/**",
+        "typescript-eslint",
+        "@typescript-eslint/**",
+        "prettier"
+      ]
+    },
+    {
+      "groupName": "Moteur Python",
+      "matchManagers": ["pep621"]
+    },
+    {
+      "groupName": "GitHub Actions",
+      "matchManagers": ["github-actions"]
+    }
+  ]
+}

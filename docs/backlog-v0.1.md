@@ -10,49 +10,51 @@ Priorité MoSCoW : **M** indispensable à la démo · **S** important, peut suiv
 
 ### Phase 1 — d'ici janvier 2027 (sessions longues : socle et infrastructure)
 
-| Ordre | US  | Titre                                                   | Priorité |
-| ----- | --- | ------------------------------------------------------- | -------- |
-| 1     | 001 | Sécuriser le VPS                                        | ✅       |
-| 2     | 013 | Durcissement : compléments des revues                   | M        |
-| 3     | 002 | Initialiser le monorepo (PR 1 : squelette et outillage) | M        |
-| 4     | 030 | Module de référence `organization` (PR 2 d'US-002)      | M        |
-| 5     | 003 | CI de base                                              | M        |
-| 6     | 004 | Environnement local                                     | M        |
-| 7     | 009 | Walking skeleton                                        | M        |
-| 8     | 005 | Déploiement staging et prod (prod fermée au public)     | M        |
-| 9     | 008 | Sauvegardes                                             | M        |
-| 10    | 020 | Connexion OIDC et rôles                                 | M        |
-| 11    | 012 | Maquettes des écrans clés                               | M        |
-| 12    | 010 | Tokens de marque                                        | M        |
-| 13    | 011 | Composants de base                                      | M        |
-| 14    | 007 | Observabilité de base et alertes                        | S        |
-| 15    | 006 | Site de documentation                                   | S        |
+| Ordre | US  | Titre                                                              | Priorité |
+| ----- | --- | ------------------------------------------------------------------ | -------- |
+| 1     | 001 | Sécuriser le VPS                                                   | ✅       |
+| 2     | 013 | Durcissement : compléments des revues                              | M        |
+| 3     | 002 | Initialiser le monorepo (PR 1 : squelette et outillage)            | ✅       |
+| 4     | 003 | CI de base (avancée avant US-030)                                  | ✅       |
+| 5     | 030 | Module de référence `organization`, PR A : sites et créneaux types | M        |
+| 6     | 030 | Module de référence `organization`, PR B : compétences et postes   | M        |
+| 7     | 004 | Environnement local                                                | M        |
+| 8     | 009 | Walking skeleton                                                   | M        |
+| 9     | 005 | Déploiement staging et prod (prod fermée au public)                | M        |
+| 10    | 008 | Sauvegardes                                                        | M        |
+| 11    | 020 | Connexion OIDC et rôles                                            | M        |
+| 12    | 012 | Maquettes des écrans clés                                          | M        |
+| 13    | 010 | Tokens de marque                                                   | M        |
+| 14    | 011 | Composants de base                                                 | M        |
+| 15    | 030 | Module de référence `organization`, PR C : page Angular et E2E     | M        |
+| 16    | 007 | Observabilité de base et alertes                                   | S        |
+| 17    | 006 | Site de documentation                                              | S        |
 
 ### Phase 2 — pendant le stage (sessions courtes : une story = un déploiement)
 
 | Ordre | US  | Titre                                        | Priorité |
 | ----- | --- | -------------------------------------------- | -------- |
-| 16    | 031 | Employés                                     | M        |
-| 17    | 032 | Contrats                                     | M        |
-| 18    | 033 | Indisponibilités et absences                 | M        |
-| 19    | 040 | Catalogue des règles légales                 | M        |
-| 20    | 050 | Besoins de couverture                        | M        |
-| 21    | 064 | Spike CP-SAT                                 | M        |
-| 22    | 061 | Modèle CP-SAT v1                             | M        |
-| 23    | 060 | Lancer une génération                        | M        |
-| 24    | 062 | Score et explication de base                 | M        |
-| 25    | 070 | PE synchrone                                 | M        |
-| 26    | 071 | Grille de planning                           | M        |
-| 27    | 072 | Drag & drop avec PE                          | M        |
-| 28    | 080 | Publier un planning                          | M        |
-| 29    | 021 | Comptes démo (une organisation par visiteur) | M        |
-| 30    | 090 | Données de démo                              | M        |
-| 31    | 092 | Protection et ouverture de la démo publique  | M        |
-| 32    | 093 | Licence, sécurité et mentions légales        | M        |
-| 33    | 091 | README vitrine et vidéo                      | M        |
-| 34    | 014 | Quality gate et tests de mutation            | S        |
-| 35    | 041 | Pondération des règles souples               | S        |
-| 36    | 081 | Consultation par l'employé                   | S        |
+| 18    | 031 | Employés                                     | M        |
+| 19    | 032 | Contrats                                     | M        |
+| 20    | 033 | Indisponibilités et absences                 | M        |
+| 21    | 040 | Catalogue des règles légales                 | M        |
+| 22    | 050 | Besoins de couverture                        | M        |
+| 23    | 064 | Spike CP-SAT                                 | M        |
+| 24    | 061 | Modèle CP-SAT v1                             | M        |
+| 25    | 060 | Lancer une génération                        | M        |
+| 26    | 062 | Score et explication de base                 | M        |
+| 27    | 070 | PE synchrone                                 | M        |
+| 28    | 071 | Grille de planning                           | M        |
+| 29    | 072 | Drag & drop avec PE                          | M        |
+| 30    | 080 | Publier un planning                          | M        |
+| 31    | 021 | Comptes démo (une organisation par visiteur) | M        |
+| 32    | 090 | Données de démo                              | M        |
+| 33    | 092 | Protection et ouverture de la démo publique  | M        |
+| 34    | 093 | Licence, sécurité et mentions légales        | M        |
+| 35    | 091 | README vitrine et vidéo                      | M        |
+| 36    | 014 | Quality gate et tests de mutation            | S        |
+| 37    | 041 | Pondération des règles souples               | S        |
+| 38    | 081 | Consultation par l'employé                   | S        |
 
 Les stories M, prises dans cet ordre, forment le **chemin critique vers la démo publique**. La démo est datée quelques semaines avant la recherche d'entreprise.
 
@@ -146,7 +148,7 @@ Jobs de base, qui protègent le code présent dès le départ :
 
 Les autres contrôles arrivent avec le risque qu'ils couvrent :
 
-- E2E Playwright (Chromium, Firefox, WebKit) avec la première page, dans US-030 ;
+- E2E Playwright (Chromium, Firefox, WebKit) avec la première page, dans la PR C d'US-030 ;
 - scan d'images, SBOM et signature avec le déploiement, dans US-005 ;
 - OWASP ZAP avec l'ouverture publique, dans US-092 ;
 - quality gate SonarCloud et Stryker quand le domaine a du contenu, dans US-014.
@@ -324,6 +326,14 @@ Scénario: Créneau de nuit au changement d'heure
 ```
 
 Module de référence : contrats zod, domaine, use cases, repository Prisma (schéma `organization`), contrôleur REST, page Angular de liste et de création, et premier test E2E Playwright sur les trois moteurs. Tests de tous les niveaux, dont un test d'accès croisé par endpoint.
+
+Livrée en trois PR (décision du 2026-11-02, Definition of Ready) :
+
+- **PR A** : sites et créneaux types (fuseau, pause positionnée, nuit du changement d'heure).
+- **PR B** : compétences et postes (compétence utilisée).
+- **PR C** : page Angular de liste et de création, et premier E2E Playwright, après les maquettes d'US-012.
+
+En attendant US-020, l'utilisateur et son `organizationId` passent par le point d'entrée de `libs/platform/auth` : les tests y injectent un utilisateur de test, et les endpoints répondent 401 hors des tests.
 
 ### US-031 — Employés
 
