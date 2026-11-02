@@ -10,7 +10,7 @@ src/trame_engine/
   solver/     modèles CP-SAT et PE, sans dépendance HTTP ni configuration
   contracts/  modèles Pydantic GÉNÉRÉS depuis libs/shared/contracts : ne pas éditer
   settings.py configuration validée au démarrage (variables ENGINE_*)
-  logs.py     logs structurés (structlog)
+  logs.py     logs structurés (structlog), Uvicorn compris
 ```
 
 Les couches sont vérifiées par import-linter : `api` → `solver` → `contracts`.

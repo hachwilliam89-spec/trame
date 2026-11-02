@@ -15,6 +15,8 @@ def main() -> None:
         host=settings.host,
         port=settings.port,
         log_level=settings.log_level,
+        # Pas de configuration de logs propre à Uvicorn : ses logs passent par structlog (logs.py).
+        log_config=None,
         access_log=False,
     )
 
