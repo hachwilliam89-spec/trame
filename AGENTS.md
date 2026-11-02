@@ -70,7 +70,11 @@ pnpm nx format:check                               # Prettier (TypeScript, JSON,
 pnpm knip                                          # code mort et dépendances inutilisées
 ```
 
-La CI (`.github/workflows/ci.yml`) lance ces contrôles sur chaque PR ; seul le check « CI OK » est exigé pour fusionner, et il agrège tous les autres. CodeQL tourne à part (`codeql.yml`).
+La CI (`.github/workflows/ci.yml`) lance ces contrôles sur chaque PR. CodeQL tourne à part (`codeql.yml`). Pour fusionner sur `main`, la protection exige :
+
+- « CI OK », qui agrège tous les jobs de la CI ;
+- les trois analyses « Analyse (…) » de CodeQL ;
+- le résultat « CodeQL » du code scanning, qui échoue sur toute nouvelle alerte de sécurité haute ou critique.
 
 L'infrastructure locale (`docker compose -f infra/compose/dev.yml up -d` : Postgres, RabbitMQ, Keycloak) arrive avec US-004.
 

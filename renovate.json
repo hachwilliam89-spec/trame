@@ -22,6 +22,11 @@
       "dependencyDashboardApproval": true
     },
     {
+      "description": "pnpm ne fournit pas l'âge des versions pour la maintenance du lockfile : sans cette exception, la branche ne serait jamais créée.",
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "minimumReleaseAge": null
+    },
+    {
       "description": "Angular 22 n'accepte que TypeScript 6.0.",
       "matchPackageNames": ["typescript"],
       "allowedVersions": "<6.1"
