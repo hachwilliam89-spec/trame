@@ -1,0 +1,115 @@
+name: Graphe de dépendances
+
+# Le graphe de dépendances de GitHub ne lit ni le pnpm-lock.yaml de pnpm 12 (deux documents YAML
+# quand la version de pnpm est figée) ni uv.lock. On lui soumet donc un instantané construit depuis
+# les SBOM de pnpm et de uv (tools/dependency-graph), puis on vérifie qu'il en contient chaque
+# paquet, direct ou transitif. Sur une PR, l'instantané est seulement construit et contrôlé.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: dependency-graph-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  NX_DAEMON: 'false'
+  NX_NO_CLOUD: 'true'
+  LEFTHOOK: '0'
+
+jobs:
+  snapshot:
+    name: Instantané des dépendances (pnpm, uv)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      # Lecture du dépôt seulement : ce job installe les dépendances et ne soumet rien.
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: $/.github/actions/setup
+        with:
+          python: 'false'
+
+      # Version lue dans required-version de apps/engine/pyproject.toml.
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version-file: apps/engine/pyproject.toml
+
+      # Deux SBOM par fichier de verrouillage : toutes les dépendances, puis celles de production.
+      - name: SBOM CycloneDX de pnpm et de uv
+        run: |
+          sboms="$RUNNER_TEMP/sboms"
+          mkdir -p "$sboms"
+          pnpm sbom --sbom-format cyclonedx --lockfile-only > "$sboms/pnpm-full.json"
+          pnpm sbom --sbom-format cyclonedx --lockfile-only --prod > "$sboms/pnpm-production.json"
+          cd apps/engine
+          uv export --frozen --format cyclonedx1.5 --all-groups > "$sboms/uv-full.json"
+          uv export --frozen --format cyclonedx1.5 --no-default-groups > "$sboms/uv-production.json"
+
+      - name: Instantané pour l'API de soumission
+        run: |
+          SCANNED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            pnpm exec tsx tools/dependency-graph/src/main.ts "$RUNNER_TEMP/sboms" "$RUNNER_TEMP/snapshot.json"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dependency-snapshot
+          path: ${{ runner.temp }}/snapshot.json
+          if-no-files-found: error
+          retention-days: 7
+
+  submit:
+    name: Soumission au graphe
+    if: github.ref == 'refs/heads/main'
+    needs: snapshot
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      # Exigé par l'API de soumission. Ce job n'exécute aucun code du dépôt : il envoie l'instantané.
+      contents: write
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dependency-snapshot
+          path: ${{ runner.temp }}/snapshot
+
+      - name: Soumettre l'instantané
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method POST "repos/$GITHUB_REPOSITORY/dependency-graph/snapshots" \
+            --input "$RUNNER_TEMP/snapshot/snapshot.json" \
+            --jq '"Instantané \(.id) : \(.result), \(.message)"'
+
+  verify:
+    name: Vérification du graphe
+    needs: submit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      # Lecture du rapport SBOM exporté par le graphe de dépendances.
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          sparse-checkout: tools/dependency-graph
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dependency-snapshot
+          path: ${{ runner.temp }}/snapshot
+
+      - name: Le graphe contient chaque paquet soumis, direct ou transitif
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: tools/dependency-graph/verify-graph.sh "$RUNNER_TEMP/snapshot/snapshot.json"

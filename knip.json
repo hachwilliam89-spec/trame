@@ -10,9 +10,13 @@
     "libs/shared/contracts/scripts/*.ts",
     "libs/api/shared/database/prisma.config.ts"
   ],
-  "project": ["apps/**/*.{ts,mts}", "libs/**/*.{ts,mts}"],
+  "project": ["apps/**/*.{ts,mts}", "libs/**/*.{ts,mts}", "tools/**/*.{ts,mts}"],
   "vitest": {
-    "config": ["apps/*/vitest.config.mts", "libs/**/vitest*.config.mts"],
+    "config": [
+      "apps/*/vitest.config.mts",
+      "libs/**/vitest*.config.mts",
+      "tools/*/vitest.config.mts"
+    ],
     "entry": ["**/*.spec.ts"]
   },
   "ignoreBinaries": ["uv"],

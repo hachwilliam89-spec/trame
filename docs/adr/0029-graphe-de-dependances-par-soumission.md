@@ -1,0 +1,27 @@
+# ADR-0029 — Graphe de dépendances : instantanés soumis par l'API
+
+- **Statut** : Proposé (2026-11-02).
+- **Contexte** :
+  - Le graphe de dépendances de GitHub alimente les alertes de vulnérabilité et `dependency-review-action`.
+  - Il ne détecte pas nos dépendances :
+    - pnpm 12 écrit `pnpm-lock.yaml` en deux documents YAML quand la version de pnpm est figée (`packageManager`), format que le graphe ne lit pas ;
+    - `uv.lock` ne figure pas parmi les formats pris en charge.
+  - Retirer le champ `packageManager` rendrait le lockfile lisible, mais la version de pnpm ne serait plus figée pour tous.
+- **Décision** :
+  - Un workflow (`dependency-graph.yml`) construit un instantané à partir des SBOM CycloneDX produits par les outils eux-mêmes : `pnpm sbom` et `uv export`, chacun en deux passes (toutes les dépendances, puis celles de production).
+  - La conversion vers l'API « dependency submission » vit dans `tools/dependency-graph`, testée. Chaque paquet porte sa relation (directe ou indirecte), sa portée (production ou développement) et ses dépendances.
+  - Sur `main`, l'instantané est soumis, puis un job vérifie que le rapport SBOM exporté par GitHub contient chaque paquet soumis, direct ou transitif. Il utilise l'export asynchrone (`generate-report`, puis `fetch-report`) : l'export synchrone ferme le 13 novembre 2026.
+  - Sur une PR, l'instantané est construit et contrôlé, sans droit d'écriture.
+  - `dependency-review-action` ne devient un contrôle exigé qu'une fois cette vérification réussie sur `main`, dans une PR à part, avec une politique de licences explicite.
+- **Conséquences** :
+  - (+) Le graphe, les alertes et la future revue des dépendances voient pnpm et uv, sans changer les outils.
+  - (+) Le format vient de pnpm et de uv : aucun analyseur de lockfile écrit par nous.
+  - (−) Un job a le droit `contents: write`. Il n'exécute aucun code du dépôt : il envoie un fichier produit par un autre job, en lecture seule.
+  - (−) Le graphe n'est à jour qu'après la soumission sur `main`. Pour une PR, la revue des dépendances demandera aussi un instantané du commit de la PR.
+- **Alternatives écartées** :
+  - retirer `packageManager` : la version de pnpm ne serait plus figée pour tous ;
+  - `component-detection` ou `syft` : ils analysent eux-mêmes les lockfiles, sans garantie sur le format en deux documents de pnpm 12 ;
+  - exporter un `requirements.txt` versionné pour le moteur : un fichier généré de plus à garder synchronisé.
+- **Références** :
+  - [Écosystèmes pris en charge par le graphe](https://docs.github.com/en/code-security/reference/supply-chain-security/dependency-graph-supported-package-ecosystems) ;
+  - [API REST de soumission des dépendances](https://docs.github.com/en/rest/dependency-graph/dependency-submission).

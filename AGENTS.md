@@ -32,6 +32,8 @@ libs/
   api/<context>/domain/          entités, value objects, règles — aucune dépendance framework
   api/<context>/application/     use cases, ports (interfaces)
   api/<context>/infrastructure/  adaptateurs : Prisma, AMQP, HTTP
+tools/
+  dependency-graph/   soumission des dépendances au graphe de GitHub (ADR-0029)
 infra/
   compose/    dev.yml, staging.yml, prod.yml (US-004, US-005)
   keycloak/   export du realm (versionné, US-020)
@@ -70,7 +72,7 @@ pnpm nx format:check                               # Prettier (TypeScript, JSON,
 pnpm knip                                          # code mort et dépendances inutilisées
 ```
 
-La CI (`.github/workflows/ci.yml`) lance ces contrôles sur chaque PR. CodeQL tourne à part (`codeql.yml`). Pour fusionner sur `main`, la protection exige :
+La CI (`.github/workflows/ci.yml`) lance ces contrôles sur chaque PR, ainsi que l'audit des workflows par zizmor. CodeQL tourne à part (`codeql.yml`), tout comme la soumission des dépendances au graphe de GitHub (`dependency-graph.yml`, ADR-0029). Pour fusionner sur `main`, la protection exige :
 
 - « CI OK », qui agrège tous les jobs de la CI ;
 - les trois analyses « Analyse (…) » de CodeQL ;
