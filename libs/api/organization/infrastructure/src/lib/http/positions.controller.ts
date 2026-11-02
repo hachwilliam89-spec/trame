@@ -14,7 +14,7 @@ import {
 } from '@trame/shared/contracts';
 import { organizationErrorMappings } from './organization-error-mappings';
 import { toPageRequest } from './page-request';
-import { toPositionV1 } from './position-presenter';
+import { toPositionV1 } from './presenters';
 import { resourceIdPipe } from './resource-id.pipe';
 
 @Controller('sites/:siteId/positions')

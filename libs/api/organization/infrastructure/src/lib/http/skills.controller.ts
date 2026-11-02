@@ -29,7 +29,7 @@ import {
 } from '@trame/shared/contracts';
 import { organizationErrorMappings } from './organization-error-mappings';
 import { toPageRequest } from './page-request';
-import { toSkillV1 } from './skill-presenter';
+import { toSkillV1 } from './presenters';
 import { resourceIdPipe } from './resource-id.pipe';
 
 @Controller('skills')

@@ -130,6 +130,33 @@ describe('module organization sur PostgreSQL (intégration)', () => {
     expect((await admin.get(`/sites/${site.body.id}/positions`)).body.items).toEqual([]);
   });
 
+  // L'horloge système est réelle ici : l'instant renvoyé à la création doit être celui qu'on relit.
+  it('renvoie la même date de création à la création et à la relecture, pour chaque ressource', async () => {
+    const admin = new TestClient(app, testActors.adminOfA);
+    const site = await admin.post('/sites', { code: 'DATES', name: 'Dates' });
+    const shiftTemplate = await admin.post(`/sites/${site.body.id}/shift-templates`, {
+      label: 'Matin',
+      startTime: '06:00',
+      endTime: '14:00',
+      break: { startTime: '10:00', durationMinutes: 20 },
+    });
+    const skill = await admin.post('/skills', { name: 'Réception' });
+    const position = await admin.post(`/sites/${site.body.id}/positions`, {
+      name: 'Réceptionnaire',
+      skillIds: [skill.body.id],
+    });
+
+    const rereadSite = await admin.get(`/sites/${site.body.id}`);
+    const rereadShiftTemplates = await admin.get(`/sites/${site.body.id}/shift-templates`);
+    const rereadSkill = await admin.get(`/skills/${skill.body.id}`);
+    const rereadPosition = await admin.get(`/sites/${site.body.id}/positions/${position.body.id}`);
+
+    expect(rereadSite.body.createdAt).toBe(site.body.createdAt);
+    expect(rereadShiftTemplates.body.items[0].createdAt).toBe(shiftTemplate.body.createdAt);
+    expect(rereadSkill.body.createdAt).toBe(skill.body.createdAt);
+    expect(rereadPosition.body.createdAt).toBe(position.body.createdAt);
+  });
+
   it('refuse aussi NUL dans le nom d’un site et le libellé d’un créneau, sans erreur 500', async () => {
     const admin = new TestClient(app, testActors.adminOfA);
     const site = await admin.post('/sites', { code: 'NUL-2', name: 'Col\u0000mar' });

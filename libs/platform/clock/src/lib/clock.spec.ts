@@ -31,6 +31,17 @@ describe('FixedClock', () => {
   });
 });
 
+describe('SystemClock', () => {
+  it('donne l’instant à la milliseconde, la précision que stocke PostgreSQL', () => {
+    const clock = new SystemClock();
+
+    // Plusieurs lectures : une seule tomberait par hasard sur une milliseconde ronde une fois sur un million.
+    for (let reading = 0; reading < 20; reading++) {
+      expect(clock.now().epochNanoseconds % 1_000_000n).toBe(0n);
+    }
+  });
+});
+
 describe('ClockModule', () => {
   it("fournit l'horloge système sous le jeton CLOCK", async () => {
     const moduleRef = await Test.createTestingModule({ imports: [ClockModule] }).compile();
