@@ -1,0 +1,18 @@
+# Node 26 est requis (Temporal natif, ADR-0027) : pnpm refuse d'installer avec une autre version.
+engineStrict: true
+
+allowBuilds:
+  '@parcel/watcher': true
+  '@swc/core': true
+  esbuild: true
+  lmdb: true
+  msgpackr-extract: true
+  nx: true
+  unrs-resolver: true
+  '@nestjs/core': false
+  '@prisma/engines': true
+  cpu-features: false
+  lefthook: true
+  prisma: true
+  protobufjs: false
+  ssh2: false

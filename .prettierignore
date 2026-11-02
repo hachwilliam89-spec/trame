@@ -1,0 +1,10 @@
+/dist
+/coverage
+/tmp
+/.nx/cache
+/.nx/workspace-data
+/.nx/self-healing
+pnpm-lock.yaml
+**/generated/**
+apps/engine/**
+**/.astro/**

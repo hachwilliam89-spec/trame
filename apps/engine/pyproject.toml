@@ -1,0 +1,133 @@
+[project]
+name = "trame-engine"
+version = "0.0.0"
+description = "Moteur d'optimisation de Trame : OR-Tools CP-SAT et PE"
+readme = "README.md"
+license = "MIT"
+requires-python = "==3.14.*"
+dependencies = [
+    "fastapi==0.162.0",
+    "ortools==9.15.6755",
+    "pydantic==2.14.2",
+    "pydantic-settings==2.16.2",
+    "structlog==26.1.0",
+    "uvicorn==0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "datamodel-code-generator==0.87.0",
+    "httpx2==2.16.0",
+    "hypothesis==6.170.14",
+    "import-linter==2.15",
+    "mypy==2.4.1",
+    "pytest==9.2.0",
+    "pytest-cov==7.1.0",
+    "ruff==0.17.3",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.6,<0.14"]
+build-backend = "uv_build"
+
+[tool.uv]
+required-version = ">=0.13.6,<0.14"
+
+[tool.ruff]
+target-version = "py314"
+line-length = 100
+src = ["src", "tests"]
+# Modèles générés depuis les schémas zod (ADR-0018) : formatés, jamais lintés ni édités.
+extend-exclude = ["src/trame_engine/contracts"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "PT", "RET", "ARG",
+    "PL", "RUF", "S", "ANN", "DTZ", "TID",
+]
+ignore = ["PLR2004"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "ANN401", "PLR2004"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.mypy]
+python_version = "3.14"
+strict = true
+warn_unreachable = true
+plugins = ["pydantic.mypy"]
+files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["ortools.*"]
+ignore_missing_imports = true
+
+[tool.pydantic-mypy]
+init_forbid_extra = true
+init_typed = true
+warn_required_dynamic_aliases = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["-ra", "--strict-markers", "--strict-config"]
+xfail_strict = true
+filterwarnings = ["error"]
+
+[tool.coverage.run]
+source = ["trame_engine"]
+omit = ["*/trame_engine/contracts/*"]
+
+[tool.importlinter]
+root_package = "trame_engine"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Couches du moteur : api -> solver -> contracts"
+type = "layers"
+layers = [
+    "trame_engine.api",
+    "trame_engine.solver",
+    "trame_engine.contracts",
+]
+
+[[tool.importlinter.contracts]]
+name = "Les contrats générés ne dépendent d'aucun module du moteur"
+type = "forbidden"
+source_modules = ["trame_engine.contracts"]
+forbidden_modules = [
+    "trame_engine.api",
+    "trame_engine.solver",
+    "trame_engine.settings",
+    "trame_engine.logs",
+]
+
+[[tool.importlinter.contracts]]
+name = "Le solveur ne connaît ni HTTP ni la configuration"
+type = "forbidden"
+source_modules = ["trame_engine.solver"]
+forbidden_modules = ["fastapi", "starlette", "uvicorn", "trame_engine.settings"]
+
+# Génération des modèles Pydantic depuis les schémas zod (ADR-0018).
+# Lancée par `pnpm nx run contracts:generate`, jamais à la main.
+[tool.datamodel-codegen]
+input = "../../tmp/contracts/engine-contracts.schema.json"
+input-file-type = "jsonschema"
+output = "src/trame_engine/contracts/__init__.py"
+output-model-type = "pydantic_v2.BaseModel"
+target-python-version = "3.14"
+snake-case-field = true
+allow-population-by-field-name = true
+use-annotated = true
+field-constraints = true
+use-standard-collections = true
+use-union-operator = true
+enum-field-as-literal = "all"
+use-schema-description = true
+use-double-quotes = true
+disable-timestamp = true
+output-datetime-class = "AwareDatetime"
+extra-fields = "ignore"
+formatters = ["ruff-format", "ruff-check"]
+custom-file-header = "# GÉNÉRÉ par `pnpm nx run contracts:generate` (ADR-0018). Ne pas éditer."

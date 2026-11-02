@@ -1,0 +1,39 @@
+{
+  "name": "api-database",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/api/shared/database/src",
+  "projectType": "library",
+  "tags": ["scope:api", "layer:infrastructure"],
+  "targets": {
+    "prisma-generate": {
+      "command": "prisma generate",
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "inputs": ["{projectRoot}/prisma/schema.prisma", "{projectRoot}/prisma.config.ts"],
+      "outputs": ["{projectRoot}/src/generated/prisma"],
+      "cache": true
+    },
+    "prisma-migrate": {
+      "command": "prisma migrate dev",
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "cache": false
+    },
+    "typecheck": {
+      "dependsOn": ["prisma-generate", "^typecheck"]
+    },
+    "test": {
+      "dependsOn": ["prisma-generate"]
+    },
+    "integration": {
+      "dependsOn": ["prisma-generate"],
+      "command": "vitest run --config vitest.integration.config.mts",
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "cache": false
+    }
+  }
+}

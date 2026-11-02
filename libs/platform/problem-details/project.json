@@ -1,0 +1,8 @@
+{
+  "name": "platform-problem-details",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/platform/problem-details/src",
+  "projectType": "library",
+  "tags": ["scope:platform"],
+  "targets": {}
+}

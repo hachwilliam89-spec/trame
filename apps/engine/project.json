@@ -1,0 +1,87 @@
+{
+  "name": "engine",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/engine/src",
+  "tags": [
+    "scope:engine",
+    "type:app"
+  ],
+  "implicitDependencies": [
+    "contracts"
+  ],
+  "namedInputs": {
+    "python": [
+      "{projectRoot}/src/**/*.py",
+      "{projectRoot}/tests/**/*.py",
+      "{projectRoot}/pyproject.toml",
+      "{projectRoot}/uv.lock",
+      {
+        "runtime": "uv --version"
+      }
+    ]
+  },
+  "targets": {
+    "install": {
+      "command": "uv sync --frozen",
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "inputs": [
+        "{projectRoot}/pyproject.toml",
+        "{projectRoot}/uv.lock"
+      ],
+      "cache": false
+    },
+    "serve": {
+      "continuous": true,
+      "command": "uv run python -m trame_engine",
+      "options": {
+        "cwd": "{projectRoot}"
+      }
+    },
+    "test": {
+      "command": "uv run pytest",
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "inputs": [
+        "python",
+        "{workspaceRoot}/libs/shared/contracts/fixtures/**/*"
+      ],
+      "cache": true
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "cwd": "{projectRoot}",
+        "commands": [
+          "uv run ruff check .",
+          "uv run ruff format --check .",
+          "uv run lint-imports"
+        ],
+        "parallel": false
+      },
+      "inputs": [
+        "python"
+      ],
+      "cache": true
+    },
+    "format": {
+      "command": "uv run ruff format .",
+      "options": {
+        "cwd": "{projectRoot}"
+      }
+    },
+    "typecheck": {
+      "command": "uv run mypy",
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "inputs": [
+        "python"
+      ],
+      "cache": true
+    }
+  }
+}
