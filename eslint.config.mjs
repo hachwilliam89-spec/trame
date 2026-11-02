@@ -114,7 +114,7 @@ export default [
   {
     // Outils de test (`@trame/.../testing`) : jamais dans le code de production.
     files: ['**/*.ts', '**/*.mts'],
-    ignores: ['**/*.spec.ts', '**/*.test.ts', '**/src/testing.ts'],
+    ignores: ['**/*.spec.ts', '**/*.test.ts', '**/src/testing.ts', '**/src/testing/**'],
     rules: {
       'no-restricted-imports': [
         'error',

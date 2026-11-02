@@ -34,6 +34,13 @@
         "cwd": "{projectRoot}"
       },
       "cache": false
+    },
+    "migrations-check": {
+      "command": "prisma migrate deploy && prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code",
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "cache": false
     }
   }
 }

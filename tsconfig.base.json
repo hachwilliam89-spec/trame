@@ -20,6 +20,7 @@
     "skipDefaultLibCheck": true,
     "paths": {
       "@trame/api/database": ["./libs/api/shared/database/src/index.ts"],
+      "@trame/api/database/testing": ["./libs/api/shared/database/src/testing.ts"],
       "@trame/api/organization/application": ["./libs/api/organization/application/src/index.ts"],
       "@trame/api/organization/application/testing": [
         "./libs/api/organization/application/src/testing.ts"
