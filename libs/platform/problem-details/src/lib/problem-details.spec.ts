@@ -3,6 +3,7 @@ import {
   ForbiddenException,
   Get,
   type INestApplication,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -105,7 +106,9 @@ describe('ProblemDetailsFilter', () => {
     });
   });
 
-  it("ne divulgue jamais le message d'une erreur inattendue", async () => {
+  it("ne divulgue jamais le message d'une erreur inattendue, ni dans la réponse ni dans les logs", async () => {
+    const logged = vi.spyOn(Logger.prototype, 'error');
+
     const response = await request(app.getHttpServer()).get('/demo/crash');
 
     expect(response.status).toBe(500);
@@ -116,5 +119,21 @@ describe('ProblemDetailsFilter', () => {
       instance: '/demo/crash',
     });
     expect(JSON.stringify(response.body)).not.toContain('secret');
+
+    expect(logged).toHaveBeenCalledTimes(1);
+    const [entry] = logged.mock.calls[0] ?? [];
+    expect(JSON.stringify(entry)).not.toContain('secret');
+    expect(entry).toMatchObject({ msg: 'Erreur inattendue', errorType: 'Error' });
+    expect((entry as { stack: string[] }).stack[0]).toMatch(/^at /);
+    logged.mockRestore();
+  });
+
+  it('ne journalise pas les erreurs 4xx', async () => {
+    const logged = vi.spyOn(Logger.prototype, 'error');
+
+    await request(app.getHttpServer()).get('/demo/forbidden');
+
+    expect(logged).not.toHaveBeenCalled();
+    logged.mockRestore();
   });
 });

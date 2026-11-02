@@ -1,11 +1,11 @@
-import { Controller, Get, Inject, ServiceUnavailableException } from '@nestjs/common';
+import { Controller, Get, Inject, Logger, ServiceUnavailableException } from '@nestjs/common';
 import {
   HealthCheck,
   type HealthCheckResult,
   HealthCheckService,
   HealthIndicatorService,
 } from '@nestjs/terminus';
-import { ProblemDetailsException } from '@trame/platform/problem-details';
+import { ProblemDetailsException, describeForLog } from '@trame/platform/problem-details';
 import { READINESS_INDICATORS, type ReadinessIndicator } from './readiness-indicator';
 
 /**
@@ -14,6 +14,8 @@ import { READINESS_INDICATORS, type ReadinessIndicator } from './readiness-indic
  */
 @Controller('health')
 export class HealthController {
+  private readonly logger = new Logger(HealthController.name);
+
   constructor(
     private readonly health: HealthCheckService,
     private readonly indicatorService: HealthIndicatorService,
@@ -36,8 +38,13 @@ export class HealthController {
           try {
             await indicator.check();
             return result.up();
-          } catch {
-            // Le détail de l'erreur reste dans les logs, jamais dans la réponse publique.
+          } catch (error) {
+            // Type et pile dans les logs, sans le message ; rien de tout cela dans la réponse publique.
+            this.logger.warn({
+              ...describeForLog(error),
+              msg: 'Dépendance indisponible',
+              indicator: indicator.name,
+            });
             return result.down({ message: 'indisponible' });
           }
         }),

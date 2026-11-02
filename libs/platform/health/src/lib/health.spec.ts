@@ -1,4 +1,4 @@
-import { type INestApplication, Injectable } from '@nestjs/common';
+import { type INestApplication, Injectable, Logger } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { ProblemDetailsModule } from '@trame/platform/problem-details';
 import request from 'supertest';
@@ -58,6 +58,7 @@ describe('HealthModule', () => {
 
   it('health/ready répond 503 en problem+json, sans détail interne', async () => {
     state.databaseUp = false;
+    const warned = vi.spyOn(Logger.prototype, 'warn');
 
     const response = await request(app.getHttpServer()).get('/health/ready');
 
@@ -68,5 +69,11 @@ describe('HealthModule', () => {
       checks: { database: { status: 'down', message: 'indisponible' } },
     });
     expect(JSON.stringify(response.body)).not.toContain('10.0.0.12');
+
+    expect(warned).toHaveBeenCalledWith(
+      expect.objectContaining({ msg: 'Dépendance indisponible', indicator: 'database' }),
+    );
+    expect(JSON.stringify(warned.mock.calls)).not.toContain('10.0.0.12');
+    warned.mockRestore();
   });
 });

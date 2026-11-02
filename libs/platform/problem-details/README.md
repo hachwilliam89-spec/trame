@@ -6,7 +6,8 @@ Erreurs HTTP au format RFC 9457 (`application/problem+json`), pour toute l'API (
 - `ProblemDetailsFilter` : convertit toute erreur.
   - `ProblemDetailsException` : rendue telle quelle, extensions comprises.
   - `HttpException` de NestJS : statut conservé, message repris en `detail`.
-  - Autre erreur : `500` générique, sans aucun détail interne ; l'erreur est journalisée.
+  - Autre erreur : `500` générique, sans aucun détail interne.
+- Toute réponse 5xx est journalisée par `describeForLog` : type d'erreur et pile d'appels, jamais le message, qui peut contenir un secret. L'identifiant de requête du log permet de retrouver le contexte.
 - `problem(init)` : complète `type` (`about:blank` par défaut) et `title` (libellé HTTP du statut).
 - `instance` vaut toujours le chemin de la requête, sans la query string.
 
