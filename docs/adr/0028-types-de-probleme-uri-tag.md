@@ -1,0 +1,29 @@
+# ADR-0028 — Types de problème : URI `tag:`
+
+- **Statut** : Proposé (2026-11-02). Précise ADR-0021.
+- **Contexte** :
+  - ADR-0021 impose des erreurs au format RFC 9457. Le membre `type` est une URI qui identifie le type de problème ; le client s'en sert pour réagir (par exemple, afficher « code déjà utilisé » sous le bon champ).
+  - La RFC 9457 (§3.1.1) autorise une URI non résolvable, mais elle doit rester stable et unique.
+  - Un URN (`urn:trame:…`) exige un espace de noms enregistré auprès de l'IANA. `trame` ne l'est pas : l'URN serait invalide.
+  - Une URL `https://` laisserait croire qu'une page de documentation existe à cette adresse, et lierait les identifiants à l'hébergement de la doc.
+- **Décision** :
+  - Les types de problème propres à Trame sont des URI `tag:` (RFC 4151) : `tag:wkhach.dev,2026-11-02:trame:problem:<code>`, par exemple `…:site-code-already-used`.
+  - L'autorité est le domaine `wkhach.dev`, détenu par l'auteur à la date indiquée. Elle n'expose aucune adresse e-mail dans les réponses de l'API.
+  - Le préfixe et les types sont des constantes de `@trame/shared/contracts` (`problemTypes`). L'API les émet, le front compare le `type` complet à ces constantes.
+  - Un type publié n'est jamais renommé : une sémantique nouvelle crée un nouveau type.
+  - Les erreurs sans sémantique propre gardent `about:blank` : 401, 403, 404, et les erreurs de validation (400 avec l'extension `errors`, un JSON Pointer par champ).
+  - La documentation (US-006) liste chaque type, avec son statut HTTP et sa signification.
+- **Conséquences** :
+  - (+) Identifiants valides, stables, indépendants de l'hébergement, sans enregistrement à demander.
+  - (+) Une seule source pour l'API et le front : un type ne peut pas diverger entre les deux.
+  - (−) L'URI n'est pas cliquable : la signification d'un type se lit dans la documentation, pas en suivant le lien.
+  - (−) Le domaine choisi comme autorité figure à jamais dans les identifiants, même s'il change de main plus tard (la date le rend tout de même unique).
+- **Alternatives écartées** :
+  - `urn:trame:problem:…` : espace de noms non enregistré, URN invalide ;
+  - URL `https://…/problems/…` : promet une page qui n'existe pas encore, et couple l'identifiant à l'hébergement ;
+  - `tag:` fondé sur une adresse e-mail : valide, mais publie l'adresse dans chaque réponse d'erreur de l'API ;
+  - `about:blank` partout, avec un code dans une extension : le client ne pourrait plus s'appuyer sur `type`, qui est fait pour ça.
+- **Références** :
+  - [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457), §3.1.1 et §4.2 ;
+  - [RFC 4151](https://www.rfc-editor.org/rfc/rfc4151) : le schéma d'URI `tag:` ;
+  - [Registre IANA des espaces de noms URN](https://www.iana.org/assignments/urn-namespaces/urn-namespaces.xhtml).
