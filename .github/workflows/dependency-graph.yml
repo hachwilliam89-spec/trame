@@ -99,7 +99,7 @@ jobs:
       # Lecture du SBOM exporté par le graphe de dépendances.
       contents: read
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
           sparse-checkout: tools/dependency-graph
