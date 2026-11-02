@@ -4,7 +4,8 @@
     "config:recommended",
     "helpers:pinGitHubActionDigestsToSemver",
     ":semanticCommits",
-    ":semanticCommitScope(deps)"
+    ":semanticCommitScope(deps)",
+    "customManagers:githubActionsVersions"
   ],
   "timezone": "Europe/Paris",
   "schedule": ["before 6am on monday"],

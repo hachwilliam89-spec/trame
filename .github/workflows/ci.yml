@@ -33,7 +33,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: ./.github/actions/setup
+      - uses: $/.github/actions/setup
 
       - uses: nrwl/nx-set-shas@e602fada7ad5987b0f7b1905e7a99ea1c661514c # v5.1.0
 
@@ -55,7 +55,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: ./.github/actions/setup
+      - uses: $/.github/actions/setup
 
       - name: Modèles Pydantic régénérés depuis zod (ADR-0018)
         run: pnpm nx run contracts:check
@@ -69,7 +69,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: ./.github/actions/setup
+      - uses: $/.github/actions/setup
         with:
           python: 'false'
 
@@ -122,11 +122,33 @@ jobs:
           uv export --frozen --no-hashes --no-emit-project --format requirements.txt > "$RUNNER_TEMP/engine-requirements.txt"
           uvx pip-audit@2.10.1 --strict --no-deps --disable-pip --progress-spinner off -r "$RUNNER_TEMP/engine-requirements.txt"
 
+  workflows:
+    name: Audit des workflows (zizmor)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      # renovate: datasource=pypi depName=zizmor
+      ZIZMOR_VERSION: 1.31.1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Échoue sur tout constat du profil `regular`, quelle que soit sa gravité, avec les audits en
+      # ligne (actions vulnérables, commits usurpés, versions incohérentes). Les constats s'affichent
+      # en annotations ; le mode Advanced Security, par défaut, les publierait sans faire échouer le job.
+      - uses: zizmorcore/zizmor-action@53290badfa369cb0bf7ad16342cb62c2fa47ac7b # v0.8.0
+        with:
+          version: ${{ env.ZIZMOR_VERSION }}
+          config: .github/zizmor.yml
+          advanced-security: false
+          annotations: true
+
   # Seul check exigé par la protection de main : il agrège tous les autres.
   ci-ok:
     name: CI OK
     if: always()
-    needs: [verify, contracts, integration, secrets, audit]
+    needs: [verify, contracts, integration, secrets, audit, workflows]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

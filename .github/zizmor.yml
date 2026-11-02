@@ -1,0 +1,7 @@
+# Configuration de zizmor (audit des workflows, job « Audit des workflows » de la CI).
+rules:
+  unpinned-uses:
+    config:
+      policies:
+        # Toute action, y compris celles de GitHub, est épinglée par SHA de commit.
+        '*': hash-pin
