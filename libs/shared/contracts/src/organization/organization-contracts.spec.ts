@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { createSkillRequestV1, skillV1, skillPageV1 } from './skill.v1';
+import { createPositionRequestV1, positionV1, positionPageV1 } from './position.v1';
 import { pageQueryV1 } from '../common/page.v1';
 import { problemTypes } from '../problem-types';
 import {
@@ -10,6 +12,12 @@ import {
 import { createSiteRequestV1, sitePageV1 } from './site.v1';
 
 const exchangedSchemas = {
+  createSkillRequestV1,
+  skillV1,
+  skillPageV1,
+  createPositionRequestV1,
+  positionV1,
+  positionPageV1,
   createSiteRequestV1,
   sitePageV1,
   createShiftTemplateRequestV1,
@@ -20,6 +28,23 @@ const exchangedSchemas = {
 };
 
 describe('contrats du contexte organization', () => {
+  it.each(['', '   ', 'a'.repeat(101), 'CACES\u0000R489'])(
+    'refuse les noms invalides du catalogue : %j',
+    (name) => {
+      expect(createSkillRequestV1.safeParse({ name }).success).toBe(false);
+      expect(createPositionRequestV1.safeParse({ name, skillIds: [] }).success).toBe(false);
+    },
+  );
+
+  it('exige une liste de compétences composée d’UUID, éventuellement vide', () => {
+    expect(createPositionRequestV1.safeParse({ name: 'Préparation', skillIds: [] }).success).toBe(
+      true,
+    );
+    expect(createPositionRequestV1.safeParse({ name: 'Préparation' }).success).toBe(false);
+    expect(
+      createPositionRequestV1.safeParse({ name: 'Préparation', skillIds: ['invalide'] }).success,
+    ).toBe(false);
+  });
   it.each(Object.entries(exchangedSchemas))(
     '%s est exportable en JSON Schema (ADR-0018)',
     (_name, schema) => {

@@ -15,3 +15,24 @@ export class ShiftTemplateNotFoundError extends Error {
     this.name = 'ShiftTemplateNotFoundError';
   }
 }
+export class SkillNotFoundError extends Error {
+  constructor() {
+    super('Compétence introuvable.');
+    this.name = 'SkillNotFoundError';
+  }
+}
+
+export class PositionNotFoundError extends Error {
+  constructor() {
+    super('Poste introuvable.');
+    this.name = 'PositionNotFoundError';
+  }
+}
+
+/** Une référence peut disparaître entre sa lecture et l'enregistrement du poste. */
+export class PositionReferenceNotFoundError extends Error {
+  constructor() {
+    super('Site ou compétence introuvable.');
+    this.name = 'PositionReferenceNotFoundError';
+  }
+}

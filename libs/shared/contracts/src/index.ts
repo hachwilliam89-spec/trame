@@ -5,3 +5,5 @@ export { engineContracts, engineContractsJsonSchema } from './engine-contracts';
 export * from './organization/shift-template.v1';
 export * from './organization/site.v1';
 export * from './problem-types';
+export * from './organization/skill.v1';
+export * from './organization/position.v1';

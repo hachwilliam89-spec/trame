@@ -1,12 +1,22 @@
-import { ShiftTemplateNotFoundError, SiteNotFoundError } from '@trame/api/organization/application';
+import {
+  PositionNotFoundError,
+  PositionReferenceNotFoundError,
+  ShiftTemplateNotFoundError,
+  SiteNotFoundError,
+  SkillNotFoundError,
+} from '@trame/api/organization/application';
 import {
   BlankShiftTemplateLabelError,
   BlankSiteNameError,
   BreakOutsideShiftError,
+  DuplicateRequiredSkillError,
   EmptyShiftError,
   InvalidBreakDurationError,
+  InvalidPositionNameError,
   InvalidSiteCodeError,
+  InvalidSkillNameError,
   SiteCodeAlreadyUsedError,
+  SkillInUseError,
   UnknownTimeZoneError,
 } from '@trame/api/organization/domain';
 import type { ErrorMapping } from '@trame/platform/problem-details';
@@ -17,6 +27,18 @@ import { problemTypes } from '@trame/shared/contracts';
  * ici : une erreur oubliée deviendrait un 500.
  */
 export const organizationErrorMappings: ErrorMapping[] = [
+  { error: SkillNotFoundError, status: 404 },
+  { error: PositionNotFoundError, status: 404 },
+  { error: PositionReferenceNotFoundError, status: 404 },
+  { error: InvalidSkillNameError, pointer: '#/name', code: 'invalid_skill_name' },
+  { error: InvalidPositionNameError, pointer: '#/name', code: 'invalid_position_name' },
+  { error: DuplicateRequiredSkillError, pointer: '#/skillIds', code: 'duplicate_skill' },
+  {
+    error: SkillInUseError,
+    status: 409,
+    type: problemTypes.skillInUse,
+    title: 'Compétence utilisée',
+  },
   { error: SiteNotFoundError, status: 404 },
   { error: ShiftTemplateNotFoundError, status: 404 },
   {
