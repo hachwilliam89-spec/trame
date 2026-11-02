@@ -17,10 +17,7 @@ describe('Skill', () => {
     expect(Skill.create({ ...properties, name }).name).toBe(name);
   });
 
-  it.each(['', ' \t\n', 'a'.repeat(101), 'CACES\u0000R489'])(
-    'refuse le nom invalide %j',
-    (name) => {
-      expect(() => Skill.create({ ...properties, name })).toThrow(InvalidSkillNameError);
-    },
-  );
+  it.each(['', ' \t\n', 'a'.repeat(101)])('refuse le nom invalide %j', (name) => {
+    expect(() => Skill.create({ ...properties, name })).toThrow(InvalidSkillNameError);
+  });
 });

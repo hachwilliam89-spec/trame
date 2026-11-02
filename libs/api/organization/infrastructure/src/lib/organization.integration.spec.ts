@@ -129,4 +129,23 @@ describe('module organization sur PostgreSQL (intégration)', () => {
     }
     expect((await admin.get(`/sites/${site.body.id}/positions`)).body.items).toEqual([]);
   });
+
+  it('refuse aussi NUL dans le nom d’un site et le libellé d’un créneau, sans erreur 500', async () => {
+    const admin = new TestClient(app, testActors.adminOfA);
+    const site = await admin.post('/sites', { code: 'NUL-2', name: 'Col\u0000mar' });
+    const validSite = await admin.post('/sites', { code: 'NUL-3', name: 'Colmar' });
+    const shiftTemplate = await admin.post(`/sites/${validSite.body.id}/shift-templates`, {
+      label: 'Nu\u0000it',
+      startTime: '22:00',
+      endTime: '06:00',
+      break: { startTime: '02:00', durationMinutes: 30 },
+    });
+
+    expect(site.status).toBe(400);
+    expect(site.body.errors).toContainEqual(expect.objectContaining({ pointer: '#/name' }));
+    expect(shiftTemplate.status).toBe(400);
+    expect(shiftTemplate.body.errors).toContainEqual(
+      expect.objectContaining({ pointer: '#/label' }),
+    );
+  });
 });

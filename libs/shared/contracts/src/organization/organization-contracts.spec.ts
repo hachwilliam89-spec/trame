@@ -36,6 +36,20 @@ describe('contrats du contexte organization', () => {
     },
   );
 
+  it('refuse le caractère NUL dans tout texte saisi : PostgreSQL ne peut pas le stocker', () => {
+    const night = {
+      label: 'Nu\u0000it',
+      startTime: '22:00',
+      endTime: '06:00',
+      break: { startTime: '02:00', durationMinutes: 30 },
+    };
+
+    expect(createSiteRequestV1.safeParse({ code: 'COL', name: 'Col\u0000mar' }).success).toBe(
+      false,
+    );
+    expect(createShiftTemplateRequestV1.safeParse(night).success).toBe(false);
+  });
+
   it('exige une liste de compétences composée d’UUID, éventuellement vide', () => {
     expect(createPositionRequestV1.safeParse({ name: 'Préparation', skillIds: [] }).success).toBe(
       true,

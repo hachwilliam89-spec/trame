@@ -3,7 +3,7 @@ import { DomainError } from '../domain-error';
 export class InvalidSkillNameError extends DomainError {
   constructor() {
     super(
-      'Le nom de la compétence doit contenir entre 1 et 100 caractères, ne pas être vide et ne pas contenir de caractère NUL.',
+      'Le nom de la compétence doit contenir entre 1 et 100 caractères, dont au moins un caractère visible.',
     );
   }
 }

@@ -1,3 +1,4 @@
+import { isValidCatalogName } from '../catalog-name';
 import { DuplicateRequiredSkillError, InvalidPositionNameError } from './position.errors';
 
 export interface PositionProperties {
@@ -28,11 +29,7 @@ export class Position {
   }
 
   static create(properties: PositionProperties): Position {
-    if (
-      properties.name.trim() === '' ||
-      properties.name.length > 100 ||
-      properties.name.includes('\0')
-    ) {
+    if (!isValidCatalogName(properties.name)) {
       throw new InvalidPositionNameError();
     }
     // PostgreSQL compare les UUID sans tenir compte de la casse. Le domaine fait de même.

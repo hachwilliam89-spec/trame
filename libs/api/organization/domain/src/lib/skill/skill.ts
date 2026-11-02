@@ -1,3 +1,4 @@
+import { isValidCatalogName } from '../catalog-name';
 import { InvalidSkillNameError } from './skill.errors';
 
 export interface SkillProperties {
@@ -22,11 +23,7 @@ export class Skill {
   }
 
   static create(properties: SkillProperties): Skill {
-    if (
-      properties.name.trim() === '' ||
-      properties.name.length > 100 ||
-      properties.name.includes('\0')
-    ) {
+    if (!isValidCatalogName(properties.name)) {
       throw new InvalidSkillNameError();
     }
     return new Skill(properties);

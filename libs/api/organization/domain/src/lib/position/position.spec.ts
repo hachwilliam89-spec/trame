@@ -38,7 +38,7 @@ describe('Position', () => {
     ).toThrow(DuplicateRequiredSkillError);
   });
 
-  it.each(['', ' \t\n', 'a'.repeat(101), 'Cariste\u0000'])('refuse le nom invalide %j', (name) => {
+  it.each(['', ' \t\n', 'a'.repeat(101)])('refuse le nom invalide %j', (name) => {
     expect(() => Position.create({ ...properties, name })).toThrow(InvalidPositionNameError);
   });
 

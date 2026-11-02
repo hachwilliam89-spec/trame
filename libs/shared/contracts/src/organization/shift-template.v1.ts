@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { pageOfV1 } from '../common/page.v1';
+import { requiredText } from '../common/text.v1';
 
 /** Heure locale du site, à la minute : `22:00`. */
 const localTime = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/);
@@ -15,7 +16,7 @@ const shiftBreak = z.object({
  * Les heures sont locales au site. Une fin plus tôt que le début signifie le lendemain (nuit 22 h–6 h).
  */
 export const createShiftTemplateRequestV1 = z.object({
-  label: z.string().min(1).max(50),
+  label: requiredText(50),
   startTime: localTime,
   endTime: localTime,
   /** Règle métier (US-030) : un créneau type a toujours une pause positionnée. */

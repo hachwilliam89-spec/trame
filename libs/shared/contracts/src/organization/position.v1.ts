@@ -1,14 +1,9 @@
 import { z } from 'zod';
 import { pageOfV1 } from '../common/page.v1';
+import { requiredText } from '../common/text.v1';
 
 export const createPositionRequestV1 = z.object({
-  // PostgreSQL ne peut pas stocker le caractère NUL, même dans un nom autrement valide.
-  name: z
-    .string()
-    .min(1)
-    .max(100)
-    .regex(/\S/)
-    .regex(/^[^\0]*$/),
+  name: requiredText(100),
   /** Un ensemble d'identifiants ; le domaine refuse les doublons, y compris les variantes de casse. */
   skillIds: z.array(z.uuid()),
 });
