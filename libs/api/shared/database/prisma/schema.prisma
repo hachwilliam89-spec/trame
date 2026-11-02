@@ -26,6 +26,8 @@ model Site {
   shiftTemplates ShiftTemplate[]
 
   @@unique([organizationId, code])
+  /// Cible de la clé étrangère composite des créneaux types.
+  @@unique([id, organizationId])
   @@map("sites")
   @@schema("organization")
 }
@@ -36,17 +38,17 @@ model ShiftTemplate {
   id                   String   @id @db.Uuid
   organizationId       String   @map("organization_id") @db.Uuid
   siteId               String   @map("site_id") @db.Uuid
-  /// Unique sur le site.
   label                String   @db.VarChar(50)
   startMinute          Int      @map("start_minute") @db.SmallInt
   endMinute            Int      @map("end_minute") @db.SmallInt
-  /// Les deux colonnes de la pause sont nulles ensemble : créneau sans pause.
-  breakStartMinute     Int?     @map("break_start_minute") @db.SmallInt
-  breakDurationMinutes Int?     @map("break_duration_minutes") @db.SmallInt
+  /// Un créneau type a toujours une pause positionnée (US-030).
+  breakStartMinute     Int      @map("break_start_minute") @db.SmallInt
+  breakDurationMinutes Int      @map("break_duration_minutes") @db.SmallInt
   createdAt            DateTime @map("created_at") @db.Timestamptz(3)
-  site                 Site     @relation(fields: [siteId], references: [id])
+  /// La clé étrangère porte aussi l'organisation : un créneau appartient toujours à celle de son site.
+  site                 Site     @relation(fields: [siteId, organizationId], references: [id, organizationId])
 
-  @@unique([organizationId, siteId, label])
+  @@index([siteId, organizationId])
   @@map("shift_templates")
   @@schema("organization")
 }

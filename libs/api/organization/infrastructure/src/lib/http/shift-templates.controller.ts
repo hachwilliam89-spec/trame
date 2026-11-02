@@ -1,7 +1,6 @@
 import { Body, Controller, Get, Param, Post, Query, UseInterceptors } from '@nestjs/common';
 import {
   CreateShiftTemplate,
-  type CreateShiftTemplateCommand,
   GetShiftTemplateDurations,
   ListShiftTemplates,
 } from '@trame/api/organization/application';
@@ -49,7 +48,10 @@ export class ShiftTemplatesController {
       // Le contrat garantit le format `HH:MM` : la conversion ne peut pas échouer.
       start: Temporal.PlainTime.from(body.startTime),
       end: Temporal.PlainTime.from(body.endTime),
-      break: toBreakCommand(body.break),
+      break: {
+        start: Temporal.PlainTime.from(body.break.startTime),
+        durationMinutes: body.break.durationMinutes,
+      },
     });
     return toShiftTemplateV1(shiftTemplate);
   }
@@ -86,16 +88,4 @@ export class ShiftTemplatesController {
     });
     return toShiftDurationsV1(date, durations);
   }
-}
-
-function toBreakCommand(
-  input: CreateShiftTemplateRequestV1['break'],
-): CreateShiftTemplateCommand['break'] {
-  if (input === null) {
-    return null;
-  }
-  return {
-    start: Temporal.PlainTime.from(input.startTime),
-    durationMinutes: input.durationMinutes,
-  };
 }

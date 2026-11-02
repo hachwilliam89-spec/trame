@@ -18,8 +18,8 @@ export const createShiftTemplateRequestV1 = z.object({
   label: z.string().min(1).max(50),
   startTime: localTime,
   endTime: localTime,
-  /** `null` : créneau sans pause. */
-  break: shiftBreak.nullable(),
+  /** Règle métier (US-030) : un créneau type a toujours une pause positionnée. */
+  break: shiftBreak,
 });
 
 export type CreateShiftTemplateRequestV1 = z.infer<typeof createShiftTemplateRequestV1>;
@@ -31,7 +31,7 @@ export const shiftTemplateV1 = z.object({
   label: z.string(),
   startTime: localTime,
   endTime: localTime,
-  break: shiftBreak.nullable(),
+  break: shiftBreak,
   /** Vrai si le créneau finit le lendemain de son début. */
   crossesMidnight: z.boolean(),
   createdAt: z.iso.datetime(),
@@ -54,6 +54,8 @@ export type ShiftDurationsQueryV1 = z.infer<typeof shiftDurationsQueryV1>;
 /**
  * Durées réelles d'un créneau commencé à une date donnée, dans le fuseau du site.
  * Elles tiennent compte des changements d'heure : la nuit 22 h–6 h dure 9 h au passage à l'heure d'hiver.
+ * Une heure locale désigne le premier instant où l'horloge du site l'affiche ; une heure sautée
+ * au passage à l'heure d'été désigne l'instant du saut.
  */
 export const shiftDurationsV1 = z.object({
   date: z.iso.date(),
@@ -62,6 +64,8 @@ export const shiftDurationsV1 = z.object({
   endsAt: z.iso.datetime(),
   /** Temps écoulé entre le début et la fin. */
   amplitudeMinutes: z.int(),
+  /** Partie de la pause qui tombe pendant le créneau. */
+  breakMinutes: z.int(),
   /** Amplitude moins la pause. */
   effectiveMinutes: z.int(),
 });

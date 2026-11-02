@@ -1,7 +1,4 @@
-import {
-  BreakOutsideShiftError,
-  ShiftTemplateLabelAlreadyUsedError,
-} from '@trame/api/organization/domain';
+import { BreakOutsideShiftError } from '@trame/api/organization/domain';
 import { FixedClock } from '@trame/platform/clock';
 import { SequentialIdGenerator } from '@trame/platform/ids';
 import { InMemoryShiftTemplateRepository } from '../../testing/in-memory-shift-template.repository';
@@ -52,16 +49,16 @@ describe('CreateShiftTemplate', () => {
 
     expect(shiftTemplate.siteId).toBe(site.id);
     expect(shiftTemplate.crossesMidnight).toBe(true);
-    expect(shiftTemplate.break?.durationMinutes).toBe(30);
+    expect(shiftTemplate.break.durationMinutes).toBe(30);
   });
 
-  it('refuse un libellé déjà utilisé sur le site', async () => {
+  it('accepte deux créneaux du même libellé sur le site : chacun a son identifiant', async () => {
     const { createShiftTemplate, night } = await setUp();
-    await createShiftTemplate.execute(night);
 
-    await expect(createShiftTemplate.execute(night)).rejects.toThrow(
-      ShiftTemplateLabelAlreadyUsedError,
-    );
+    const first = await createShiftTemplate.execute(night);
+    const second = await createShiftTemplate.execute(night);
+
+    expect(second.id).not.toBe(first.id);
   });
 
   it('refuse une pause hors du créneau', async () => {
@@ -93,7 +90,7 @@ describe('ListShiftTemplates', () => {
       label: 'Matin',
       start: time('06:00'),
       end: time('14:00'),
-      break: null,
+      break: { start: time('10:00'), durationMinutes: 20 },
     });
 
     const page = await listShiftTemplates.execute({

@@ -1,17 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { ShiftTemplateRepository } from '@trame/api/organization/application';
-import {
-  ShiftBreak,
-  ShiftTemplate,
-  ShiftTemplateLabelAlreadyUsedError,
-} from '@trame/api/organization/domain';
-import {
-  type Prisma,
-  PrismaService,
-  dateToInstant,
-  instantToDate,
-  isUniqueViolation,
-} from '@trame/api/database';
+import { ShiftBreak, ShiftTemplate } from '@trame/api/organization/domain';
+import { type Prisma, PrismaService, dateToInstant, instantToDate } from '@trame/api/database';
 import { type Page, type PageRequest, pageFrom } from '@trame/platform/pagination';
 import { afterCursor } from './after-cursor';
 import { fromMinutesSinceMidnight, toMinutesSinceMidnight } from './local-time-minutes';
@@ -22,22 +12,7 @@ export class PrismaShiftTemplateRepository implements ShiftTemplateRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async add(shiftTemplate: ShiftTemplate): Promise<void> {
-    try {
-      await this.prisma.shiftTemplate.create({ data: toRecord(shiftTemplate) });
-    } catch (error) {
-      // Deux créations simultanées : la contrainte d'unicité tranche.
-      if (isUniqueViolation(error)) {
-        throw new ShiftTemplateLabelAlreadyUsedError(shiftTemplate.label);
-      }
-      throw error;
-    }
-  }
-
-  async existsWithLabel(organizationId: string, siteId: string, label: string): Promise<boolean> {
-    const count = await this.prisma.shiftTemplate.count({
-      where: { organizationId, siteId, label },
-    });
-    return count > 0;
+    await this.prisma.shiftTemplate.create({ data: toRecord(shiftTemplate) });
   }
 
   async findById(
@@ -69,7 +44,6 @@ export class PrismaShiftTemplateRepository implements ShiftTemplateRepository {
 }
 
 function toRecord(shiftTemplate: ShiftTemplate): Prisma.ShiftTemplateModel {
-  const shiftBreak = shiftTemplate.break;
   return {
     id: shiftTemplate.id,
     organizationId: shiftTemplate.organizationId,
@@ -77,8 +51,8 @@ function toRecord(shiftTemplate: ShiftTemplate): Prisma.ShiftTemplateModel {
     label: shiftTemplate.label,
     startMinute: toMinutesSinceMidnight(shiftTemplate.start),
     endMinute: toMinutesSinceMidnight(shiftTemplate.end),
-    breakStartMinute: shiftBreak === null ? null : toMinutesSinceMidnight(shiftBreak.start),
-    breakDurationMinutes: shiftBreak === null ? null : shiftBreak.durationMinutes,
+    breakStartMinute: toMinutesSinceMidnight(shiftTemplate.break.start),
+    breakDurationMinutes: shiftTemplate.break.durationMinutes,
     createdAt: instantToDate(shiftTemplate.createdAt),
   };
 }
@@ -91,18 +65,10 @@ function toShiftTemplate(record: Prisma.ShiftTemplateModel): ShiftTemplate {
     label: record.label,
     start: fromMinutesSinceMidnight(record.startMinute),
     end: fromMinutesSinceMidnight(record.endMinute),
-    break: toShiftBreak(record),
+    break: ShiftBreak.of(
+      fromMinutesSinceMidnight(record.breakStartMinute),
+      record.breakDurationMinutes,
+    ),
     createdAt: dateToInstant(record.createdAt),
   });
-}
-
-/** La contrainte `shift_templates_break_check` garantit que les deux colonnes sont nulles ensemble. */
-function toShiftBreak(record: Prisma.ShiftTemplateModel): ShiftBreak | null {
-  if (record.breakStartMinute === null || record.breakDurationMinutes === null) {
-    return null;
-  }
-  return ShiftBreak.of(
-    fromMinutesSinceMidnight(record.breakStartMinute),
-    record.breakDurationMinutes,
-  );
 }

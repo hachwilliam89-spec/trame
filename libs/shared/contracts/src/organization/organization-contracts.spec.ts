@@ -37,21 +37,28 @@ describe('contrats du contexte organization', () => {
     expect(createSiteRequestV1.safeParse({ code, name: 'Colmar' }).success).toBe(false);
   });
 
-  it('accepte un créneau de nuit avec pause, et un créneau sans pause', () => {
+  it('accepte un créneau de nuit avec sa pause, et refuse un créneau sans pause (US-030)', () => {
     const night = {
       label: 'Nuit',
       startTime: '22:00',
       endTime: '06:00',
       break: { startTime: '02:00', durationMinutes: 30 },
     };
-    const morning = { label: 'Matin', startTime: '06:00', endTime: '10:00', break: null };
 
     expect(createShiftTemplateRequestV1.safeParse(night).success).toBe(true);
-    expect(createShiftTemplateRequestV1.safeParse(morning).success).toBe(true);
+    expect(createShiftTemplateRequestV1.safeParse({ ...night, break: null }).success).toBe(false);
+    expect(createShiftTemplateRequestV1.safeParse({ ...night, break: undefined }).success).toBe(
+      false,
+    );
   });
 
   it.each(['24:00', '7:00', '22:00:00', '22h00'])("refuse l'heure %j", (startTime) => {
-    const template = { label: 'Nuit', startTime, endTime: '06:00', break: null };
+    const template = {
+      label: 'Nuit',
+      startTime,
+      endTime: '06:00',
+      break: { startTime: '02:00', durationMinutes: 30 },
+    };
 
     expect(createShiftTemplateRequestV1.safeParse(template).success).toBe(false);
   });

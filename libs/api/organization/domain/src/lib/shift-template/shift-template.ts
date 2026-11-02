@@ -1,5 +1,6 @@
 import type { TimeZone } from '../site/time-zone';
-import { isWholeMinute, wallClockMinutesBetween } from './local-time';
+import { type InstantInterval, minutesBetween, overlapMinutes } from './instant-interval';
+import { instantOfLocalTime, isWholeMinute, wallClockMinutesBetween } from './local-time';
 import type { ShiftBreak } from './shift-break';
 import {
   BlankShiftTemplateLabelError,
@@ -15,8 +16,8 @@ export interface ShiftTemplateProperties {
   /** Heures locales du site. Une fin plus tôt que le début signifie le lendemain. */
   start: Temporal.PlainTime;
   end: Temporal.PlainTime;
-  /** `null` : créneau sans pause. */
-  break: ShiftBreak | null;
+  /** Règle métier (US-030) : un créneau type a toujours une pause positionnée. */
+  break: ShiftBreak;
   createdAt: Temporal.Instant;
 }
 
@@ -26,6 +27,8 @@ export interface ShiftDurations {
   endsAt: Temporal.Instant;
   /** Temps réellement écoulé entre le début et la fin, changement d'heure compris. */
   amplitudeMinutes: number;
+  /** Partie de la pause qui tombe pendant le créneau. */
+  breakMinutes: number;
   /** Amplitude moins la pause. */
   effectiveMinutes: number;
 }
@@ -38,7 +41,7 @@ export class ShiftTemplate {
   readonly label: string;
   readonly start: Temporal.PlainTime;
   readonly end: Temporal.PlainTime;
-  readonly break: ShiftBreak | null;
+  readonly break: ShiftBreak;
   readonly createdAt: Temporal.Instant;
 
   private constructor(properties: ShiftTemplateProperties) {
@@ -52,10 +55,7 @@ export class ShiftTemplate {
     this.createdAt = properties.createdAt;
   }
 
-  /**
-   * Construit un créneau type valide, nouveau ou relu en base. L'unicité du libellé se vérifie
-   * parmi les autres créneaux du site : c'est le rôle du use case.
-   */
+  /** Construit un créneau type valide, nouveau ou relu en base. */
   static create(properties: ShiftTemplateProperties): ShiftTemplate {
     if (properties.label.trim() === '') {
       throw new BlankShiftTemplateLabelError();
@@ -66,10 +66,7 @@ export class ShiftTemplate {
     if (lengthMinutes === 0) {
       throw new EmptyShiftError();
     }
-    if (
-      properties.break !== null &&
-      !breakFits(properties.break, properties.start, lengthMinutes)
-    ) {
+    if (!breakFits(properties.break, properties.start, lengthMinutes)) {
       throw new BreakOutsideShiftError();
     }
     return new ShiftTemplate(properties);
@@ -82,26 +79,49 @@ export class ShiftTemplate {
 
   /**
    * Durées du créneau qui commence le jour `date`, dans le fuseau du site.
-   * La nuit du passage à l'heure d'hiver, 22 h–6 h dure 9 h ; celle du passage à l'heure d'été, 7 h.
-   * Une heure locale qui n'existe pas (sautée au passage à l'heure d'été) est décalée d'une heure,
-   * comme le fait Temporal par défaut.
+   * - Chaque heure locale désigne le premier instant où l'horloge l'affiche, ou l'instant du saut
+   *   si elle est sautée (`instantOfLocalTime`). La fin ne précède donc jamais le début.
+   * - La pause dure son nombre de minutes en temps réel, à partir de son heure de début. Seule sa
+   *   partie comprise dans le créneau est retranchée.
+   * La nuit 22 h–6 h dure ainsi 9 h au passage à l'heure d'hiver, et 7 h au passage à l'heure d'été.
    */
   durationsOn(date: Temporal.PlainDate, timeZone: TimeZone): ShiftDurations {
-    const startsAt = date.toZonedDateTime({ timeZone: timeZone.id, plainTime: this.start });
-    const endDate = this.crossesMidnight ? date.add({ days: 1 }) : date;
-    const endsAt = endDate.toZonedDateTime({ timeZone: timeZone.id, plainTime: this.end });
+    const shift: InstantInterval = {
+      start: this.instantOn(date, this.start, timeZone),
+      end: this.instantOn(date, this.end, timeZone),
+    };
+    const breakStart = this.instantOn(date, this.break.start, timeZone);
+    const shiftBreak: InstantInterval = {
+      start: breakStart,
+      end: breakStart.add({ minutes: this.break.durationMinutes }),
+    };
 
-    const amplitudeMinutes = startsAt.until(endsAt, { largestUnit: 'minutes' }).minutes;
-    const breakMinutes = this.break?.durationMinutes ?? 0;
-    // Un créneau logé dans l'heure sautée au passage à l'heure d'été dure 0 : la pause n'y retranche rien.
-    const effectiveMinutes = Math.max(0, amplitudeMinutes - breakMinutes);
+    const amplitudeMinutes = minutesBetween(shift.start, shift.end);
+    const breakMinutes = overlapMinutes(shiftBreak, shift);
 
     return {
-      startsAt: startsAt.toInstant(),
-      endsAt: endsAt.toInstant(),
+      startsAt: shift.start,
+      endsAt: shift.end,
       amplitudeMinutes,
-      effectiveMinutes,
+      breakMinutes,
+      effectiveMinutes: amplitudeMinutes - breakMinutes,
     };
+  }
+
+  /**
+   * Instant d'une heure du créneau qui commence le jour `startDate`. Une heure plus tôt que le
+   * début tombe le lendemain : la fin d'une nuit, ou une pause après minuit.
+   */
+  private instantOn(
+    startDate: Temporal.PlainDate,
+    time: Temporal.PlainTime,
+    timeZone: TimeZone,
+  ): Temporal.Instant {
+    let date = startDate;
+    if (Temporal.PlainTime.compare(time, this.start) < 0) {
+      date = startDate.add({ days: 1 });
+    }
+    return instantOfLocalTime(date.toPlainDateTime(time), timeZone.id);
   }
 }
 
@@ -121,10 +141,7 @@ function breakFits(
  * (le contrat n'en accepte pas) : on refuse plutôt que de les perdre en silence.
  */
 function assertWholeMinutes(properties: ShiftTemplateProperties): void {
-  const times = [properties.start, properties.end];
-  if (properties.break !== null) {
-    times.push(properties.break.start);
-  }
+  const times = [properties.start, properties.end, properties.break.start];
   for (const time of times) {
     if (!isWholeMinute(time)) {
       throw new RangeError(`Heure de créneau à la minute attendue, reçu ${time.toString()}.`);

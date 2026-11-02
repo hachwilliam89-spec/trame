@@ -1,10 +1,5 @@
 import type { INestApplication } from '@nestjs/common';
-import {
-  problemTypes,
-  shiftDurationsV1,
-  shiftTemplatePageV1,
-  shiftTemplateV1,
-} from '@trame/shared/contracts';
+import { shiftDurationsV1, shiftTemplatePageV1, shiftTemplateV1 } from '@trame/shared/contracts';
 import { TestClient, createOrganizationTestApp, testActors } from '../../testing';
 
 const night = {
@@ -52,13 +47,14 @@ describe('API des créneaux types', () => {
       });
     });
 
-    it('crée un créneau sans pause', async () => {
-      const morning = { label: 'Matin', startTime: '06:00', endTime: '14:00', break: null };
+    it('refuse un créneau sans pause, avec un pointeur vers la pause (US-030)', async () => {
+      const response = await admin.post(`/sites/${siteId}/shift-templates`, {
+        ...night,
+        break: null,
+      });
 
-      const response = await admin.post(`/sites/${siteId}/shift-templates`, morning);
-
-      expect(response.status).toBe(201);
-      expect(response.body).toMatchObject({ break: null, crossesMidnight: false });
+      expect(response.status).toBe(400);
+      expect(response.body.errors).toEqual([expect.objectContaining({ pointer: '#/break' })]);
     });
 
     it('refuse une pause hors du créneau, avec un pointeur vers la pause', async () => {
@@ -77,7 +73,7 @@ describe('API des créneaux types', () => {
       const response = await admin.post(`/sites/${siteId}/shift-templates`, {
         ...night,
         endTime: '22:00',
-        break: null,
+        break: { startTime: '22:00', durationMinutes: 15 },
       });
 
       expect(response.status).toBe(400);
@@ -94,13 +90,12 @@ describe('API des créneaux types', () => {
       expect(response.body.errors).toEqual([expect.objectContaining({ pointer: '#/startTime' })]);
     });
 
-    it('répond 409 quand le libellé est déjà utilisé sur le site', async () => {
-      await admin.post(`/sites/${siteId}/shift-templates`, night);
+    it('accepte deux créneaux du même libellé : chacun a son identifiant', async () => {
+      const first = await admin.post(`/sites/${siteId}/shift-templates`, night);
+      const second = await admin.post(`/sites/${siteId}/shift-templates`, night);
 
-      const response = await admin.post(`/sites/${siteId}/shift-templates`, night);
-
-      expect(response.status).toBe(409);
-      expect(response.body.type).toBe(problemTypes.shiftTemplateLabelAlreadyUsed);
+      expect(second.status).toBe(201);
+      expect(second.body.id).not.toBe(first.body.id);
     });
 
     it("accès croisé : répond 404 sur le site d'une autre organisation", async () => {
@@ -152,6 +147,7 @@ describe('API des créneaux types', () => {
         startsAt: '2026-10-24T20:00:00Z',
         endsAt: '2026-10-25T05:00:00Z',
         amplitudeMinutes: 540,
+        breakMinutes: 30,
         effectiveMinutes: 510,
       });
     });

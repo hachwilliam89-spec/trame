@@ -1,8 +1,4 @@
-import {
-  ShiftBreak,
-  ShiftTemplate,
-  ShiftTemplateLabelAlreadyUsedError,
-} from '@trame/api/organization/domain';
+import { ShiftBreak, ShiftTemplate } from '@trame/api/organization/domain';
 import type { Clock } from '@trame/platform/clock';
 import type { IdGenerator } from '@trame/platform/ids';
 import type { ShiftTemplateRepository } from '../ports/shift-template.repository';
@@ -16,11 +12,10 @@ export interface CreateShiftTemplateCommand {
   /** Heures locales du site. */
   start: Temporal.PlainTime;
   end: Temporal.PlainTime;
-  /** `null` : créneau sans pause. */
-  break: { start: Temporal.PlainTime; durationMinutes: number } | null;
+  break: { start: Temporal.PlainTime; durationMinutes: number };
 }
 
-/** Crée un créneau type sur un site de l'organisation. Son libellé est unique sur le site. */
+/** Crée un créneau type sur un site de l'organisation. */
 export class CreateShiftTemplate {
   constructor(
     private readonly sites: SiteRepository,
@@ -39,27 +34,11 @@ export class CreateShiftTemplate {
       label: command.label,
       start: command.start,
       end: command.end,
-      break: toShiftBreak(command.break),
+      break: ShiftBreak.of(command.break.start, command.break.durationMinutes),
       createdAt: this.clock.now(),
     });
-
-    const labelIsTaken = await this.shiftTemplates.existsWithLabel(
-      site.organizationId,
-      site.id,
-      shiftTemplate.label,
-    );
-    if (labelIsTaken) {
-      throw new ShiftTemplateLabelAlreadyUsedError(shiftTemplate.label);
-    }
 
     await this.shiftTemplates.add(shiftTemplate);
     return shiftTemplate;
   }
-}
-
-function toShiftBreak(input: CreateShiftTemplateCommand['break']): ShiftBreak | null {
-  if (input === null) {
-    return null;
-  }
-  return ShiftBreak.of(input.start, input.durationMinutes);
 }

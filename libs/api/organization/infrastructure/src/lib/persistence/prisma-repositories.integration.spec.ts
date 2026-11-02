@@ -1,7 +1,6 @@
 import {
   ShiftBreak,
   ShiftTemplate,
-  ShiftTemplateLabelAlreadyUsedError,
   Site,
   SiteCode,
   SiteCodeAlreadyUsedError,
@@ -117,7 +116,7 @@ describe('dépôts Prisma du contexte organization (intégration)', () => {
   });
 
   describe('PrismaShiftTemplateRepository', () => {
-    it('relit un créneau de nuit avec sa pause, et un créneau sans pause', async () => {
+    it('relit un créneau de nuit et un créneau de jour, pauses comprises', async () => {
       const site = aSite(ORGANIZATION_A, 'CRENEAUX');
       await sites.add(site);
       const night = aNightShift(site);
@@ -127,7 +126,7 @@ describe('dépôts Prisma du contexte organization (intégration)', () => {
         label: 'Matin',
         start: time('06:00'),
         end: time('14:00'),
-        break: null,
+        break: ShiftBreak.of(time('10:00'), 20),
       });
       await shiftTemplates.add(night);
       await shiftTemplates.add(morning);
@@ -137,10 +136,11 @@ describe('dépôts Prisma du contexte organization (intégration)', () => {
 
       expect(rereadNight?.start.toString()).toBe('22:00:00');
       expect(rereadNight?.end.toString()).toBe('06:00:00');
-      expect(rereadNight?.break?.start.toString()).toBe('02:00:00');
-      expect(rereadNight?.break?.durationMinutes).toBe(30);
+      expect(rereadNight?.break.start.toString()).toBe('02:00:00');
+      expect(rereadNight?.break.durationMinutes).toBe(30);
       expect(rereadNight?.crossesMidnight).toBe(true);
-      expect(rereadMorning?.break).toBeNull();
+      expect(rereadMorning?.break.start.toString()).toBe('10:00:00');
+      expect(rereadMorning?.crossesMidnight).toBe(false);
     });
 
     it('ne trouve pas un créneau par un autre site ou une autre organisation', async () => {
@@ -159,17 +159,16 @@ describe('dépôts Prisma du contexte organization (intégration)', () => {
       ).resolves.toBeUndefined();
     });
 
-    it("traduit la contrainte d'unicité du libellé en erreur métier", async () => {
-      const site = aSite(ORGANIZATION_A, 'LIBELLE');
-      await sites.add(site);
-      await shiftTemplates.add(aNightShift(site));
+    it("la base refuse un créneau rattaché au site d'une autre organisation (clé étrangère composite)", async () => {
+      const siteOfA = aSite(ORGANIZATION_A, 'FK-A');
+      await sites.add(siteOfA);
+      const intruder = ShiftTemplate.create({
+        ...aNightShift(siteOfA),
+        organizationId: ORGANIZATION_B,
+      });
 
-      await expect(shiftTemplates.existsWithLabel(ORGANIZATION_A, site.id, 'Nuit')).resolves.toBe(
-        true,
-      );
-      await expect(shiftTemplates.add(aNightShift(site))).rejects.toThrow(
-        ShiftTemplateLabelAlreadyUsedError,
-      );
+      // P2003 : violation de clé étrangère.
+      await expect(shiftTemplates.add(intruder)).rejects.toMatchObject({ code: 'P2003' });
     });
 
     it('liste les créneaux du site seulement', async () => {
@@ -190,10 +189,13 @@ describe('dépôts Prisma du contexte organization (intégration)', () => {
     });
 
     it.each([
-      ['une pause à moitié renseignée', { breakStartMinute: 30, breakDurationMinutes: null }],
       ['une pause de durée nulle', { breakStartMinute: 30, breakDurationMinutes: 0 }],
-      ['une heure hors de la journée', { breakStartMinute: 1440, breakDurationMinutes: 15 }],
-    ])('la base refuse %s (contraintes CHECK)', async (_case, invalidBreak) => {
+      ['une pause hors de la journée', { breakStartMinute: 1440, breakDurationMinutes: 15 }],
+      [
+        'une fin hors de la journée',
+        { endMinute: 1500, breakStartMinute: 30, breakDurationMinutes: 15 },
+      ],
+    ])('la base refuse %s (contraintes CHECK)', async (_case, invalidColumns) => {
       const site = aSite(ORGANIZATION_A, `CHECK-${nextId().slice(-4).toUpperCase()}`);
       await sites.add(site);
 
@@ -205,8 +207,10 @@ describe('dépôts Prisma du contexte organization (intégration)', () => {
           label: 'Incohérent',
           startMinute: 0,
           endMinute: 60,
+          breakStartMinute: 30,
+          breakDurationMinutes: 15,
           createdAt: new Date(createdAt.epochMilliseconds),
-          ...invalidBreak,
+          ...invalidColumns,
         },
       });
 

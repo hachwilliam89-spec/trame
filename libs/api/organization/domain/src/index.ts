@@ -19,5 +19,4 @@ export {
   BreakOutsideShiftError,
   EmptyShiftError,
   InvalidBreakDurationError,
-  ShiftTemplateLabelAlreadyUsedError,
 } from './lib/shift-template/shift-template.errors';

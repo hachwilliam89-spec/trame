@@ -24,9 +24,3 @@ export class BreakOutsideShiftError extends DomainError {
     super('La pause doit commencer et finir pendant le créneau.');
   }
 }
-
-export class ShiftTemplateLabelAlreadyUsedError extends DomainError {
-  constructor(label: string) {
-    super(`Le site a déjà un créneau type « ${label} ».`);
-  }
-}

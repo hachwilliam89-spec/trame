@@ -6,7 +6,6 @@ import {
   EmptyShiftError,
   InvalidBreakDurationError,
   InvalidSiteCodeError,
-  ShiftTemplateLabelAlreadyUsedError,
   SiteCodeAlreadyUsedError,
   UnknownTimeZoneError,
 } from '@trame/api/organization/domain';
@@ -25,12 +24,6 @@ export const organizationErrorMappings: ErrorMapping[] = [
     status: 409,
     type: problemTypes.siteCodeAlreadyUsed,
     title: 'Code de site déjà utilisé',
-  },
-  {
-    error: ShiftTemplateLabelAlreadyUsedError,
-    status: 409,
-    type: problemTypes.shiftTemplateLabelAlreadyUsed,
-    title: 'Libellé de créneau déjà utilisé',
   },
   // Erreurs de champ : rendues comme une erreur de validation du contrat (400 avec `errors`).
   { error: InvalidSiteCodeError, pointer: '#/code', code: 'invalid_site_code' },

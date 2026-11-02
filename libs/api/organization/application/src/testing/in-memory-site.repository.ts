@@ -1,5 +1,5 @@
 import { type Site, type SiteCode, SiteCodeAlreadyUsedError } from '@trame/api/organization/domain';
-import { type Page, type PageRequest, pageOfSorted } from '@trame/platform/pagination';
+import { type Page, type PageRequest, pageOf } from '@trame/platform/pagination';
 import type { SiteRepository } from '../lib/ports/site.repository';
 
 /** Dépôt en mémoire, pour les tests. Il applique la même contrainte d'unicité que la base. */
@@ -25,7 +25,6 @@ export class InMemorySiteRepository implements SiteRepository {
 
   async list(organizationId: string, page: PageRequest): Promise<Page<Site>> {
     const ofOrganization = this.sites.filter((site) => site.organizationId === organizationId);
-    const sortedById = ofOrganization.toSorted((left, right) => left.id.localeCompare(right.id));
-    return pageOfSorted(sortedById, page);
+    return pageOf(ofOrganization, page);
   }
 }

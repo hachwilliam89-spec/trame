@@ -1,9 +1,4 @@
-import type {
-  ShiftBreak,
-  ShiftDurations,
-  ShiftTemplate,
-  Site,
-} from '@trame/api/organization/domain';
+import type { ShiftDurations, ShiftTemplate, Site } from '@trame/api/organization/domain';
 import type { ShiftDurationsV1, ShiftTemplateV1, SiteV1 } from '@trame/shared/contracts';
 
 /** Conversion des objets du domaine vers les contrats de l'API (`@trame/shared/contracts`). */
@@ -25,7 +20,10 @@ export function toShiftTemplateV1(shiftTemplate: ShiftTemplate): ShiftTemplateV1
     label: shiftTemplate.label,
     startTime: toLocalTimeText(shiftTemplate.start),
     endTime: toLocalTimeText(shiftTemplate.end),
-    break: toShiftBreakV1(shiftTemplate.break),
+    break: {
+      startTime: toLocalTimeText(shiftTemplate.break.start),
+      durationMinutes: shiftTemplate.break.durationMinutes,
+    },
     crossesMidnight: shiftTemplate.crossesMidnight,
     createdAt: shiftTemplate.createdAt.toString(),
   };
@@ -40,17 +38,8 @@ export function toShiftDurationsV1(
     startsAt: durations.startsAt.toString(),
     endsAt: durations.endsAt.toString(),
     amplitudeMinutes: durations.amplitudeMinutes,
+    breakMinutes: durations.breakMinutes,
     effectiveMinutes: durations.effectiveMinutes,
-  };
-}
-
-function toShiftBreakV1(shiftBreak: ShiftBreak | null): ShiftTemplateV1['break'] {
-  if (shiftBreak === null) {
-    return null;
-  }
-  return {
-    startTime: toLocalTimeText(shiftBreak.start),
-    durationMinutes: shiftBreak.durationMinutes,
   };
 }
 

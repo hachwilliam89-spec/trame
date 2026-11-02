@@ -13,8 +13,6 @@ const PROBLEM_TYPE_PREFIX = 'tag:wkhach.dev,2026-11-02:trame:problem:';
 export const problemTypes = {
   /** Un autre site de l'organisation porte déjà ce code. */
   siteCodeAlreadyUsed: `${PROBLEM_TYPE_PREFIX}site-code-already-used`,
-  /** Un autre créneau type du site porte déjà ce libellé. */
-  shiftTemplateLabelAlreadyUsed: `${PROBLEM_TYPE_PREFIX}shift-template-label-already-used`,
 } as const;
 
 export type ProblemType = (typeof problemTypes)[keyof typeof problemTypes];

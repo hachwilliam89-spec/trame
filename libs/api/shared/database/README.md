@@ -17,7 +17,8 @@ Accès PostgreSQL de l'API : Prisma 7 avec l'adaptateur `@prisma/adapter-pg` (AD
 | -------------- | --------------- | -------------------------- |
 | `organization` | `organization`  | `sites`, `shift_templates` |
 
-Les contraintes que Prisma n'exprime pas (CHECK) sont ajoutées à la main en fin de migration, avec un commentaire. `prisma migrate diff` les ignore.
+- Un agrégat enfant porte l'organisation de son parent, et la clé étrangère est composite (`site_id`, `organization_id`) : la base garantit qu'un créneau type appartient à l'organisation de son site.
+- Les contraintes que Prisma n'exprime pas (CHECK) sont ajoutées à la main en fin de migration, avec un commentaire. `prisma migrate diff` les ignore.
 
 ## Tests
 
