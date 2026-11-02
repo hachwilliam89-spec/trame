@@ -1,4 +1,4 @@
-import { pageFrom, pageOfSorted } from './page';
+import { pageFrom, pageOf } from './page';
 
 const items = ['a', 'b', 'c', 'd', 'e'].map((id) => ({ id }));
 
@@ -16,13 +16,16 @@ describe('pageFrom', () => {
   });
 });
 
-describe('pageOfSorted', () => {
+describe('pageOf', () => {
   it('parcourt toutes les pages sans doublon ni oubli', () => {
     const seen: string[] = [];
     let after: string | undefined;
 
     for (let pageNumber = 0; pageNumber < 10; pageNumber++) {
-      const page = pageOfSorted(items, after === undefined ? { limit: 2 } : { limit: 2, after });
+      const page = pageOf(
+        items.toReversed(),
+        after === undefined ? { limit: 2 } : { limit: 2, after },
+      );
       seen.push(...page.items.map((item) => item.id));
       if (page.nextCursor === null) {
         break;
@@ -31,5 +34,12 @@ describe('pageOfSorted', () => {
     }
 
     expect(seen).toEqual(['a', 'b', 'c', 'd', 'e']);
+  });
+
+  it("trie caractère par caractère, et non selon l'ordre alphabétique d'une langue", () => {
+    // L'ordre alphabétique de la langue placerait « a… » avant « B… » ; l'ordre des caractères, non.
+    const mixed = [{ id: 'a1' }, { id: 'B2' }, { id: '0f' }];
+
+    expect(pageOf(mixed, { limit: 10 }).items.map((item) => item.id)).toEqual(['0f', 'B2', 'a1']);
   });
 });

@@ -1,1 +1,1 @@
-export { type Page, type PageRequest, pageFrom, pageOfSorted } from './lib/page';
+export { type Page, type PageRequest, pageFrom, pageOf } from './lib/page';

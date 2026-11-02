@@ -30,12 +30,27 @@ export function pageFrom<T extends { id: string }>(rowsWithOneExtra: T[], limit:
   return { items, nextCursor: lastItem.id };
 }
 
-/** Applique une demande de page à des éléments déjà en mémoire (dépôts de test). */
-export function pageOfSorted<T extends { id: string }>(
-  sortedById: T[],
-  request: PageRequest,
-): Page<T> {
+/**
+ * Applique une demande de page à des éléments en mémoire (dépôts de test). Ils sont triés comme
+ * PostgreSQL trie des `uuid` : caractère par caractère, et non selon l'ordre alphabétique d'une langue.
+ */
+export function pageOf<T extends { id: string }>(items: T[], request: PageRequest): Page<T> {
+  const sortedById = items.toSorted(compareIds);
   const after = request.after;
-  const remaining = after === undefined ? sortedById : sortedById.filter((item) => item.id > after);
+
+  let remaining = sortedById;
+  if (after !== undefined) {
+    remaining = sortedById.filter((item) => item.id > after);
+  }
   return pageFrom(remaining.slice(0, request.limit + 1), request.limit);
+}
+
+function compareIds(left: { id: string }, right: { id: string }): number {
+  if (left.id < right.id) {
+    return -1;
+  }
+  if (left.id > right.id) {
+    return 1;
+  }
+  return 0;
 }
