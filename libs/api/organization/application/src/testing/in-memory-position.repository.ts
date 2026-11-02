@@ -2,6 +2,7 @@ import type { Position } from '@trame/api/organization/domain';
 import { type Page, type PageRequest, pageOf } from '@trame/platform/pagination';
 import type { PositionRepository } from '../lib/ports/position.repository';
 
+/** Dépôt en mémoire, pour les tests. */
 export class InMemoryPositionRepository implements PositionRepository {
   private readonly positions: Position[] = [];
 
@@ -33,11 +34,12 @@ export class InMemoryPositionRepository implements PositionRepository {
     return pageOf(matching, page);
   }
 
-  /** Simule la relation qui interdit de supprimer une compétence utilisée dans la vraie base. */
-  usesSkill(organizationId: string, skillId: string): boolean {
+  async isSkillRequired(organizationId: string, skillId: string): Promise<boolean> {
+    // Les identifiants des postes sont en minuscules (domaine) ; PostgreSQL compare les UUID sans casse.
+    const normalizedSkillId = skillId.toLowerCase();
     return this.positions.some(
       (position) =>
-        position.organizationId === organizationId && position.skillIds.includes(skillId),
+        position.organizationId === organizationId && position.skillIds.includes(normalizedSkillId),
     );
   }
 }

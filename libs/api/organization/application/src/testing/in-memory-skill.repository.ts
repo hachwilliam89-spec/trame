@@ -1,11 +1,10 @@
-import { type Skill, SkillInUseError } from '@trame/api/organization/domain';
+import type { Skill } from '@trame/api/organization/domain';
 import { type Page, type PageRequest, pageOf } from '@trame/platform/pagination';
 import type { SkillRepository } from '../lib/ports/skill.repository';
-import type { InMemoryPositionRepository } from './in-memory-position.repository';
 
+/** Dépôt en mémoire, pour les tests. */
 export class InMemorySkillRepository implements SkillRepository {
   private readonly skills: Skill[] = [];
-  constructor(private readonly positions: InMemoryPositionRepository) {}
 
   async add(skill: Skill): Promise<void> {
     this.skills.push(skill);
@@ -36,9 +35,6 @@ export class InMemorySkillRepository implements SkillRepository {
     );
     if (index === -1) {
       return false;
-    }
-    if (this.positions.usesSkill(organizationId, skillId)) {
-      throw new SkillInUseError();
     }
     this.skills.splice(index, 1);
     return true;

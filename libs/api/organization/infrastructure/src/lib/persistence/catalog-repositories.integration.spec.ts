@@ -237,6 +237,19 @@ describe('catalogue et postes sur PostgreSQL (US-030 B)', () => {
     expect((await skills.list(ORGANIZATION_A, { limit: 10 })).items).toEqual([]);
   });
 
+  it('dit si une compétence est exigée par un poste de l’organisation, sans tenir compte de la casse', async () => {
+    const requiredSkill = await addSkill();
+    const unusedSkill = await addSkill();
+    await positions.add(aPosition(await addSite(), [requiredSkill.id]));
+
+    await expect(positions.isSkillRequired(ORGANIZATION_A, requiredSkill.id)).resolves.toBe(true);
+    await expect(
+      positions.isSkillRequired(ORGANIZATION_A, requiredSkill.id.toUpperCase()),
+    ).resolves.toBe(true);
+    await expect(positions.isSkillRequired(ORGANIZATION_A, unusedSkill.id)).resolves.toBe(false);
+    await expect(positions.isSkillRequired(ORGANIZATION_B, requiredSkill.id)).resolves.toBe(false);
+  });
+
   it('protège une compétence utilisée et traduit la clé étrangère en conflit métier', async () => {
     const skill = await addSkill();
     const site = await addSite();

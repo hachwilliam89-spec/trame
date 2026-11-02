@@ -16,6 +16,7 @@ import { afterCursor } from './after-cursor';
 
 type PositionRecord = Prisma.PositionModel & { skills: { skillId: string }[] };
 
+/** Postes dans `organization.positions`, et leurs compétences requises dans `position_skills`. */
 @Injectable()
 export class PrismaPositionRepository implements PositionRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -75,6 +76,11 @@ export class PrismaPositionRepository implements PositionRepository {
       take: page.limit + 1,
     });
     return pageFrom(records.map(toPosition), page.limit);
+  }
+
+  async isSkillRequired(organizationId: string, skillId: string): Promise<boolean> {
+    const count = await this.prisma.positionSkill.count({ where: { organizationId, skillId } });
+    return count > 0;
   }
 }
 

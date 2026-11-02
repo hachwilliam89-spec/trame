@@ -21,7 +21,7 @@ async function setUp() {
   const ids = new SequentialIdGenerator();
   const sites = new InMemorySiteRepository();
   const positions = new InMemoryPositionRepository();
-  const skills = new InMemorySkillRepository(positions);
+  const skills = new InMemorySkillRepository();
   const createSite = new CreateSite(sites, clock, ids);
   const site = await createSite.execute({
     organizationId: 'org-a',
@@ -34,7 +34,7 @@ async function setUp() {
     positions,
     createSkill: new CreateSkill(skills, clock, ids),
     getSkill: new GetSkill(skills),
-    deleteSkill: new DeleteSkill(skills),
+    deleteSkill: new DeleteSkill(skills, positions),
     listSkills: new ListSkills(skills),
     createPosition: new CreatePosition(sites, skills, positions, clock, ids),
     getPosition: new GetPosition(sites, positions),

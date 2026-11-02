@@ -38,8 +38,9 @@ export const catalogProviders: Provider[] = [
   },
   {
     provide: DeleteSkill,
-    inject: [SKILL_REPOSITORY],
-    useFactory: (skills: SkillRepository) => new DeleteSkill(skills),
+    inject: [SKILL_REPOSITORY, POSITION_REPOSITORY],
+    useFactory: (skills: SkillRepository, positions: PositionRepository) =>
+      new DeleteSkill(skills, positions),
   },
   {
     provide: CreatePosition,

@@ -11,6 +11,7 @@ import {
 import { type Page, type PageRequest, pageFrom } from '@trame/platform/pagination';
 import { afterCursor } from './after-cursor';
 
+/** Compétences dans `organization.skills`. */
 @Injectable()
 export class PrismaSkillRepository implements SkillRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -52,7 +53,8 @@ export class PrismaSkillRepository implements SkillRepository {
 
   async remove(organizationId: string, skillId: string): Promise<boolean> {
     try {
-      // La clé étrangère RESTRICT protège aussi le cas d'une affectation concurrente à un poste.
+      // Filet de la règle vérifiée par le use case : un poste créé entre-temps fait échouer la
+      // suppression par la clé étrangère `ON DELETE RESTRICT`.
       const result = await this.prisma.skill.deleteMany({ where: { id: skillId, organizationId } });
       return result.count > 0;
     } catch (error) {

@@ -48,7 +48,7 @@ export async function createOrganizationTestApp(): Promise<INestApplication> {
     .overrideProvider(POSITION_REPOSITORY)
     .useValue(positions)
     .overrideProvider(SKILL_REPOSITORY)
-    .useValue(new InMemorySkillRepository(positions))
+    .useValue(new InMemorySkillRepository())
     .compile();
 
   const app = moduleRef.createNestApplication({ logger: false });
