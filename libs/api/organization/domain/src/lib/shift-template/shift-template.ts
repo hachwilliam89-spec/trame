@@ -52,7 +52,10 @@ export class ShiftTemplate {
     this.createdAt = properties.createdAt;
   }
 
-  /** Crée un créneau type. L'unicité du libellé est vérifiée par le use case. */
+  /**
+   * Construit un créneau type valide, nouveau ou relu en base. L'unicité du libellé se vérifie
+   * parmi les autres créneaux du site : c'est le rôle du use case.
+   */
   static create(properties: ShiftTemplateProperties): ShiftTemplate {
     if (properties.label.trim() === '') {
       throw new BlankShiftTemplateLabelError();
@@ -69,11 +72,6 @@ export class ShiftTemplate {
     ) {
       throw new BreakOutsideShiftError();
     }
-    return new ShiftTemplate(properties);
-  }
-
-  /** Reconstitue un créneau enregistré, sans revérifier des règles qui ont pu évoluer depuis. */
-  static restore(properties: ShiftTemplateProperties): ShiftTemplate {
     return new ShiftTemplate(properties);
   }
 

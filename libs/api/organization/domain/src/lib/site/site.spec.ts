@@ -62,8 +62,4 @@ describe('Site', () => {
   it('refuse un nom vide ou blanc', () => {
     expect(() => Site.create({ ...properties, name: '   ' })).toThrow(BlankSiteNameError);
   });
-
-  it('se reconstitue sans revérifier ses règles', () => {
-    expect(Site.restore({ ...properties, name: '' }).name).toBe('');
-  });
 });

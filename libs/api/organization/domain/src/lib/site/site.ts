@@ -29,16 +29,14 @@ export class Site {
     this.createdAt = properties.createdAt;
   }
 
-  /** Crée un nouveau site. L'unicité du code est vérifiée par le use case, qui voit les autres sites. */
+  /**
+   * Construit un site valide, nouveau ou relu en base. L'unicité du code se vérifie parmi les
+   * autres sites : c'est le rôle du use case.
+   */
   static create(properties: SiteProperties): Site {
     if (properties.name.trim() === '') {
       throw new BlankSiteNameError();
     }
-    return new Site(properties);
-  }
-
-  /** Reconstitue un site enregistré, sans revérifier des règles qui ont pu évoluer depuis. */
-  static restore(properties: SiteProperties): Site {
     return new Site(properties);
   }
 }
