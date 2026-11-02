@@ -9,6 +9,8 @@ export const engineHealthV1 = z
     status: z.literal('ok'),
     engineVersion: z.string().min(1),
     ortoolsVersion: z.string().regex(/^\d+\.\d+\.\d+$/),
+    // DÉMONSTRATION US-003 : champ ajouté sans régénérer les modèles Pydantic.
+    region: z.string().optional(),
   })
   .describe("État du moteur d'optimisation.");
 
