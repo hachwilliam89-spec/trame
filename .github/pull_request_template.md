@@ -36,6 +36,7 @@
 - [ ] Critères d'acceptation couverts par des tests qui passent
 - [ ] Lint, typecheck et tests verts (CI)
 - [ ] Aucune violation des frontières d'architecture
+- [ ] Code lisible par un humain qui découvre le module (`AGENTS.md`, « Lisibilité »)
 - [ ] Modèles Pydantic régénérés si un contrat a changé
 - [ ] Test d'accès croisé pour chaque nouvel endpoint
 - [ ] Doc à jour (et ADR si une décision a été prise)

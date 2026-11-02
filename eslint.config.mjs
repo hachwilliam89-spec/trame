@@ -98,6 +98,28 @@ export default [
     },
   },
   {
+    // Lisibilité (AGENTS.md) : le code est écrit pour être relu par un humain, pas pour être court.
+    files: ['**/*.ts', '**/*.mts'],
+    rules: {
+      complexity: ['error', 10],
+      'max-depth': ['error', 3],
+      'max-params': ['error', 5],
+      'max-lines-per-function': ['error', { max: 60, skipBlankLines: true, skipComments: true }],
+      'max-lines': ['error', { max: 300, skipBlankLines: true, skipComments: true }],
+      'no-nested-ternary': 'error',
+      'no-implicit-coercion': 'error',
+      'no-negated-condition': 'error',
+    },
+  },
+  {
+    // Les tests décrivent des scénarios complets : pas de limite de longueur.
+    files: ['**/*.spec.ts', '**/*.test.ts'],
+    rules: {
+      'max-lines-per-function': 'off',
+      'max-lines': 'off',
+    },
+  },
+  {
     files: ['**/*.ts', '**/*.mts'],
     rules: {
       '@typescript-eslint/no-unused-vars': [
