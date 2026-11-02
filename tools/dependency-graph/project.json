@@ -1,0 +1,8 @@
+{
+  "name": "dependency-graph",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "tools/dependency-graph/src",
+  "projectType": "library",
+  "tags": ["scope:tooling"],
+  "targets": {}
+}
