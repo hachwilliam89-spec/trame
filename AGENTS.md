@@ -140,6 +140,7 @@ Le code est écrit pour être relu et repris par un humain qui découvre le modu
 - **Cohérence des règles** (Hypothesis) : test bidirectionnel solveur ↔ PE pour chaque règle (ADR-0020).
 - **Temps** : chaque règle de durée a un test sur une nuit de changement d'heure.
 - **Intégration** : Testcontainers avec un vrai Postgres et un vrai RabbitMQ. Ne pas mocker la base dans les tests d'intégration.
+- **Outils de test** : une lib expose ses doublures (dépôts en mémoire, utilisateur de test, base migrée) par un point d'entrée `testing` (`@trame/<lib>/testing`). La lint interdit de l'importer hors des tests.
 - **Contrats** : un test exporte tous les schémas en JSON Schema, et des messages valides et invalides sont testés des deux côtés de l'échange API ↔ moteur.
 - **Autorisation** : chaque endpoint a un test d'accès croisé (autre organisation, autre employé), qui doit renvoyer 404.
 - **E2E** : Playwright sur Chromium, Firefox et WebKit, avec vérification d'accessibilité (axe), sur les parcours critiques (générer, modifier, publier).
