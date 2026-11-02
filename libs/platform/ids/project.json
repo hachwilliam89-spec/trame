@@ -1,0 +1,8 @@
+{
+  "name": "platform-ids",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/platform/ids/src",
+  "projectType": "library",
+  "tags": ["scope:platform"],
+  "targets": {}
+}

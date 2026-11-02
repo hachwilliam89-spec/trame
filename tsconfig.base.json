@@ -19,14 +19,26 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "paths": {
-      "@trame/shared/contracts": ["./libs/shared/contracts/src/index.ts"],
+      "@trame/api/database": ["./libs/api/shared/database/src/index.ts"],
+      "@trame/api/organization/application": ["./libs/api/organization/application/src/index.ts"],
+      "@trame/api/organization/application/testing": [
+        "./libs/api/organization/application/src/testing.ts"
+      ],
+      "@trame/api/organization/domain": ["./libs/api/organization/domain/src/index.ts"],
+      "@trame/api/organization/infrastructure": [
+        "./libs/api/organization/infrastructure/src/index.ts"
+      ],
+      "@trame/platform/auth": ["./libs/platform/auth/src/index.ts"],
+      "@trame/platform/auth/testing": ["./libs/platform/auth/src/testing.ts"],
       "@trame/platform/clock": ["./libs/platform/clock/src/index.ts"],
+      "@trame/platform/config": ["./libs/platform/config/src/index.ts"],
+      "@trame/platform/health": ["./libs/platform/health/src/index.ts"],
+      "@trame/platform/ids": ["./libs/platform/ids/src/index.ts"],
+      "@trame/platform/logging": ["./libs/platform/logging/src/index.ts"],
+      "@trame/platform/pagination": ["./libs/platform/pagination/src/index.ts"],
       "@trame/platform/problem-details": ["./libs/platform/problem-details/src/index.ts"],
       "@trame/platform/zod-validation": ["./libs/platform/zod-validation/src/index.ts"],
-      "@trame/platform/config": ["./libs/platform/config/src/index.ts"],
-      "@trame/platform/logging": ["./libs/platform/logging/src/index.ts"],
-      "@trame/platform/health": ["./libs/platform/health/src/index.ts"],
-      "@trame/api/database": ["./libs/api/shared/database/src/index.ts"]
+      "@trame/shared/contracts": ["./libs/shared/contracts/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

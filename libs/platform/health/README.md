@@ -2,6 +2,7 @@
 
 Sondes de santé pour Docker Compose et Traefik (`@nestjs/terminus`).
 
+- Les deux routes sont publiques (`@Public()` de `@trame/platform/auth`) : les sondes de Docker et de Traefik n'ont pas d'identité.
 - `GET health/live` : le processus répond. Aucune dépendance vérifiée.
 - `GET health/ready` : chaque `ReadinessIndicator` enregistré répond. Sinon `503` en problem+json, avec l'état de chaque dépendance dans `checks`, sans aucun détail interne (adresse, message d'erreur).
 - Une dépendance indisponible est journalisée en `warn` : nom de l'indicateur, type d'erreur et pile, sans le message.

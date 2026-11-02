@@ -6,6 +6,7 @@ import {
   type HealthIndicatorResult,
   HealthIndicatorService,
 } from '@nestjs/terminus';
+import { Public } from '@trame/platform/auth';
 import { ProblemDetailsException, describeForLog } from '@trame/platform/problem-details';
 import { READINESS_INDICATORS, type ReadinessIndicator } from './readiness-indicator';
 
@@ -14,6 +15,7 @@ import { READINESS_INDICATORS, type ReadinessIndicator } from './readiness-indic
  * - `GET health/ready` : les dépendances répondent (ne pas envoyer de trafic sinon). `503` en problem+json.
  */
 @Controller('health')
+@Public()
 export class HealthController {
   private readonly logger = new Logger(HealthController.name);
 
