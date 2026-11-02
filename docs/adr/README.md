@@ -32,4 +32,4 @@ Les ADR 0018, 0020, 0021 et 0022 ont été amendées le 2026-11-01 après la rev
 | [0024](0024-en-tetes-de-securite-sans-helmet.md)    | En-têtes de sécurité : Traefik et CSP du front, pas de helmet           | Accepté                                   |
 | [0025](0025-demo-organisation-par-visiteur.md)      | Démo publique : une organisation éphémère par visiteur                  | Accepté                                   |
 | [0026](0026-socle-reutilisable-libs-platform.md)    | Socle technique réutilisable (`libs/platform`)                          | Accepté                                   |
-| [0027](0027-dates-avec-temporal.md)                 | Dates : Temporal                                                        | Proposé                                   |
+| [0027](0027-dates-avec-temporal.md)                 | Dates : Temporal                                                        | Accepté                                   |
