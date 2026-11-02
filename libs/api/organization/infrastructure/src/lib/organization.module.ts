@@ -1,4 +1,7 @@
 import { Module } from '@nestjs/common';
+import { catalogProviders } from './catalog.providers';
+import { SkillsController } from './http/skills.controller';
+import { PositionsController } from './http/positions.controller';
 import {
   CreateShiftTemplate,
   CreateSite,
@@ -23,8 +26,9 @@ import { SHIFT_TEMPLATE_REPOSITORY, SITE_REPOSITORY } from './repository-tokens'
  * Requiert `DatabaseModule`, `ClockModule`, `IdsModule` et `AuthModule` dans l'application.
  */
 @Module({
-  controllers: [SitesController, ShiftTemplatesController],
+  controllers: [SitesController, ShiftTemplatesController, SkillsController, PositionsController],
   providers: [
+    ...catalogProviders,
     { provide: SITE_REPOSITORY, useClass: PrismaSiteRepository },
     { provide: SHIFT_TEMPLATE_REPOSITORY, useClass: PrismaShiftTemplateRepository },
     {

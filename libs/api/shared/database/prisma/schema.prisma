@@ -24,11 +24,56 @@ model Site {
   timeZone       String          @map("time_zone") @db.VarChar(64)
   createdAt      DateTime        @map("created_at") @db.Timestamptz(3)
   shiftTemplates ShiftTemplate[]
+  positions      Position[]
 
   @@unique([organizationId, code])
   /// Cible de la clé étrangère composite des créneaux types.
   @@unique([id, organizationId])
   @@map("sites")
+  @@schema("organization")
+}
+
+/// Compétence réutilisable dans tous les sites d'une organisation.
+model Skill {
+  id             String          @id @db.Uuid
+  organizationId String          @map("organization_id") @db.Uuid
+  name           String          @db.VarChar(100)
+  createdAt      DateTime        @map("created_at") @db.Timestamptz(3)
+  positions      PositionSkill[]
+
+  @@unique([id, organizationId])
+  @@index([organizationId, id])
+  @@map("skills")
+  @@schema("organization")
+}
+
+/// Poste d'un site, avec ses compétences requises.
+model Position {
+  id             String          @id @db.Uuid
+  organizationId String          @map("organization_id") @db.Uuid
+  siteId         String          @map("site_id") @db.Uuid
+  name           String          @db.VarChar(100)
+  createdAt      DateTime        @map("created_at") @db.Timestamptz(3)
+  site           Site            @relation(fields: [siteId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  skills         PositionSkill[]
+
+  @@unique([id, organizationId])
+  @@index([organizationId, siteId, id])
+  @@map("positions")
+  @@schema("organization")
+}
+
+/// Les deux clés composites imposent la même organisation au poste et à la compétence.
+model PositionSkill {
+  organizationId String   @map("organization_id") @db.Uuid
+  positionId     String   @map("position_id") @db.Uuid
+  skillId        String   @map("skill_id") @db.Uuid
+  position       Position @relation(fields: [positionId, organizationId], references: [id, organizationId], onDelete: Cascade)
+  skill          Skill    @relation(fields: [skillId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@id([positionId, skillId])
+  @@index([skillId, organizationId])
+  @@map("position_skills")
   @@schema("organization")
 }
 

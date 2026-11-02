@@ -7,6 +7,7 @@ import { testActorResolver } from '@trame/platform/auth/testing';
 import { ClockModule } from '@trame/platform/clock';
 import { IdsModule } from '@trame/platform/ids';
 import { ProblemDetailsModule } from '@trame/platform/problem-details';
+import { positionV1, skillV1, problemTypes } from '@trame/shared/contracts';
 import { TestClient, testActors } from '../testing';
 import { OrganizationModule } from './organization.module';
 
@@ -63,5 +64,69 @@ describe('module organization sur PostgreSQL (intégration)', () => {
 
     expect((await admin.post('/sites', { code: 'MUL', name: 'Mulhouse bis' })).status).toBe(409);
     expect((await adminOfB.get(`/sites/${site.body.id}`)).status).toBe(404);
+  });
+
+  it('crée le catalogue et un poste, puis traduit le refus de suppression PostgreSQL en 409', async () => {
+    const admin = new TestClient(app, testActors.adminOfA);
+    const manager = new TestClient(app, testActors.managerOfA);
+    const siteResponse = await admin.post('/sites', { code: 'POSTES', name: 'Colmar' });
+    expect(siteResponse.status).toBe(201);
+    const skillResponse = await admin.post('/skills', { name: 'CACES R489' });
+    expect(skillResponse.status).toBe(201);
+    const skill = skillV1.parse(skillResponse.body);
+    const collection = `/sites/${siteResponse.body.id}/positions`;
+    const positionResponse = await admin.post(collection, {
+      name: 'Cariste',
+      skillIds: [skill.id],
+    });
+    expect(positionResponse.status).toBe(201);
+    const position = positionV1.parse(positionResponse.body);
+
+    const deletion = await admin.delete(`/skills/${skill.id}`);
+
+    expect(deletion.status).toBe(409);
+    expect(deletion.headers['content-type']).toMatch(/^application\/problem\+json/);
+    expect(deletion.body.type).toBe(problemTypes.skillInUse);
+    const reread = await manager.get(`${collection}/${position.id}`);
+    expect(reread.status).toBe(200);
+    expect(positionV1.parse(reread.body)).toEqual(position);
+  });
+
+  it('refuse une compétence étrangère sans poste partiel, puis supprime une compétence inutilisée', async () => {
+    const admin = new TestClient(app, testActors.adminOfA);
+    const adminOfB = new TestClient(app, testActors.adminOfB);
+    const site = await admin.post('/sites', { code: 'CATALOGUE', name: 'Colmar' });
+    expect(site.status).toBe(201);
+    const skillResponse = await adminOfB.post('/skills', { name: 'Réception' });
+    expect(skillResponse.status).toBe(201);
+    const skill = skillV1.parse(skillResponse.body);
+    const collection = `/sites/${site.body.id}/positions`;
+
+    expect((await admin.post(collection, { name: 'Cariste', skillIds: [skill.id] })).status).toBe(
+      404,
+    );
+    expect((await admin.get(collection)).body.items).toEqual([]);
+    expect((await admin.delete(`/skills/${skill.id}`)).status).toBe(404);
+    expect((await adminOfB.delete(`/skills/${skill.id}`)).status).toBe(204);
+    expect((await adminOfB.get(`/skills/${skill.id}`)).status).toBe(404);
+  });
+
+  it('refuse les noms contenant NUL avant l’écriture PostgreSQL', async () => {
+    const admin = new TestClient(app, testActors.adminOfA);
+    const site = await admin.post('/sites', { code: 'NUL', name: 'Colmar' });
+    expect(site.status).toBe(201);
+    const invalidName = 'Réception\u0000';
+    const skill = await admin.post('/skills', { name: invalidName });
+    const position = await admin.post(`/sites/${site.body.id}/positions`, {
+      name: invalidName,
+      skillIds: [],
+    });
+
+    expect(skill.status).toBe(400);
+    expect(position.status).toBe(400);
+    for (const response of [skill, position]) {
+      expect(response.body.errors).toContainEqual(expect.objectContaining({ pointer: '#/name' }));
+    }
+    expect((await admin.get(`/sites/${site.body.id}/positions`)).body.items).toEqual([]);
   });
 });
