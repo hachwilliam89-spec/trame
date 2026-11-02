@@ -1,6 +1,6 @@
 # ADR-0028 — Types de problème : URI `tag:`
 
-- **Statut** : Proposé (2026-11-02). Précise ADR-0021.
+- **Statut** : Accepté (2026-11-02), après la revue croisée de Codex. Précise ADR-0021.
 - **Contexte** :
   - ADR-0021 impose des erreurs au format RFC 9457. Le membre `type` est une URI qui identifie le type de problème ; le client s'en sert pour réagir (par exemple, afficher « code déjà utilisé » sous le bon champ).
   - La RFC 9457 (§3.1.1) autorise une URI non résolvable, mais elle doit rester stable et unique.
@@ -8,7 +8,7 @@
   - Une URL `https://` laisserait croire qu'une page de documentation existe à cette adresse, et lierait les identifiants à l'hébergement de la doc.
 - **Décision** :
   - Les types de problème propres à Trame sont des URI `tag:` (RFC 4151) : `tag:wkhach.dev,2026-11-02:trame:problem:<code>`, par exemple `…:site-code-already-used`.
-  - L'autorité est le domaine `wkhach.dev`, détenu par l'auteur à la date indiquée. Elle n'expose aucune adresse e-mail dans les réponses de l'API.
+  - L'autorité est le domaine `wkhach.dev`. La RFC 4151 exige qu'il soit détenu à 00 h 00 UTC à la date inscrite : c'est le cas le 2026-11-02, confirmé par son titulaire. Cette autorité n'expose aucune adresse e-mail dans les réponses de l'API.
   - Le préfixe et les types sont des constantes de `@trame/shared/contracts` (`problemTypes`). L'API les émet, le front compare le `type` complet à ces constantes.
   - Un type publié n'est jamais renommé : une sémantique nouvelle crée un nouveau type.
   - Les erreurs sans sémantique propre gardent `about:blank` : 401, 403, 404, et les erreurs de validation (400 avec l'extension `errors`, un JSON Pointer par champ).
