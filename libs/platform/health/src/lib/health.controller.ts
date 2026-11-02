@@ -3,6 +3,7 @@ import {
   HealthCheck,
   type HealthCheckResult,
   HealthCheckService,
+  type HealthIndicatorResult,
   HealthIndicatorService,
 } from '@nestjs/terminus';
 import { ProblemDetailsException, describeForLog } from '@trame/platform/problem-details';
@@ -31,34 +32,40 @@ export class HealthController {
   @Get('ready')
   @HealthCheck()
   async ready(): Promise<HealthCheckResult> {
+    const checks = this.indicators.map((indicator) => () => this.check(indicator));
     try {
-      return await this.health.check(
-        this.indicators.map((indicator) => async () => {
-          const result = this.indicatorService.check(indicator.name);
-          try {
-            await indicator.check();
-            return result.up();
-          } catch (error) {
-            // Type et pile dans les logs, sans le message ; rien de tout cela dans la réponse publique.
-            this.logger.warn({
-              ...describeForLog(error),
-              msg: 'Dépendance indisponible',
-              indicator: indicator.name,
-            });
-            return result.down({ message: 'indisponible' });
-          }
-        }),
-      );
+      return await this.health.check(checks);
     } catch (error) {
-      if (error instanceof ServiceUnavailableException) {
-        const body = error.getResponse() as Partial<HealthCheckResult>;
-        throw new ProblemDetailsException({
-          status: 503,
-          detail: 'Une ou plusieurs dépendances ne répondent pas.',
-          checks: body.details ?? {},
-        });
-      }
-      throw error;
+      throw this.toProblem(error);
     }
+  }
+
+  /** Vérifie une dépendance. Son échec est journalisé sans message, et jamais exposé. */
+  private async check(indicator: ReadinessIndicator): Promise<HealthIndicatorResult> {
+    const result = this.indicatorService.check(indicator.name);
+    try {
+      await indicator.check();
+      return result.up();
+    } catch (error) {
+      this.logger.warn({
+        ...describeForLog(error),
+        msg: 'Dépendance indisponible',
+        indicator: indicator.name,
+      });
+      return result.down({ message: 'indisponible' });
+    }
+  }
+
+  /** Terminus signale une dépendance en panne par une 503 : on la rend en problem+json. */
+  private toProblem(error: unknown): unknown {
+    if (!(error instanceof ServiceUnavailableException)) {
+      return error;
+    }
+    const body = error.getResponse() as Partial<HealthCheckResult>;
+    return new ProblemDetailsException({
+      status: 503,
+      detail: 'Une ou plusieurs dépendances ne répondent pas.',
+      checks: body.details ?? {},
+    });
   }
 }

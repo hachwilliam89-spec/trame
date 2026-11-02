@@ -28,14 +28,14 @@ export function engineContractsJsonSchema(): Record<string, unknown> {
     uri: (id) => `#/$defs/${id}`,
   });
 
-  const defs = Object.fromEntries(
-    Object.entries(schemas)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([id, schema]) => {
-        const { $schema: _schema, $id: _id, ...rest } = schema;
-        return [id, rest];
-      }),
-  );
+  // Chaque schéma exporté porte son propre `$schema` et son `$id` : on les retire, puisqu'ils
+  // deviennent des entrées du même document. Tri par nom pour un fichier généré stable.
+  const defs: Record<string, unknown> = {};
+  const ids = Object.keys(schemas).sort((a, b) => a.localeCompare(b));
+  for (const id of ids) {
+    const { $schema: _schema, $id: _id, ...definition } = schemas[id] ?? {};
+    defs[id] = definition;
+  }
 
   return {
     $schema: 'https://json-schema.org/draft/2020-12/schema',
