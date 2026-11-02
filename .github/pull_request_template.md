@@ -11,7 +11,7 @@
 <!-- Commandes lancées et résultats. La CI doit être verte. -->
 
 - [ ] `pnpm nx affected -t lint typecheck test build --base=origin/main`
-- [ ] `pnpm nx run api-database:integration` (si la persistance est touchée)
+- [ ] `pnpm nx run-many -t integration` (si la persistance est touchée)
 - [ ] `pnpm nx run contracts:generate`, résultat commité (si un contrat a changé)
 
 ## Points à valider

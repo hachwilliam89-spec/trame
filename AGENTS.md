@@ -63,7 +63,8 @@ pnpm nx serve docs
 
 pnpm nx affected -t lint typecheck test --base=origin/main   # vérification avant PR (moteur compris)
 pnpm nx run-many -t lint typecheck test            # tout le dépôt
-pnpm nx run api-database:integration               # Postgres réel via Testcontainers (Docker requis)
+pnpm nx run-many -t integration                    # Postgres réel via Testcontainers (Docker requis)
+pnpm nx run api-database:migrations-check          # migrations appliquées par Prisma, sans écart (DATABASE_URL requis)
 pnpm nx run contracts:generate                     # régénère les modèles Pydantic depuis zod
 pnpm nx run contracts:check                        # échoue si les modèles générés ne sont pas à jour
 pnpm nx run api-database:prisma-generate           # client Prisma (lancé aussi avant typecheck, test et build)
@@ -152,7 +153,7 @@ Le code est écrit pour être relu et repris par un humain qui découvre le modu
 2. Lire l'issue, `docs/cadrage.md`, les ADR et le code voisin. Imiter le module de référence.
 3. **Proposer un plan** (fichiers touchés, approche, tests) et attendre la validation avant d'implémenter.
 4. Implémenter par petits commits.
-5. Lancer `pnpm nx affected -t lint typecheck test --base=origin/main` (moteur compris), et `pnpm nx run api-database:integration` si la persistance est touchée. Si un contrat a changé, lancer `pnpm nx run contracts:generate` et commiter le résultat. Tout doit être vert.
+5. Lancer `pnpm nx affected -t lint typecheck test --base=origin/main` (moteur compris), et `pnpm nx run-many -t integration` si la persistance est touchée. Si un contrat a changé, lancer `pnpm nx run contracts:generate` et commiter le résultat. Tout doit être vert.
 6. Mettre à jour la doc concernée. Si une décision a été prise, rédiger une ADR au statut « Proposé ».
 7. Ouvrir la PR avec le template rempli. Signaler explicitement tout doute ou écart par rapport au plan.
 
