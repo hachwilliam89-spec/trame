@@ -3,7 +3,7 @@ name: Graphe de dépendances
 # Le graphe de dépendances de GitHub ne lit ni le pnpm-lock.yaml de pnpm 12 (deux documents YAML
 # quand la version de pnpm est figée) ni uv.lock. On lui soumet donc un instantané construit depuis
 # les SBOM de pnpm et de uv (tools/dependency-graph), puis on vérifie qu'il en contient chaque
-# dépendance directe. Sur une PR, l'instantané est seulement construit et contrôlé.
+# paquet, direct ou transitif. Sur une PR, l'instantané est seulement construit et contrôlé.
 
 on:
   pull_request:
@@ -94,9 +94,9 @@ jobs:
     name: Vérification du graphe
     needs: submit
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
-      # Lecture du SBOM exporté par le graphe de dépendances.
+      # Lecture du rapport SBOM exporté par le graphe de dépendances.
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -109,7 +109,7 @@ jobs:
           name: dependency-snapshot
           path: ${{ runner.temp }}/snapshot
 
-      - name: Le graphe contient chaque dépendance directe soumise
+      - name: Le graphe contient chaque paquet soumis, direct ou transitif
         env:
           GH_TOKEN: ${{ github.token }}
         run: tools/dependency-graph/verify-graph.sh "$RUNNER_TEMP/snapshot/snapshot.json"

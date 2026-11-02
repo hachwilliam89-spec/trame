@@ -10,7 +10,7 @@
 - **Décision** :
   - Un workflow (`dependency-graph.yml`) construit un instantané à partir des SBOM CycloneDX produits par les outils eux-mêmes : `pnpm sbom` et `uv export`, chacun en deux passes (toutes les dépendances, puis celles de production).
   - La conversion vers l'API « dependency submission » vit dans `tools/dependency-graph`, testée. Chaque paquet porte sa relation (directe ou indirecte), sa portée (production ou développement) et ses dépendances.
-  - Sur `main`, l'instantané est soumis, puis un job vérifie que le SBOM exporté par GitHub contient chaque dépendance directe soumise.
+  - Sur `main`, l'instantané est soumis, puis un job vérifie que le rapport SBOM exporté par GitHub contient chaque paquet soumis, direct ou transitif. Il utilise l'export asynchrone (`generate-report`, puis `fetch-report`) : l'export synchrone ferme le 13 novembre 2026.
   - Sur une PR, l'instantané est construit et contrôlé, sans droit d'écriture.
   - `dependency-review-action` ne devient un contrôle exigé qu'une fois cette vérification réussie sur `main`, dans une PR à part, avec une politique de licences explicite.
 - **Conséquences** :
