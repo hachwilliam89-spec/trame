@@ -33,4 +33,5 @@ Les ADR 0018, 0020, 0021 et 0022 ont été amendées le 2026-11-01 après la rev
 | [0025](0025-demo-organisation-par-visiteur.md)       | Démo publique : une organisation éphémère par visiteur                  | Accepté                                   |
 | [0026](0026-socle-reutilisable-libs-platform.md)     | Socle technique réutilisable (`libs/platform`)                          | Accepté                                   |
 | [0027](0027-dates-avec-temporal.md)                  | Dates : Temporal                                                        | Accepté                                   |
+| [0028](0028-types-de-probleme-uri-tag.md)            | Types de problème : URI `tag:`                                          | Accepté                                   |
 | [0029](0029-graphe-de-dependances-par-soumission.md) | Graphe de dépendances : instantanés soumis par l'API                    | Proposé                                   |

@@ -53,6 +53,13 @@ describe('API (socle)', () => {
     expect(response.headers['x-powered-by']).toBeUndefined();
   });
 
+  it("exige un utilisateur sur les routes métier, tant qu'OIDC n'est pas branché (US-020)", async () => {
+    const response = await request(app.getHttpServer()).get('/api/v1/sites');
+
+    expect(response.status).toBe(401);
+    expect(response.headers['content-type']).toMatch(/^application\/problem\+json/);
+  });
+
   it("n'expose rien hors du préfixe /api/v1", async () => {
     expect((await request(app.getHttpServer()).get('/health/live')).status).toBe(404);
   });

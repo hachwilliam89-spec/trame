@@ -220,6 +220,9 @@ importers:
       rxjs:
         specifier: 7.8.2
         version: 7.8.2
+      uuid:
+        specifier: 14.0.3
+        version: 14.0.3
       zod:
         specifier: 4.6.7
         version: 4.6.7
@@ -320,6 +323,9 @@ importers:
       '@types/node':
         specifier: ^24.0.0
         version: 24.19.2
+      '@types/pg':
+        specifier: 8.23.1
+        version: 8.23.1
       '@types/supertest':
         specifier: 7.2.1
         version: 7.2.1
@@ -359,6 +365,9 @@ importers:
       nx:
         specifier: 24.0.3
         version: 24.0.3(@swc-node/register@1.11.1(@swc/core@1.15.8(@swc/helpers@0.5.18))(@swc/types@0.1.28)(supports-color@8.1.1)(typescript@6.0.3))(@swc/core@1.15.8(@swc/helpers@0.5.18))
+      pg:
+        specifier: 8.23.1
+        version: 8.23.1
       pino-pretty:
         specifier: 13.2.0
         version: 13.2.0
@@ -9709,6 +9718,10 @@ packages:
   utils-merge@1.0.1:
     resolution: {integrity: sha512-pMZTvIkT1d+TFGvDOqodOclx0QWkkgi6Tdoa8gC8ffGAAqz9pzPTZWAybbsHHoED/ztMtkv/VoYTYyShUn81hA==}
     engines: {node: '>= 0.4.0'}
+
+  uuid@14.0.3:
+    resolution: {integrity: sha512-Sc5u1VVln93y1Xnz4R+CunOZc7R9LUcTmhj7Rc7Eg3HVcf7rVn2FOoa812fe0W8p3jD7xeoGSYbfqCGGH2B6xw==}
+    hasBin: true
 
   uuid@8.3.2:
     resolution: {integrity: sha512-+NYs2QeMWy+GWFOEm9xnn6HCDp0l7QBD7ml8zLUmJ+93Q5NF0NocErnwkTkXVFNiX3/fpC6afS8Dhb/gz7R7eg==}
@@ -20246,6 +20259,8 @@ snapshots:
   util-deprecate@1.0.2: {}
 
   utils-merge@1.0.1: {}
+
+  uuid@14.0.3: {}
 
   uuid@8.3.2: {}
 

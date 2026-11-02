@@ -1,1 +1,1 @@
-export { type InvalidParam, ZodValidationPipe, toJsonPointer } from './lib/zod-validation.pipe';
+export { ZodValidationPipe, toJsonPointer } from './lib/zod-validation.pipe';

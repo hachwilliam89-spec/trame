@@ -1,33 +1,23 @@
-import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { Test } from '@nestjs/testing';
+import { type TestDatabase, startTestDatabase } from '../testing/test-database';
 import { DatabaseModule } from './database.module';
 import { DatabaseReadiness } from './database-readiness';
 import { PrismaService } from './prisma.service';
 
-// Vrai Postgres via Testcontainers (Docker requis). `TEST_DATABASE_URL` permet de viser une base
-// déjà démarrée, quand Docker n'est pas disponible.
-const externalUrl = process.env['TEST_DATABASE_URL'];
-
 describe('PrismaService (intégration)', () => {
-  let container: StartedPostgreSqlContainer | undefined;
-  let url: string;
+  let database: TestDatabase;
 
   beforeAll(async () => {
-    if (externalUrl === undefined) {
-      container = await new PostgreSqlContainer('postgres:18-alpine').start();
-      url = container.getConnectionUri();
-    } else {
-      url = externalUrl;
-    }
+    database = await startTestDatabase();
   }, 120_000);
 
   afterAll(async () => {
-    await container?.stop();
+    await database.stop();
   });
 
   it('se connecte via @prisma/adapter-pg et exécute une requête', async () => {
     const moduleRef = await Test.createTestingModule({
-      imports: [DatabaseModule.forRootAsync({ useFactory: () => ({ url }) })],
+      imports: [DatabaseModule.forRootAsync({ useFactory: () => ({ url: database.url }) })],
     }).compile();
     await moduleRef.init();
 
@@ -37,6 +27,21 @@ describe('PrismaService (intégration)', () => {
 
       expect(rows).toEqual([{ answer: 1 }]);
       await expect(moduleRef.get(DatabaseReadiness).check()).resolves.toBeUndefined();
+    } finally {
+      await moduleRef.close();
+    }
+  });
+
+  it('trouve les tables créées par les migrations', async () => {
+    const moduleRef = await Test.createTestingModule({
+      imports: [DatabaseModule.forRootAsync({ useFactory: () => ({ url: database.url }) })],
+    }).compile();
+
+    try {
+      const prisma = moduleRef.get(PrismaService);
+
+      await expect(prisma.site.count()).resolves.toBe(0);
+      await expect(prisma.shiftTemplate.count()).resolves.toBe(0);
     } finally {
       await moduleRef.close();
     }

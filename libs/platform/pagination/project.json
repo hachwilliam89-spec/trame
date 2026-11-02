@@ -1,0 +1,8 @@
+{
+  "name": "platform-pagination",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/platform/pagination/src",
+  "projectType": "library",
+  "tags": ["scope:platform"],
+  "targets": {}
+}

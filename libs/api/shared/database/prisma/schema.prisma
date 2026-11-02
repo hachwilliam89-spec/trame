@@ -1,6 +1,5 @@
 // Schéma Prisma de l'API (ADR-0008, ADR-0022).
 // Un schéma Postgres par bounded context, sans relation entre contextes : les références passent par identifiant.
-// Les modèles arrivent avec leur contexte (US-030 : `organization`).
 
 generator client {
   provider     = "prisma-client"
@@ -11,4 +10,45 @@ generator client {
 datasource db {
   provider = "postgresql"
   schemas  = ["organization"]
+}
+
+// ─── Contexte organization (US-030) ─────────────────────────────────────────
+
+/// Site d'une organisation : un entrepôt, avec son fuseau IANA.
+model Site {
+  id             String          @id @db.Uuid
+  organizationId String          @map("organization_id") @db.Uuid
+  /// Unique dans l'organisation.
+  code           String          @db.VarChar(20)
+  name           String          @db.VarChar(100)
+  timeZone       String          @map("time_zone") @db.VarChar(64)
+  createdAt      DateTime        @map("created_at") @db.Timestamptz(3)
+  shiftTemplates ShiftTemplate[]
+
+  @@unique([organizationId, code])
+  /// Cible de la clé étrangère composite des créneaux types.
+  @@unique([id, organizationId])
+  @@map("sites")
+  @@schema("organization")
+}
+
+/// Créneau type d'un site. Les heures sont locales au site, en minutes depuis minuit (0 à 1439) :
+/// une heure locale n'est pas un instant, elle ne prend son sens qu'avec une date et le fuseau du site.
+model ShiftTemplate {
+  id                   String   @id @db.Uuid
+  organizationId       String   @map("organization_id") @db.Uuid
+  siteId               String   @map("site_id") @db.Uuid
+  label                String   @db.VarChar(50)
+  startMinute          Int      @map("start_minute") @db.SmallInt
+  endMinute            Int      @map("end_minute") @db.SmallInt
+  /// Un créneau type a toujours une pause positionnée (US-030).
+  breakStartMinute     Int      @map("break_start_minute") @db.SmallInt
+  breakDurationMinutes Int      @map("break_duration_minutes") @db.SmallInt
+  createdAt            DateTime @map("created_at") @db.Timestamptz(3)
+  /// La clé étrangère porte aussi l'organisation : un créneau appartient toujours à celle de son site.
+  site                 Site     @relation(fields: [siteId, organizationId], references: [id, organizationId])
+
+  @@index([siteId, organizationId])
+  @@map("shift_templates")
+  @@schema("organization")
 }

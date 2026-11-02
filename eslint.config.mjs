@@ -112,6 +112,24 @@ export default [
     },
   },
   {
+    // Outils de test (`@trame/.../testing`) : jamais dans le code de production.
+    files: ['**/*.ts', '**/*.mts'],
+    ignores: ['**/*.spec.ts', '**/*.test.ts', '**/src/testing.ts', '**/src/testing/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^@trame/.+/testing$',
+              message: 'Les outils de test ne sont importables que depuis des fichiers de test.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     // Les tests décrivent des scénarios complets : pas de limite de longueur.
     files: ['**/*.spec.ts', '**/*.test.ts'],
     rules: {

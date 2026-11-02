@@ -63,7 +63,8 @@ pnpm nx serve docs
 
 pnpm nx affected -t lint typecheck test --base=origin/main   # vérification avant PR (moteur compris)
 pnpm nx run-many -t lint typecheck test            # tout le dépôt
-pnpm nx run api-database:integration               # Postgres réel via Testcontainers (Docker requis)
+pnpm nx run-many -t integration                    # Postgres réel via Testcontainers (Docker requis)
+pnpm nx run api-database:migrations-check          # migrations appliquées par Prisma, sans écart (DATABASE_URL requis)
 pnpm nx run contracts:generate                     # régénère les modèles Pydantic depuis zod
 pnpm nx run contracts:check                        # échoue si les modèles générés ne sont pas à jour
 pnpm nx run api-database:prisma-generate           # client Prisma (lancé aussi avant typecheck, test et build)
@@ -140,6 +141,7 @@ Le code est écrit pour être relu et repris par un humain qui découvre le modu
 - **Cohérence des règles** (Hypothesis) : test bidirectionnel solveur ↔ PE pour chaque règle (ADR-0020).
 - **Temps** : chaque règle de durée a un test sur une nuit de changement d'heure.
 - **Intégration** : Testcontainers avec un vrai Postgres et un vrai RabbitMQ. Ne pas mocker la base dans les tests d'intégration.
+- **Outils de test** : une lib expose ses doublures (dépôts en mémoire, utilisateur de test, base migrée) par un point d'entrée `testing` (`@trame/<lib>/testing`). La lint interdit de l'importer hors des tests.
 - **Contrats** : un test exporte tous les schémas en JSON Schema, et des messages valides et invalides sont testés des deux côtés de l'échange API ↔ moteur.
 - **Autorisation** : chaque endpoint a un test d'accès croisé (autre organisation, autre employé), qui doit renvoyer 404.
 - **E2E** : Playwright sur Chromium, Firefox et WebKit, avec vérification d'accessibilité (axe), sur les parcours critiques (générer, modifier, publier).
@@ -151,7 +153,7 @@ Le code est écrit pour être relu et repris par un humain qui découvre le modu
 2. Lire l'issue, `docs/cadrage.md`, les ADR et le code voisin. Imiter le module de référence.
 3. **Proposer un plan** (fichiers touchés, approche, tests) et attendre la validation avant d'implémenter.
 4. Implémenter par petits commits.
-5. Lancer `pnpm nx affected -t lint typecheck test --base=origin/main` (moteur compris), et `pnpm nx run api-database:integration` si la persistance est touchée. Si un contrat a changé, lancer `pnpm nx run contracts:generate` et commiter le résultat. Tout doit être vert.
+5. Lancer `pnpm nx affected -t lint typecheck test --base=origin/main` (moteur compris), et `pnpm nx run-many -t integration` si la persistance est touchée. Si un contrat a changé, lancer `pnpm nx run contracts:generate` et commiter le résultat. Tout doit être vert.
 6. Mettre à jour la doc concernée. Si une décision a été prise, rédiger une ADR au statut « Proposé ».
 7. Ouvrir la PR avec le template rempli. Signaler explicitement tout doute ou écart par rapport au plan.
 

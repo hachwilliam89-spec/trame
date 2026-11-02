@@ -64,6 +64,21 @@ jobs:
     name: Intégration (Testcontainers)
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    services:
+      # Base dédiée au contrôle des migrations ; les tests d'intégration démarrent les leurs.
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: trame
+          POSTGRES_PASSWORD: trame
+          POSTGRES_DB: trame
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U trame"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -74,7 +89,14 @@ jobs:
           python: 'false'
 
       - name: Postgres réel via Testcontainers
-        run: pnpm nx run api-database:integration
+        run: pnpm nx run-many -t integration
+
+      # `prisma migrate deploy` applique les migrations, puis `migrate diff` vérifie qu'aucun
+      # écart ne reste avec schema.prisma : une migration oubliée ou retouchée fait échouer la CI.
+      - name: Migrations appliquées par Prisma, sans écart avec le schéma
+        run: pnpm nx run api-database:migrations-check
+        env:
+          DATABASE_URL: postgresql://trame:trame@localhost:5432/trame
 
   secrets:
     name: Secrets (gitleaks)

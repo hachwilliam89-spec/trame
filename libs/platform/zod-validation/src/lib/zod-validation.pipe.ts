@@ -1,13 +1,6 @@
 import type { PipeTransform } from '@nestjs/common';
-import { ProblemDetailsException } from '@trame/platform/problem-details';
+import { type InvalidParam, invalidRequest } from '@trame/platform/problem-details';
 import type { z } from 'zod';
-
-/** Détail d'un champ invalide, au format des exemples de la RFC 9457 (`pointer` en JSON Pointer). */
-export interface InvalidParam {
-  pointer: string;
-  detail: string;
-  code: string;
-}
 
 /** Convertit un chemin zod en JSON Pointer (RFC 6901), préfixé par `#`. */
 export function toJsonPointer(path: readonly PropertyKey[]): string {
@@ -39,10 +32,6 @@ export class ZodValidationPipe<TSchema extends z.ZodType> implements PipeTransfo
       detail: issue.message,
       code: issue.code,
     }));
-    throw new ProblemDetailsException({
-      status: 400,
-      detail: 'La requête contient des données invalides.',
-      errors,
-    });
+    throw invalidRequest(errors);
   }
 }
