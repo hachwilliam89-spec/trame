@@ -57,12 +57,13 @@ export const LOGGED_REQUEST_HEADERS = ['user-agent', 'content-type', 'content-le
  * (donnée personnelle), ni autre en-tête.
  */
 export function serializeRequest(req: SerializedRequestLike): Record<string, unknown> {
-  const headers = Object.fromEntries(
-    LOGGED_REQUEST_HEADERS.flatMap((name) => {
-      const value = req.headers?.[name];
-      return typeof value === 'string' ? [[name, value]] : [];
-    }),
-  );
+  const headers: Record<string, string> = {};
+  for (const name of LOGGED_REQUEST_HEADERS) {
+    const value = req.headers?.[name];
+    if (typeof value === 'string') {
+      headers[name] = value;
+    }
+  }
   return { id: req.id, method: req.method, url: pathOnly(req.url), headers };
 }
 

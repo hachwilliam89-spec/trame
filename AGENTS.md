@@ -94,6 +94,25 @@ L'infrastructure locale (`docker compose -f infra/compose/dev.yml up -d` : Postg
 
 Les règles 1 à 4 et 11 sont vérifiées par `@nx/enforce-module-boundaries` côté TypeScript, et par import-linter côté Python.
 
+## Lisibilité (priorité)
+
+Le code est écrit pour être relu et repris par un humain qui découvre le module, pas pour être court. Un code correct mais difficile à lire est une raison suffisante de demander une reprise en revue.
+
+- **Noms explicites et complets**, en anglais : `employee`, `slot`, `isAssigned`, jamais `e`, `s`, `x`, `tmp`, `data2`. Seules les abréviations universelles sont admises (`id`, `url`, `http`).
+- **Une fonction fait une chose**, et son nom le dit. Si elle a besoin d'un commentaire pour expliquer _ce qu'elle fait_, on la découpe ou on la renomme.
+- **Pas d'astuce** : pas de ternaire imbriqué, pas de chaîne de méthodes qui fait trois choses, pas de one-liner dense. Une boucle claire et des variables intermédiaires bien nommées valent mieux qu'un `reduce` ou un `flatMap` astucieux.
+- **Retours anticipés** plutôt qu'une imbrication de `if`.
+- **Types simples** : pas de gymnastique de types génériques quand un type explicite suffit.
+- **Commentaires** : ils expliquent le _pourquoi_ (règle métier, article de loi, contrainte technique, piège évité), jamais le _quoi_. Pas de code commenté.
+- **Limites vérifiées par la lint** :
+  - complexité cyclomatique ≤ 10 ;
+  - imbrication ≤ 3 niveaux ;
+  - 5 paramètres au maximum ;
+  - 60 lignes par fonction et 300 lignes par fichier, les tests étant exemptés de ces deux limites ;
+  - pas de ternaire imbriqué, de conversion implicite ni de condition négative avec `else`.
+
+  Côté Python, Ruff applique l'équivalent (`C90`, `PLR`, `ERA`). Une limite dépassée se règle en découpant le code, jamais en désactivant la règle.
+
 ## Conventions
 
 - **TypeScript** : `strict`, pas de `any`, pas de `!` non justifié. Validation des entrées aux frontières avec les schémas zod partagés (`ZodValidationPipe` côté API).
@@ -147,6 +166,7 @@ Les règles 1 à 4 et 11 sont vérifiées par `@nx/enforce-module-boundaries` c�
 - Ajouter des en-têtes de sécurité dans l'API : ils sont posés par Traefik et par la CSP du front (ADR-0024).
 - Envoyer des données nominatives à un LLM. On pseudonymise (des ID, jamais de noms).
 - Élargir le périmètre d'une tâche sans le signaler.
+- Sacrifier la lisibilité à la concision (voir « Lisibilité »).
 
 ## Definition of Ready
 
@@ -164,6 +184,7 @@ Une story ne démarre que si :
 - [ ] Critères d'acceptation de l'issue couverts par des tests qui passent
 - [ ] Lint, typecheck et tests verts (CI)
 - [ ] Aucune violation des frontières d'architecture
+- [ ] Code lisible par un humain qui découvre le module (section « Lisibilité »)
 - [ ] Modèles Pydantic régénérés si un contrat a changé
 - [ ] Test d'accès croisé pour chaque nouvel endpoint
 - [ ] Doc à jour (et ADR si une décision a été prise)

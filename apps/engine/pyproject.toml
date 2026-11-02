@@ -44,8 +44,18 @@ extend-exclude = ["src/trame_engine/contracts"]
 select = [
     "E", "W", "F", "I", "N", "UP", "B", "A", "C4", "SIM", "PT", "RET", "ARG",
     "PL", "RUF", "S", "ANN", "DTZ", "TID",
+    # Lisibilité (AGENTS.md) : complexité bornée, pas de code commenté.
+    "C90", "ERA",
 ]
 ignore = ["PLR2004"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.pylint]
+max-args = 5
+max-branches = 10
+max-statements = 40
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101", "ANN401", "PLR2004"]

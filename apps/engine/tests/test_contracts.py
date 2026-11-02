@@ -12,12 +12,14 @@ FIXTURES = Path(__file__).resolve().parents[3] / "libs" / "shared" / "contracts"
 
 
 def _cases(kind: str) -> list[tuple[str, Path]]:
-    return [
-        (contract_dir.name, fixture)
-        for contract_dir in sorted(FIXTURES.iterdir())
-        if contract_dir.is_dir()
-        for fixture in sorted((contract_dir / kind).glob("*.json"))
-    ]
+    """Paires (nom du contrat, fichier de fixture) pour `kind` = "valid" ou "invalid"."""
+    cases: list[tuple[str, Path]] = []
+    for contract_dir in sorted(FIXTURES.iterdir()):
+        if not contract_dir.is_dir():
+            continue
+        for fixture in sorted((contract_dir / kind).glob("*.json")):
+            cases.append((contract_dir.name, fixture))
+    return cases
 
 
 def _model(name: str) -> type[BaseModel]:
