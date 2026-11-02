@@ -19,8 +19,40 @@ export const DEFAULT_REDACTIONS = [
   'req.headers.authorization',
   'req.headers.cookie',
   'req.headers["x-api-key"]',
+  // Le referer peut porter la query string d'une autre page (jetons, identifiants).
+  'req.headers.referer',
   'res.headers["set-cookie"]',
 ];
+
+/** Retire la query string et le fragment : seuls le chemin et la méthode sont journalisés. */
+export function pathOnly(url: string | undefined): string | undefined {
+  return url?.split(/[?#]/, 1)[0];
+}
+
+/** Champs de la requête déjà sérialisée par pino-http (`pino-std-serializers`). */
+interface SerializedRequestLike {
+  id?: unknown;
+  method?: string;
+  url?: string;
+  headers?: Record<string, unknown>;
+  remoteAddress?: string;
+  remotePort?: number;
+}
+
+/**
+ * Requête telle qu'écrite dans les logs : ni query string ni paramètres de requête,
+ * qui peuvent porter des jetons ou des données personnelles.
+ */
+export function serializeRequest(req: SerializedRequestLike): Record<string, unknown> {
+  return {
+    id: req.id,
+    method: req.method,
+    url: pathOnly(req.url),
+    headers: req.headers,
+    remoteAddress: req.remoteAddress,
+    remotePort: req.remotePort,
+  };
+}
 
 const REQUEST_ID_HEADER = 'x-request-id';
 const REQUEST_ID_PATTERN = /^[\w-]{8,128}$/;
@@ -40,6 +72,7 @@ export function createPinoHttpOptions(options: LoggingOptions): Options {
   return {
     level: options.level,
     genReqId: requestIdFor,
+    serializers: { req: serializeRequest },
     redact: { paths: [...DEFAULT_REDACTIONS, ...(options.redact ?? [])], censor: '[masqué]' },
     autoLogging: {
       ignore: (req) => quietPaths.some((path) => req.url?.startsWith(path) ?? false),
