@@ -16,8 +16,8 @@ Priorité MoSCoW : **M** indispensable à la démo · **S** important, peut suiv
 | 2     | 013 | Durcissement : compléments des revues                              | M        |
 | 3     | 002 | Initialiser le monorepo (PR 1 : squelette et outillage)            | ✅       |
 | 4     | 003 | CI de base (avancée avant US-030)                                  | ✅       |
-| 5     | 030 | Module de référence `organization`, PR A : sites et créneaux types | M        |
-| 6     | 030 | Module de référence `organization`, PR B : compétences et postes   | M        |
+| 5     | 030 | Module de référence `organization`, PR A : sites et créneaux types | ✅       |
+| 6     | 030 | Module de référence `organization`, PR B : compétences et postes   | En revue |
 | 7     | 004 | Environnement local                                                | M        |
 | 8     | 009 | Walking skeleton                                                   | M        |
 | 9     | 005 | Déploiement staging et prod (prod fermée au public)                | M        |
@@ -120,11 +120,13 @@ PR 1 :
 - Pipeline des contrats : export JSON Schema depuis zod, génération des modèles Pydantic (`contracts:generate`). Un test exporte tous les schémas, limités aux constructions exportables.
 - Prisma 7 avec son adaptateur `@prisma/adapter-pg`, et un test de connexion.
 - Socle API : Vitest avec SWC, `/api/v1`, filtre d'erreurs RFC 9457, `ZodValidationPipe`, `nestjs-pino`, configuration validée par zod, `@nestjs/terminus`, `X-Powered-By` masqué, port `Clock`.
-- Ce socle est rangé dans `libs/platform/` (`clock`, `problem-details`, `zod-validation`, `config`, `logging`, `health`), chaque lib avec son README. Les autres libs `platform` arrivent avec leur story : `outbox`, `inbox` et `idempotency` avec US-009, `auth` avec US-020, `audit` avec US-040.
+- Ce socle est rangé dans `libs/platform/` (`clock`, `problem-details`, `zod-validation`, `config`, `logging`, `health`), chaque lib avec son README. Les autres libs `platform` arrivent avec leur story : `outbox`, `inbox` et `idempotency` avec US-009, `audit` avec US-040. `auth`, `ids` et `pagination` sont arrivées avec US-030 ; `auth` attend son résolveur OIDC (US-020).
 - Socle web : Angular zoneless, Tailwind, Vitest.
 - Les commandes d'`AGENTS.md` sont figées et vérifiées.
 
-### US-003 — CI de base
+### US-003 — CI de base ✅
+
+> **Terminée le 2026-11-02 (#2).** Compléments du même jour : règles de lisibilité vérifiées par la lint (#6), audit bloquant des workflows par zizmor, et soumission des dépendances au graphe de GitHub, vérifiée sur `main` (#8, ADR-0029). `dependency-review-action` reste à ajouter, avec une politique de licences explicite.
 
 ```gherkin
 Scénario: PR non conforme
@@ -334,6 +336,15 @@ Livrée en trois PR (décision du 2026-11-02, Definition of Ready) :
 - **PR C** : page Angular de liste et de création, et premier E2E Playwright, après les maquettes d'US-012.
 
 En attendant US-020, l'utilisateur et son `organizationId` passent par le point d'entrée de `libs/platform/auth` : les tests y injectent un utilisateur de test, et les endpoints répondent 401 hors des tests.
+
+> **PR A livrée le 2026-11-02 (#7).** Décisions prises en revue croisée :
+>
+> - un créneau type a toujours une pause ; le minimum légal de pause (L3121-16) est une contrainte de planning, qui relève du moteur ;
+> - le libellé d'un créneau n'est pas unique : son identifiant suffit ;
+> - durées : une heure locale désigne le premier instant où l'horloge du site l'affiche, et une heure sautée au passage à l'heure d'été désigne l'instant du saut ;
+> - types d'erreur en URI `tag:` (ADR-0028), UUID v7 ordonnés même dans la même milliseconde, clé étrangère composite qui garantit l'organisation d'un créneau.
+>
+> **PR B en revue (#11)**, scénarios dans l'issue #10. Elle corrige aussi deux défauts de la PR A : le caractère NUL, refusé désormais dans tous les textes saisis (contrat `requiredText`), et la date de création, désormais à la milliseconde.
 
 ### US-031 — Employés
 

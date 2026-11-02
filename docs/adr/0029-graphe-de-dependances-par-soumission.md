@@ -1,6 +1,6 @@
 # ADR-0029 — Graphe de dépendances : instantanés soumis par l'API
 
-- **Statut** : Proposé (2026-11-02).
+- **Statut** : Accepté (2026-11-02), après le premier passage complet sur `main` : les 2 107 paquets soumis, directs et transitifs, figurent dans le graphe exporté par GitHub.
 - **Contexte** :
   - Le graphe de dépendances de GitHub alimente les alertes de vulnérabilité et `dependency-review-action`.
   - Il ne détecte pas nos dépendances :
