@@ -218,26 +218,26 @@ Versions vérifiées le 1er novembre 2026 sur npm et PyPI, épinglées au scaffo
 - Python 3.14, car OR-Tools ne publie pas encore de paquets pour 3.15.
 - Dates : Temporal, natif dans Node 26 (ADR-0027).
 
-| Couche        | Choix                                                                                                                                              |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Monorepo      | Nx + pnpm                                                                                                                                          |
-| Web           | Angular (standalone, signals, zoneless, `httpResource`), Angular CDK, Tailwind, design system maison ; NgRx SignalStore pour la grille de planning |
-| Mobile        | PWA installable avec notifications web (v0.2), puis Ionic + Capacitor pour Android (ADR-0023)                                                      |
-| API           | NestJS, Prisma (`multiSchema`), client AMQP, `@nestjs/swagger` + Scalar, `nestjs-pino`, `@nestjs/config` + zod, `@nestjs/terminus`                 |
-| Contrats      | zod 4 → JSON Schema → Pydantic (ADR-0018)                                                                                                          |
-| Moteur        | Python, uv, FastAPI, OR-Tools CP-SAT, Pydantic (modèles générés), `pydantic-settings`, `structlog` ; statsforecast en v0.3                         |
-| Messaging     | RabbitMQ                                                                                                                                           |
-| Données       | PostgreSQL + TimescaleDB (v0.3) + pgvector (v0.4)                                                                                                  |
-| Auth          | Keycloak                                                                                                                                           |
-| IA (v0.4)     | LLM via API derrière un port `LlmProvider` (fournisseur choisi par évals), embeddings locaux sur CPU, pgvector                                     |
-| Temps réel    | SSE (v0.1), Socket.IO (v0.2)                                                                                                                       |
-| Tests         | Vitest partout (SWC pour NestJS), pytest, Hypothesis, Testcontainers, Playwright (Chromium, Firefox, WebKit), k6, Stryker sur le domaine           |
-| Qualité       | ESLint, Prettier, Ruff, mypy strict, Knip, SonarCloud, lefthook, commitlint                                                                        |
-| Sécurité      | CodeQL, gitleaks, Trivy, SBOM + cosign, Renovate, OWASP ZAP sur staging ; en-têtes HTTP par Traefik, CSP du front (ADR-0024)                       |
-| Observabilité | OpenTelemetry, Prometheus, Loki, Tempo, Grafana (alertes), Uptime Kuma                                                                             |
-| Doc           | Astro Starlight, arc42, C4, PlantUML, Mermaid, KaTeX, ADR (format MADR)                                                                            |
-| CI/CD         | GitHub Actions (runners hébergés), images sur GHCR ; dépôt GitHub uniquement (ADR-0017)                                                            |
-| Infra         | Docker multi-stage, Docker Compose, Traefik mutualisé (`vps-edge`)                                                                                 |
+| Couche        | Choix                                                                                                                                                                                                             |
+| ------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Monorepo      | Nx + pnpm                                                                                                                                                                                                         |
+| Web           | Angular (standalone, signals, zoneless, `httpResource`), Angular CDK, Tailwind, design system maison ; NgRx SignalStore pour la grille de planning                                                                |
+| Mobile        | PWA installable avec notifications web (v0.2), puis Ionic + Capacitor pour Android (ADR-0023)                                                                                                                     |
+| API           | NestJS, Prisma (`multiSchema`), client AMQP, `@nestjs/swagger` + Scalar, `nestjs-pino`, `@nestjs/config` + zod, `@nestjs/terminus`                                                                                |
+| Contrats      | zod 4 → JSON Schema → Pydantic (ADR-0018)                                                                                                                                                                         |
+| Moteur        | Python, uv, FastAPI, OR-Tools CP-SAT, Pydantic (modèles générés), `pydantic-settings`, `structlog` ; statsforecast en v0.3                                                                                        |
+| Messaging     | RabbitMQ                                                                                                                                                                                                          |
+| Données       | PostgreSQL + TimescaleDB (v0.3) + pgvector (v0.4)                                                                                                                                                                 |
+| Auth          | Keycloak                                                                                                                                                                                                          |
+| IA (v0.4)     | LLM via API derrière un port `LlmProvider` (fournisseur choisi par évals), embeddings locaux sur CPU, pgvector                                                                                                    |
+| Temps réel    | SSE (v0.1), Socket.IO (v0.2)                                                                                                                                                                                      |
+| Tests         | Vitest partout (SWC pour NestJS), pytest, Hypothesis, Testcontainers, Playwright (Chromium, Firefox, WebKit), k6, Stryker sur le domaine                                                                          |
+| Qualité       | ESLint, Prettier, Ruff, mypy strict, Knip, SonarCloud, lefthook, commitlint                                                                                                                                       |
+| Sécurité      | CodeQL, gitleaks, zizmor (workflows), graphe de dépendances GitHub alimenté par soumission (ADR-0029), Trivy, SBOM + cosign, Renovate, OWASP ZAP sur staging ; en-têtes HTTP par Traefik, CSP du front (ADR-0024) |
+| Observabilité | OpenTelemetry, Prometheus, Loki, Tempo, Grafana (alertes), Uptime Kuma                                                                                                                                            |
+| Doc           | Astro Starlight, arc42, C4, PlantUML, Mermaid, KaTeX, ADR (format MADR)                                                                                                                                           |
+| CI/CD         | GitHub Actions (runners hébergés), images sur GHCR ; dépôt GitHub uniquement (ADR-0017)                                                                                                                           |
+| Infra         | Docker multi-stage, Docker Compose, Traefik mutualisé (`vps-edge`)                                                                                                                                                |
 
 ## 12. Infra et déploiement
 
