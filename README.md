@@ -26,17 +26,27 @@ Le cadrage est dans [`docs/cadrage.md`](docs/cadrage.md), les décisions dans [`
 
 ## Démarrer
 
-Prérequis : Node 26, pnpm 12, uv 0.13 ; Docker pour les tests d'intégration.
+Prérequis : Docker avec Compose v2, Node 26 et pnpm 12. Le moteur demande aussi uv 0.13.
 
 ```bash
+cp .env.example .env
 pnpm install
-pnpm nx run engine:install
-pnpm nx run-many -t lint typecheck test
-pnpm nx run-many -t integration   # PostgreSQL réel via Testcontainers
-pnpm nx serve web
+pnpm nx run infra:up     # PostgreSQL et RabbitMQ sur 127.0.0.1, sains, puis les migrations
+pnpm nx serve api        # http://127.0.0.1:3000/api/v1/health/ready
 ```
 
-L'environnement local complet (PostgreSQL, RabbitMQ, Keycloak) arrive avec US-004.
+- La stack et l'API n'écoutent que sur `127.0.0.1` : rien n'est joignable depuis le réseau.
+- Interface de management de RabbitMQ : http://127.0.0.1:15672, avec le compte de `.env`.
+- `pnpm nx run infra:down` arrête la stack et garde les données. `pnpm nx run infra:reset` supprime aussi les volumes : relancer ensuite `infra:up`, qui réapplique les migrations.
+- Détails dans [`infra/README.md`](infra/README.md). Keycloak rejoint la stack avec US-020.
+
+Vérifications :
+
+```bash
+pnpm nx run engine:install
+pnpm nx run-many -t lint typecheck test
+pnpm nx run-many -t integration   # vrais PostgreSQL et RabbitMQ, Docker requis
+```
 
 ## Licence
 
