@@ -21,6 +21,13 @@
       },
       "cache": false
     },
+    "migrate-deploy": {
+      "command": "prisma migrate deploy",
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "cache": false
+    },
     "typecheck": {
       "dependsOn": ["prisma-generate", "^typecheck"]
     },

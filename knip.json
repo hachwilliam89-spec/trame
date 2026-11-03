@@ -12,12 +12,18 @@
     "libs/api/*/*/src/index.ts",
     "libs/api/*/*/src/testing.ts"
   ],
-  "project": ["apps/**/*.{ts,mts}", "libs/**/*.{ts,mts}", "tools/**/*.{ts,mts}"],
+  "project": [
+    "apps/**/*.{ts,mts}",
+    "libs/**/*.{ts,mts}",
+    "tools/**/*.{ts,mts}",
+    "infra/**/*.{ts,mts}"
+  ],
   "vitest": {
     "config": [
       "apps/*/vitest.config.mts",
       "libs/**/vitest*.config.mts",
-      "tools/*/vitest.config.mts"
+      "tools/*/vitest.config.mts",
+      "infra/vitest*.config.mts"
     ],
     "entry": ["**/*.spec.ts"]
   },
