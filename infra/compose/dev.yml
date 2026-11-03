@@ -17,6 +17,9 @@ services:
     ports:
       # 127.0.0.1 : sans adresse, Docker publierait le port sur toutes les interfaces du poste.
       - '127.0.0.1:${POSTGRES_PORT:?}:5432'
+    volumes:
+      # PostgreSQL 18 range ses données sous /var/lib/postgresql/18 : on monte le dossier parent.
+      - postgres-data:/var/lib/postgresql
     healthcheck:
       # Par TCP : pendant l'initialisation, le serveur temporaire n'écoute que sur le socket local,
       # et la base ne doit pas être déclarée saine avant le démarrage définitif.
@@ -27,15 +30,24 @@ services:
 
   rabbitmq:
     image: rabbitmq:4.3.7-management-alpine@sha256:1528a88eebf2bc4d0ab7e9d5d9bc542e9bdf5e1b105e65848fcf8de5c2186528
+    # RabbitMQ range ses données sous le nom du nœud, dérivé du nom d'hôte. Fixé, il survit à la
+    # recréation du conteneur ; sinon chaque conteneur repartirait d'un nœud vide.
+    hostname: rabbitmq
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?}
     ports:
       - '127.0.0.1:${RABBITMQ_PORT:?}:5672'
       - '127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:?}:15672'
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
       # Vérifie que les ports AMQP et HTTP acceptent des connexions, pas seulement que le nœud vit.
       test: ['CMD', 'rabbitmq-diagnostics', '--quiet', 'check_port_connectivity']
       interval: 5s
       timeout: 10s
       retries: 20
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
