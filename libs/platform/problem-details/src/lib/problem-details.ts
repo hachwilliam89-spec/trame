@@ -40,14 +40,21 @@ export function problem(init: ProblemInit): ProblemDetails {
   };
 }
 
+export interface ProblemResponseOptions {
+  /** En-têtes HTTP de la réponse, hors du corps (par exemple `WWW-Authenticate` pour un 401). */
+  headers?: Record<string, string>;
+}
+
 /** Exception portant un problème RFC 9457, rendue telle quelle par `ProblemDetailsFilter`. */
 export class ProblemDetailsException extends Error {
   readonly problem: ProblemDetails;
+  readonly headers: Readonly<Record<string, string>>;
 
-  constructor(init: ProblemInit) {
+  constructor(init: ProblemInit, options: ProblemResponseOptions = {}) {
     const details = problem(init);
     super(details.detail ?? details.title);
     this.name = 'ProblemDetailsException';
     this.problem = details;
+    this.headers = options.headers ?? {};
   }
 }

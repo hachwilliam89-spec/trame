@@ -24,6 +24,14 @@ class DemoController {
     });
   }
 
+  @Get('unauthorized')
+  unauthorized(): never {
+    throw new ProblemDetailsException(
+      { status: 401, detail: 'Authentification requise.' },
+      { headers: { 'WWW-Authenticate': 'Bearer' } },
+    );
+  }
+
   @Get('forbidden')
   forbidden(): never {
     throw new ForbiddenException('Rôle manager requis.');
@@ -78,6 +86,20 @@ describe('ProblemDetailsFilter', () => {
       detail: 'La compétence CACES R489 est exigée par le poste Cariste.',
       skillId: 'caces-r489',
       instance: '/demo/problem',
+    });
+  });
+
+  it("pose les en-têtes HTTP d'une ProblemDetailsException, sans les mettre dans le corps", async () => {
+    const response = await request(app.getHttpServer()).get('/demo/unauthorized');
+
+    expect(response.status).toBe(401);
+    expect(response.headers['www-authenticate']).toBe('Bearer');
+    expect(response.body).toEqual({
+      type: 'about:blank',
+      title: 'Unauthorized',
+      status: 401,
+      detail: 'Authentification requise.',
+      instance: '/demo/unauthorized',
     });
   });
 

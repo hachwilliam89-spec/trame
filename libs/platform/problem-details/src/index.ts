@@ -2,6 +2,7 @@ export {
   PROBLEM_JSON,
   type ProblemDetails,
   type ProblemInit,
+  type ProblemResponseOptions,
   ProblemDetailsException,
   problem,
 } from './lib/problem-details';
