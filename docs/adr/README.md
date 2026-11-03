@@ -17,7 +17,7 @@ Les ADR 0018, 0020, 0021 et 0022 ont été amendées le 2026-11-01 après la rev
 | [0009](0009-angular-cdk-tailwind.md)                 | Angular + CDK + Tailwind, design system maison ; mobile Ionic/Capacitor | Accepté, partie mobile remplacée par 0023 |
 | [0010](0010-keycloak.md)                             | Keycloak pour l'authentification                                        | Accepté                                   |
 | [0011](0011-docker-compose-et-traefik.md)            | Docker Compose + Traefik sur le VPS, pas de Kubernetes en v1            | Accepté                                   |
-| [0012](0012-github-actions.md)                       | GitHub Actions sur runners hébergés, miroir GitLab UHA                  | Accepté, miroir remplacé par 0017         |
+| [0012](0012-github-actions.md)                       | GitHub Actions sur runners hébergés                                     | Accepté, miroir remplacé par 0017         |
 | [0013](0013-opentelemetry-et-grafana.md)             | OpenTelemetry + Grafana ; Langfuse écarté                               | Accepté                                   |
 | [0014](0014-le-llm-ne-genere-pas-le-planning.md)     | Le LLM ne génère jamais le planning                                     | Accepté                                   |
 | [0015](0015-llm-via-api-embeddings-locaux.md)        | LLM via API derrière un port, embeddings locaux                         | Accepté                                   |

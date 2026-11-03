@@ -3,6 +3,7 @@
 - **Statut** : Accepté, miroir GitLab UHA remplacé par ADR-0017
 - **Contexte** : le projet doit être visible des recruteurs, et le VPS ne doit pas être chargé par les builds.
 - **Décision** : GitHub est le dépôt principal, et la CI tourne sur GitHub Actions avec les runners hébergés. Le dépôt est poussé en miroir sur GitLab UHA.
+  - _Remplacé par ADR-0017_ : miroir abandonné le 2026-11-01 : Trame est un projet personnel, le dépôt est uniquement sur GitHub.
 - **Conséquences** :
   - (+) Badges et historique visibles, aucune charge sur le VPS.
   - (−) Aucune, côté VPS : le runner GitLab qui y tournait (projet Équilibre, terminé) a été retiré le 2026-11-01.
