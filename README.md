@@ -2,7 +2,7 @@
 
 Planification d'équipes sous contraintes pour les entrepôts logistiques : besoins de couverture, planning optimisé par OR-Tools CP-SAT, conforme au Code du travail, expliqué, et modifiable avec évaluation instantanée par la PE (Procédure d'Évaluation).
 
-> Projet en construction. En place : le socle technique (US-002), la CI et la sécurité de la chaîne de livraison (US-003), et côté API le module de référence `organization` : sites et créneaux types (US-030, PR A). Le README complet, la démo et la vidéo arrivent avec US-091.
+> Projet en construction. En place : le socle technique (US-002), la CI et la sécurité de la chaîne de livraison (US-003), et côté API le module de référence `organization` : sites, créneaux types, compétences et postes (US-030, PR A et B ; la page Angular suit avec la PR C). Le README complet, la démo et la vidéo arrivent avec US-091.
 
 ## Architecture
 

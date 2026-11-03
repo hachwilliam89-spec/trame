@@ -17,7 +17,7 @@ Priorité MoSCoW : **M** indispensable à la démo · **S** important, peut suiv
 | 3     | 002 | Initialiser le monorepo (PR 1 : squelette et outillage)            | ✅       |
 | 4     | 003 | CI de base (avancée avant US-030)                                  | ✅       |
 | 5     | 030 | Module de référence `organization`, PR A : sites et créneaux types | ✅       |
-| 6     | 030 | Module de référence `organization`, PR B : compétences et postes   | En revue |
+| 6     | 030 | Module de référence `organization`, PR B : compétences et postes   | ✅       |
 | 7     | 004 | Environnement local                                                | M        |
 | 8     | 009 | Walking skeleton                                                   | M        |
 | 9     | 005 | Déploiement staging et prod (prod fermée au public)                | M        |
@@ -344,7 +344,7 @@ En attendant US-020, l'utilisateur et son `organizationId` passent par le point 
 > - durées : une heure locale désigne le premier instant où l'horloge du site l'affiche, et une heure sautée au passage à l'heure d'été désigne l'instant du saut ;
 > - types d'erreur en URI `tag:` (ADR-0028), UUID v7 ordonnés même dans la même milliseconde, clé étrangère composite qui garantit l'organisation d'un créneau.
 >
-> **PR B en revue (#11)**, scénarios dans l'issue #10. Elle corrige aussi deux défauts de la PR A : le caractère NUL, refusé désormais dans tous les textes saisis (contrat `requiredText`), et la date de création, désormais à la milliseconde.
+> **PR B livrée le 2026-11-03 (#11)**, scénarios dans l'issue #10. Une compétence exigée par un poste ne peut pas être supprimée : le use case le vérifie, et la clé étrangère `ON DELETE RESTRICT` couvre une suppression concurrente, renvoyée avec la même erreur. La PR corrige aussi deux défauts de la PR A : le caractère NUL, refusé désormais dans tous les textes saisis (contrat `requiredText`), et la date de création, désormais à la milliseconde.
 
 ### US-031 — Employés
 
