@@ -1,0 +1,8 @@
+{
+  "name": "merge-pr",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "tools/merge-pr/src",
+  "projectType": "library",
+  "tags": ["scope:tooling"],
+  "targets": {}
+}
