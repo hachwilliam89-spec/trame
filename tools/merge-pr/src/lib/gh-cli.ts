@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { CommandResult, CommandRunner } from './command-runner';
+import { type Deadline, DeadlineExceededError } from './deadline';
 import type { CheckState, PullRequestState } from './merge-decision';
 
 /** Ce que le script demande à GitHub, par la CLI `gh`. */
@@ -47,9 +48,22 @@ const PULL_REQUEST_FIELDS = Object.keys(pullRequestSchema.shape).join(',');
 /** Message de `gh pr checks` quand GitHub n'a encore créé aucun check sur la PR. */
 const NO_CHECKS_YET = /no (required )?checks reported/;
 
-export function createGitHubCli(run: CommandRunner): GitHubCli {
+/** Chaque commande `gh` est bornée par le temps restant avant l'échéance, et n'est pas lancée après. */
+export function createGitHubCli(run: CommandRunner, deadline: Deadline): GitHubCli {
+  async function runGh(subcommand: string, args: string[]): Promise<CommandResult> {
+    const remainingMilliseconds = deadline.remainingMilliseconds();
+    if (remainingMilliseconds === 0) {
+      throw new DeadlineExceededError(`gh ${subcommand} non lancé`, false);
+    }
+    const result = await run('gh', args, { timeoutMilliseconds: remainingMilliseconds });
+    if (result.timedOut) {
+      throw new DeadlineExceededError(`gh ${subcommand} interrompu`, true);
+    }
+    return result;
+  }
+
   async function gh(subcommand: string, args: string[]): Promise<string> {
-    const result = await run('gh', args);
+    const result = await runGh(subcommand, args);
     if (result.exitCode !== 0) {
       throw new GhCommandError(subcommand, errorDetail(result));
     }
@@ -70,7 +84,8 @@ export function createGitHubCli(run: CommandRunner): GitHubCli {
     },
 
     async readChecks(number) {
-      const result = await run('gh', ['pr', 'checks', String(number), '--json', 'name,bucket']);
+      const args = ['pr', 'checks', String(number), '--json', 'name,bucket'];
+      const result = await runGh('pr checks', args);
       return parseChecks(result);
     },
 

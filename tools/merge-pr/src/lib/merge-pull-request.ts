@@ -1,11 +1,13 @@
+import { type Deadline, DeadlineExceededError } from './deadline';
 import { GhCommandError, type GitHubCli } from './gh-cli';
 import { type NextStep, decideNextStep, missingMandatoryChecks } from './merge-decision';
 
 export interface MergeOptions {
   number: number;
-  /** Nombre de lectures de l'état de la PR avant d'abandonner. */
-  maxAttempts: number;
-  pauseBetweenAttempts: () => Promise<void>;
+  /** Échéance commune à toutes les lectures, pauses et commandes. */
+  deadline: Deadline;
+  pauseMilliseconds: number;
+  pause: (milliseconds: number) => Promise<void>;
   report: (message: string) => void;
 }
 
@@ -17,18 +19,38 @@ export interface MergedPullRequest {
 /** Arrêt volontaire du script : rien n'a été fusionné. */
 export class MergeStoppedError extends Error {}
 
+/** La fusion a été demandée mais sa réponse n'est pas arrivée : elle a peut-être eu lieu. */
+export class MergeOutcomeUnknownError extends Error {}
+
 /**
  * Fusionne la PR en squash, une fois prouvé que son dernier commit a passé tous les checks requis.
  * La branche en retard est mise à jour par GitHub, puis ses nouveaux checks sont attendus.
+ * L'échéance est mesurée : le temps des commandes `gh` compte autant que les pauses.
  */
 export async function mergePullRequest(
   gitHub: GitHubCli,
   options: MergeOptions,
 ): Promise<MergedPullRequest> {
-  const requiredCheckNames = await readRequiredCheckNames(gitHub);
+  try {
+    const requiredCheckNames = await readRequiredCheckNames(gitHub);
+    return await mergeWhenReady(gitHub, requiredCheckNames, options);
+  } catch (error) {
+    if (error instanceof DeadlineExceededError) {
+      throw new MergeStoppedError(`Délai dépassé. Dernier état : ${error.message}`);
+    }
+    throw error;
+  }
+}
 
+async function mergeWhenReady(
+  gitHub: GitHubCli,
+  requiredCheckNames: string[],
+  options: MergeOptions,
+): Promise<MergedPullRequest> {
+  const { deadline } = options;
   let lastReason = 'aucune lecture';
-  for (let attempt = 1; attempt <= options.maxAttempts; attempt++) {
+
+  while (!deadline.isExpired()) {
     const pullRequest = await gitHub.readPullRequest(options.number);
     const checks = await gitHub.readChecks(options.number);
     const step = decideNextStep({ pullRequest, requiredCheckNames, checks });
@@ -38,9 +60,9 @@ export async function mergePullRequest(
       return { headRefName: pullRequest.headRefName, headCommit: step.headCommit };
     }
     lastReason = await applyStep(gitHub, step, options);
-    await options.pauseBetweenAttempts();
+    await options.pause(Math.min(options.pauseMilliseconds, deadline.remainingMilliseconds()));
   }
-  throw new MergeStoppedError(`Délai dépassé. Dernier état : ${lastReason}`);
+  throw new DeadlineExceededError(lastReason, false);
 }
 
 async function readRequiredCheckNames(gitHub: GitHubCli): Promise<string[]> {
@@ -72,12 +94,21 @@ async function applyStep(
   return step.reason;
 }
 
+/**
+ * Une fusion jamais lancée faute de temps reste un simple dépassement de délai. Une fusion
+ * interrompue en cours a pu aboutir côté GitHub : on le dit, plutôt que d'affirmer le contraire.
+ */
 async function merge(gitHub: GitHubCli, number: number, headCommit: string): Promise<void> {
   try {
     await gitHub.merge(number, headCommit);
   } catch (error) {
     if (error instanceof GhCommandError) {
       throw new MergeStoppedError(`GitHub a refusé la fusion : ${error.detail}`);
+    }
+    if (error instanceof DeadlineExceededError && error.commandStarted) {
+      throw new MergeOutcomeUnknownError(
+        `Délai atteint pendant la fusion : la PR #${number} est peut-être fusionnée. Vérifie avec \`gh pr view ${number}\`.`,
+      );
     }
     throw error;
   }

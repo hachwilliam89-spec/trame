@@ -7,11 +7,17 @@
 import { setTimeout as sleep } from 'node:timers/promises';
 import { parseArguments } from './lib/arguments';
 import { createCommandRunner } from './lib/command-runner';
+import { Deadline } from './lib/deadline';
 import { createGitHubCli } from './lib/gh-cli';
 import { updateLocalCheckout } from './lib/local-checkout';
-import { MergeStoppedError, mergePullRequest } from './lib/merge-pull-request';
+import {
+  MergeOutcomeUnknownError,
+  MergeStoppedError,
+  mergePullRequest,
+} from './lib/merge-pull-request';
+import { createSystemStopwatch } from './lib/system-stopwatch';
 
-const SECONDS_BETWEEN_ATTEMPTS = 20;
+const MILLISECONDS_BETWEEN_ATTEMPTS = 20_000;
 
 function report(message: string): void {
   console.log(`pr:merge · ${message}`);
@@ -20,11 +26,13 @@ function report(message: string): void {
 async function main(): Promise<void> {
   const { number, timeoutMinutes } = parseArguments(process.argv.slice(2));
   const run = createCommandRunner(process.cwd());
+  const deadline = new Deadline(createSystemStopwatch(), timeoutMinutes * 60_000);
 
-  const merged = await mergePullRequest(createGitHubCli(run), {
+  const merged = await mergePullRequest(createGitHubCli(run, deadline), {
     number,
-    maxAttempts: Math.ceil((timeoutMinutes * 60) / SECONDS_BETWEEN_ATTEMPTS),
-    pauseBetweenAttempts: () => sleep(SECONDS_BETWEEN_ATTEMPTS * 1000),
+    deadline,
+    pauseMilliseconds: MILLISECONDS_BETWEEN_ATTEMPTS,
+    pause: (milliseconds) => sleep(milliseconds),
     report,
   });
   report(`PR #${number} fusionnée (commit ${merged.headCommit.slice(0, 7)}).`);
@@ -40,6 +48,8 @@ async function main(): Promise<void> {
 main().catch((error: unknown) => {
   if (error instanceof MergeStoppedError) {
     report(`arrêt, rien n'a été fusionné. ${error.message}`);
+  } else if (error instanceof MergeOutcomeUnknownError) {
+    report(`arrêt, résultat incertain. ${error.message}`);
   } else {
     report(String(error));
   }
