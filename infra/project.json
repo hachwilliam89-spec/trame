@@ -1,0 +1,40 @@
+{
+  "name": "infra",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "infra/src",
+  "projectType": "library",
+  "tags": ["scope:tooling"],
+  "targets": {
+    "up": {
+      "description": "Démarre PostgreSQL et RabbitMQ, attend qu'ils soient sains, puis applique les migrations.",
+      "executor": "nx:run-commands",
+      "options": {
+        "commands": [
+          "docker compose --env-file .env -f infra/compose/dev.yml up --detach --wait --wait-timeout 120",
+          "pnpm nx run api-database:migrate-deploy"
+        ],
+        "parallel": false
+      },
+      "cache": false
+    },
+    "down": {
+      "description": "Arrête la stack et supprime ses conteneurs. Les volumes, donc les données, sont conservés.",
+      "command": "docker compose --env-file .env -f infra/compose/dev.yml down",
+      "cache": false
+    },
+    "reset": {
+      "description": "Supprime aussi les volumes : les données sont perdues. Relancer ensuite infra:up.",
+      "command": "docker compose --env-file .env -f infra/compose/dev.yml down --volumes",
+      "cache": false
+    },
+    "integration": {
+      "description": "Démarre réellement la stack, sur des ports et un nom de projet dédiés.",
+      "dependsOn": ["api:build", "api-database:prisma-generate"],
+      "command": "vitest run --config vitest.integration.config.mts",
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "cache": false
+    }
+  }
+}

@@ -157,8 +157,12 @@ Les autres contrôles arrivent avec le risque qu'ils couvrent :
 
 ### US-004 — Environnement local
 
-- `infra/compose/dev.yml` : PostgreSQL, RabbitMQ (avec UI de management), Keycloak (realm importé).
-- `.env.example` complet. Le README explique comment démarrer en moins de 5 commandes.
+> Issue #13, scénarios validés le 2026-11-03. Keycloak, l'import du realm et les comptes locaux passent dans US-020 : rien ne s'en sert avant.
+
+- `infra/compose/dev.yml` : PostgreSQL et RabbitMQ (avec l'interface de management), images figées par version et digest, suivies par Renovate.
+- Healthchecks, ports publiés sur `127.0.0.1` uniquement, volumes nommés. L'API écoute sur `HOST`, `127.0.0.1` par défaut.
+- `pnpm nx run infra:up` (démarrage sain puis migrations), `infra:down` (données conservées), `infra:reset` (volumes supprimés).
+- `.env.example` complet. Le README démarre en 4 commandes.
 
 ### US-005 — Déploiement staging et prod
 
@@ -231,6 +235,8 @@ Scénario: Aller-retour complet
   Et la trace complète est visible dans Grafana
 ```
 
+> **Question ouverte (2026-11-03)** : les routes métier répondent 401 tant qu'OIDC n'est pas branché (US-020). Avant de démarrer, préciser comment déclencher le parcours : endpoint technique dédié, utilisateur de développement, ou US-020 avant US-009.
+
 ---
 
 ## E1 — Design system
@@ -279,6 +285,7 @@ Scénario: Accès à l'objet d'un autre
 - Flux Authorization Code + PKCE par redirection (pas de popup) côté front.
 - Validation des JWT côté API, avec des guards par rôle (`manager`, `employe`, `admin`).
 - L'`organizationId` de l'utilisateur vient du jeton et filtre toutes les requêtes. La propriété de chaque objet est vérifiée en plus (ADR-0022).
+- Keycloak rejoint la stack de dev (décision du 2026-11-03, US-004) : service Compose dans `infra/compose/dev.yml`, import du realm versionné (`infra/keycloak/`), comptes locaux pour chaque rôle.
 
 ### US-021 — Comptes démo (une organisation par visiteur)
 

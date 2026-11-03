@@ -56,14 +56,16 @@ Prérequis : Node 26 (`.node-version`), pnpm 12, uv 0.13, Python 3.14 (installé
 ```bash
 pnpm install                                       # installe aussi les hooks Git (lefthook)
 pnpm nx run engine:install                         # environnement Python du moteur (uv sync)
-pnpm nx serve api                                  # http://localhost:3000/api/v1 (DATABASE_URL requis)
+pnpm nx run infra:up                               # PostgreSQL et RabbitMQ sur 127.0.0.1, puis migrations (Docker requis)
+pnpm nx run infra:down                             # arrête la stack, garde les données (infra:reset supprime les volumes)
+pnpm nx serve api                                  # http://127.0.0.1:3000/api/v1 (DATABASE_URL requis)
 pnpm nx serve web                                  # http://localhost:4200
 pnpm nx serve engine                               # http://127.0.0.1:8000/health
 pnpm nx serve docs
 
 pnpm nx affected -t lint typecheck test --base=origin/main   # vérification avant PR (moteur compris)
 pnpm nx run-many -t lint typecheck test            # tout le dépôt
-pnpm nx run-many -t integration                    # Postgres réel via Testcontainers (Docker requis)
+pnpm nx run-many -t integration                    # vrais Postgres et RabbitMQ : Testcontainers et stack de dev (Docker requis)
 pnpm nx run api-database:migrations-check          # migrations appliquées par Prisma, sans écart (DATABASE_URL requis)
 pnpm nx run contracts:generate                     # régénère les modèles Pydantic depuis zod
 pnpm nx run contracts:check                        # échoue si les modèles générés ne sont pas à jour
@@ -79,7 +81,7 @@ La CI (`.github/workflows/ci.yml`) lance ces contrôles sur chaque PR, ainsi que
 - les trois analyses « Analyse (…) » de CodeQL ;
 - le résultat « CodeQL » du code scanning, qui échoue sur toute nouvelle alerte de sécurité haute ou critique.
 
-L'infrastructure locale (`docker compose -f infra/compose/dev.yml up -d` : Postgres, RabbitMQ, Keycloak) arrive avec US-004.
+L'infrastructure locale (`infra/compose/dev.yml`, US-004) comprend PostgreSQL et RabbitMQ. Keycloak la rejoint avec US-020.
 
 ## Règles d'architecture (bloquantes)
 

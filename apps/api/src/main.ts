@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import { AppModule } from './app/app.module';
 import { API_PREFIX, configureApp } from './app/configure-app';
+import { listenOnConfiguredAddress } from './app/listen';
 import type { Env } from './config/env.schema';
 
 async function bootstrap(): Promise<void> {
@@ -12,9 +13,13 @@ async function bootstrap(): Promise<void> {
   app.useLogger(logger);
   configureApp(app);
 
-  const port = app.get<ConfigService<Env, true>>(ConfigService).get('PORT', { infer: true });
-  await app.listen(port);
-  logger.log(`API prête sur http://localhost:${port}/${API_PREFIX}`);
+  const config = app.get<ConfigService<Env, true>>(ConfigService);
+  const address = {
+    HOST: config.get('HOST', { infer: true }),
+    PORT: config.get('PORT', { infer: true }),
+  };
+  await listenOnConfiguredAddress(app, address);
+  logger.log(`API prête sur http://${address.HOST}:${address.PORT}/${API_PREFIX}`);
 
   // Signal attendu par `nx serve` (cible continue) pour savoir que le serveur écoute.
   if (process.env['NX_READY_SIGNAL_SOCKET']) {
