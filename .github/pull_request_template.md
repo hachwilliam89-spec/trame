@@ -6,6 +6,16 @@
 
 <!-- Ce qui change, par périmètre (api, web, engine, contracts, platform…). -->
 
+## BDD et TDD
+
+<!-- Relier chaque scénario métier validé au fichier et au nom de son test d'acceptation. -->
+
+| Scénario BDD | Test d'acceptation (fichier et nom) |
+| ------------ | ----------------------------------- |
+|              |                                     |
+
+<!-- Résumer les cycles TDD : commande et échec réellement observé avant le code/correctif, résultat après, refactorisation effectuée si nécessaire. Pour les changements sans comportement exécutable (documentation, mise en forme…), indiquer « Non applicable » et la vérification adaptée. Pour une refactorisation, préciser les tests qui préservent le comportement. -->
+
 ## Vérification
 
 <!-- Commandes lancées et résultats. La CI doit être verte. -->
@@ -25,7 +35,8 @@
 ## Definition of Ready
 
 - [ ] La user story et sa valeur sont claires
-- [ ] Les critères d'acceptation sont écrits en Gherkin
+- [ ] Les scénarios BDD sont écrits en Gherkin et validés avec Kim (cas nominal, refus et limites pertinents)
+- [ ] Les questions métier bloquantes sont résolues
 - [ ] La maquette est validée, si la story touche l'interface
 - [ ] Les contrats (schémas zod) concernés sont identifiés
 - [ ] Les dépendances sont terminées, ou simulables
@@ -33,7 +44,8 @@
 
 ## Definition of Done
 
-- [ ] Critères d'acceptation couverts par des tests qui passent
+- [ ] Chaque scénario BDD est relié à un test d'acceptation qui passe
+- [ ] Cycle TDD exécuté et résumé dans la PR, ou non-applicabilité expliquée avec la vérification adaptée
 - [ ] Lint, typecheck et tests verts (CI)
 - [ ] Aucune violation des frontières d'architecture
 - [ ] Code lisible par un humain qui découvre le module (`AGENTS.md`, « Lisibilité »)
