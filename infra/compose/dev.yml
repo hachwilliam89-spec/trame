@@ -1,3 +1,10 @@
+# Stack de développement local (US-004) : les services dont l'API dépend, sur le poste uniquement.
+#
+#   pnpm nx run infra:up      démarre, attend que tout soit sain, applique les migrations
+#   pnpm nx run infra:down    arrête ; les données restent dans les volumes
+#   pnpm nx run infra:reset   supprime aussi les volumes ; relancer ensuite infra:up
+#
+# Les valeurs viennent du `.env` à la racine (copie de `.env.example`).
 name: trame-dev
 
 services:
@@ -8,10 +15,27 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
       POSTGRES_DB: ${POSTGRES_DB:?}
     ports:
-      - '${POSTGRES_PORT:?}:5432'
+      # 127.0.0.1 : sans adresse, Docker publierait le port sur toutes les interfaces du poste.
+      - '127.0.0.1:${POSTGRES_PORT:?}:5432'
+    healthcheck:
+      # Par TCP : pendant l'initialisation, le serveur temporaire n'écoute que sur le socket local,
+      # et la base ne doit pas être déclarée saine avant le démarrage définitif.
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 2s
+      timeout: 5s
+      retries: 30
 
   rabbitmq:
     image: rabbitmq:4.3.7-management-alpine@sha256:1528a88eebf2bc4d0ab7e9d5d9bc542e9bdf5e1b105e65848fcf8de5c2186528
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:?}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:?}
     ports:
-      - '${RABBITMQ_PORT:?}:5672'
-      - '${RABBITMQ_MANAGEMENT_PORT:?}:15672'
+      - '127.0.0.1:${RABBITMQ_PORT:?}:5672'
+      - '127.0.0.1:${RABBITMQ_MANAGEMENT_PORT:?}:15672'
+    healthcheck:
+      # Vérifie que les ports AMQP et HTTP acceptent des connexions, pas seulement que le nœud vit.
+      test: ['CMD', 'rabbitmq-diagnostics', '--quiet', 'check_port_connectivity']
+      interval: 5s
+      timeout: 10s
+      retries: 20
