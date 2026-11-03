@@ -1,4 +1,9 @@
-import { type ComposeService, readEnvExample, resolvedComposeConfig } from './lib/compose';
+import {
+  type ComposeService,
+  isolatedEnvironment,
+  readEnvExample,
+  resolvedComposeConfig,
+} from './lib/compose';
 
 // Une image figée porte une version mineure au moins (PostgreSQL : 18.6, RabbitMQ : 4.3.7) et le
 // digest de son index multi-architecture : le tag seul peut être republié, le digest non.
@@ -69,6 +74,55 @@ describe('configuration Compose de dev, résolue avec .env.example', () => {
     expect(environment['RABBITMQ_DEFAULT_USER']).toBe(envExample['RABBITMQ_USER']);
     expect(environment['RABBITMQ_DEFAULT_PASS']).toBe(envExample['RABBITMQ_PASSWORD']);
     expect(envExample['RABBITMQ_USER']).toBeTruthy();
+  });
+});
+
+// Nx charge le `.env` de la racine dans l'environnement de chaque commande, et Compose fait
+// primer l'environnement sur le fichier passé par --env-file : sans isolation, les tests
+// liraient les valeurs personnelles du développeur au lieu de `.env.example`.
+describe('isolation du .env personnel', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it("résout la configuration avec .env.example, même quand l'environnement porte d'autres valeurs", async () => {
+    vi.stubEnv('POSTGRES_PORT', '15432');
+    vi.stubEnv('POSTGRES_PASSWORD', 'mot-de-passe-personnel');
+    vi.stubEnv('RABBITMQ_USER', 'compte-personnel');
+    const envExample = await readEnvExample();
+
+    const { services } = await resolvedComposeConfig();
+
+    expect({
+      postgresPort: publishedPort(services['postgres'], 5432),
+      postgresPassword: services['postgres']?.environment?.['POSTGRES_PASSWORD'],
+      rabbitmqUser: services['rabbitmq']?.environment?.['RABBITMQ_DEFAULT_USER'],
+    }).toEqual({
+      postgresPort: envExample['POSTGRES_PORT'],
+      postgresPassword: envExample['POSTGRES_PASSWORD'],
+      rabbitmqUser: envExample['RABBITMQ_USER'],
+    });
+  });
+
+  it('retire des processus lancés les variables de .env.example, et garde les autres', async () => {
+    vi.stubEnv('DATABASE_URL', 'postgresql://personnel:secret@localhost:15432/perso');
+    vi.stubEnv('LOG_LEVEL', 'trace');
+    vi.stubEnv('DOCKER_HOST', 'unix:///run/docker.sock');
+
+    const environment = await isolatedEnvironment({ LOG_LEVEL: 'silent' });
+
+    expect(environment['DATABASE_URL']).toBeUndefined();
+    expect(environment['LOG_LEVEL']).toBe('silent');
+    expect(environment['DOCKER_HOST']).toBe('unix:///run/docker.sock');
+    expect(environment['PATH']).toBe(process.env['PATH']);
+  });
+
+  it('applique quand même les valeurs imposées par le test', async () => {
+    vi.stubEnv('POSTGRES_PORT', '15432');
+
+    const { services } = await resolvedComposeConfig({ overrides: { POSTGRES_PORT: '25432' } });
+
+    expect(publishedPort(services['postgres'], 5432)).toBe('25432');
   });
 });
 

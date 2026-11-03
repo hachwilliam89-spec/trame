@@ -4,7 +4,7 @@ import { networkInterfaces } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { Client } from 'pg';
-import { type ComposeOptions, compose } from './compose';
+import { type ComposeOptions, compose, isolatedEnvironment } from './compose';
 
 const execFileAsync = promisify(execFile);
 
@@ -39,7 +39,7 @@ export async function serviceHealth(options: ComposeOptions): Promise<Record<str
 export async function runPrisma(args: string[], databaseUrl: string): Promise<void> {
   await execFileAsync(PRISMA_BINARY, args, {
     cwd: DATABASE_LIBRARY_ROOT,
-    env: { ...process.env, DATABASE_URL: databaseUrl },
+    env: await isolatedEnvironment({ DATABASE_URL: databaseUrl }),
   });
 }
 
@@ -100,17 +100,14 @@ export interface ApiProcess {
 
 /** Démarre l'API construite (`api:build`) sur 127.0.0.1, et attend qu'elle réponde. */
 export async function startApi(port: number, databaseUrl: string): Promise<ApiProcess> {
-  const child = spawn(process.execPath, [BUILT_API_ENTRY], {
-    env: {
-      ...process.env,
-      NODE_ENV: 'production',
-      HOST: '127.0.0.1',
-      PORT: String(port),
-      LOG_LEVEL: 'silent',
-      DATABASE_URL: databaseUrl,
-    },
-    stdio: 'ignore',
+  const environment = await isolatedEnvironment({
+    NODE_ENV: 'production',
+    HOST: '127.0.0.1',
+    PORT: String(port),
+    LOG_LEVEL: 'silent',
+    DATABASE_URL: databaseUrl,
   });
+  const child = spawn(process.execPath, [BUILT_API_ENTRY], { env: environment, stdio: 'ignore' });
   const baseUrl = `http://127.0.0.1:${port}/api/v1`;
   await waitUntilResponding(`${baseUrl}/health/live`);
   return { baseUrl, stop: () => stopProcess(child) };

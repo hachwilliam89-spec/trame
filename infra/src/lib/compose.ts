@@ -55,10 +55,30 @@ export async function compose(args: string[], options: ComposeOptions = {}): Pro
       COMPOSE_FILE_PATH,
       ...args,
     ],
-    // Les variables du processus priment sur le fichier d'environnement (règle de Compose).
-    { env: { ...process.env, ...options.overrides }, maxBuffer: 10 * 1024 * 1024 },
+    { env: await isolatedEnvironment(options.overrides), maxBuffer: 10 * 1024 * 1024 },
   );
   return stdout;
+}
+
+/**
+ * Environnement d'un processus lancé par les tests : celui du processus courant, sans aucune
+ * variable que déclare `.env.example`, puis les valeurs imposées.
+ *
+ * Nx charge le `.env` personnel dans l'environnement de chaque commande, et Compose fait primer
+ * l'environnement sur `--env-file` : sans ce filtre, un port ou un mot de passe personnel
+ * remplacerait silencieusement les valeurs de `.env.example`.
+ */
+export async function isolatedEnvironment(
+  overrides: Record<string, string> = {},
+): Promise<NodeJS.ProcessEnv> {
+  const stackVariables = new Set(Object.keys(await readEnvExample()));
+  const environment: NodeJS.ProcessEnv = {};
+  for (const [name, value] of Object.entries(process.env)) {
+    if (!stackVariables.has(name)) {
+      environment[name] = value;
+    }
+  }
+  return { ...environment, ...overrides };
 }
 
 /** Configuration telle que Docker l'appliquera, après interpolation des variables. */
