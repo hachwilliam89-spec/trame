@@ -73,6 +73,7 @@ pnpm nx run api-database:prisma-generate           # client Prisma (lancé aussi
 pnpm nx run api-database:prisma-migrate --name <nom>   # nouvelle migration (base locale requise)
 pnpm nx format:check                               # Prettier (TypeScript, JSON, Markdown, YAML)
 pnpm knip                                          # code mort et dépendances inutilisées
+pnpm pr:merge <n>                                  # fusion en squash d'une PR, une fois ses checks requis réussis (tools/merge-pr)
 ```
 
 La CI (`.github/workflows/ci.yml`) lance ces contrôles sur chaque PR, ainsi que l'audit des workflows par zizmor. CodeQL tourne à part (`codeql.yml`), tout comme la soumission des dépendances au graphe de GitHub (`dependency-graph.yml`, ADR-0029). Pour fusionner sur `main`, la protection exige :
