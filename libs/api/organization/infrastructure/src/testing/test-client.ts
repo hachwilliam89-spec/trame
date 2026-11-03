@@ -18,6 +18,10 @@ export class TestClient {
     return this.authenticate(request(this.app.getHttpServer()).post(path).send(body));
   }
 
+  delete(path: string): request.Test {
+    return this.authenticate(request(this.app.getHttpServer()).delete(path));
+  }
+
   private authenticate(test: request.Test): request.Test {
     if (this.actor === undefined) {
       return test;

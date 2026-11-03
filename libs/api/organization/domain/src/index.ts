@@ -20,3 +20,10 @@ export {
   EmptyShiftError,
   InvalidBreakDurationError,
 } from './lib/shift-template/shift-template.errors';
+export { Skill, type SkillProperties } from './lib/skill/skill';
+export { InvalidSkillNameError, SkillInUseError } from './lib/skill/skill.errors';
+export { Position, type PositionProperties } from './lib/position/position';
+export {
+  DuplicateRequiredSkillError,
+  InvalidPositionNameError,
+} from './lib/position/position.errors';

@@ -1,5 +1,17 @@
-import type { ShiftDurations, ShiftTemplate, Site } from '@trame/api/organization/domain';
-import type { ShiftDurationsV1, ShiftTemplateV1, SiteV1 } from '@trame/shared/contracts';
+import type {
+  Position,
+  ShiftDurations,
+  ShiftTemplate,
+  Site,
+  Skill,
+} from '@trame/api/organization/domain';
+import type {
+  PositionV1,
+  ShiftDurationsV1,
+  ShiftTemplateV1,
+  SiteV1,
+  SkillV1,
+} from '@trame/shared/contracts';
 
 /** Conversion des objets du domaine vers les contrats de l'API (`@trame/shared/contracts`). */
 
@@ -40,6 +52,24 @@ export function toShiftDurationsV1(
     amplitudeMinutes: durations.amplitudeMinutes,
     breakMinutes: durations.breakMinutes,
     effectiveMinutes: durations.effectiveMinutes,
+  };
+}
+
+export function toSkillV1(skill: Skill): SkillV1 {
+  return {
+    id: skill.id,
+    name: skill.name,
+    createdAt: skill.createdAt.toString(),
+  };
+}
+
+export function toPositionV1(position: Position): PositionV1 {
+  return {
+    id: position.id,
+    siteId: position.siteId,
+    name: position.name,
+    skillIds: [...position.skillIds],
+    createdAt: position.createdAt.toString(),
   };
 }
 

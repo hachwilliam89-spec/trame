@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { pageOfV1 } from '../common/page.v1';
+import { requiredText } from '../common/text.v1';
 
 /**
  * Code court d'un site, unique dans l'organisation : majuscules, chiffres et tirets, 20 caractères au plus.
@@ -10,7 +11,7 @@ const siteCode = z.string().regex(/^[A-Z0-9][A-Z0-9-]{0,19}$/);
 /** Création d'un site : `POST /api/v1/sites`. */
 export const createSiteRequestV1 = z.object({
   code: siteCode,
-  name: z.string().min(1).max(100),
+  name: requiredText(100),
   /** Fuseau IANA du site. Le domaine vérifie qu'il existe. */
   timeZone: z.string().min(1).max(64).default('Europe/Paris'),
 });
