@@ -134,9 +134,35 @@ Le code est écrit pour être relu et repris par un humain qui découvre le modu
 - **PR** : une PR = une user story (ou une étape annoncée d'une story). Squash merge. Le template de PR est obligatoire.
 - **Dépendances** : toute nouvelle dépendance est justifiée dans la description de la PR (pourquoi celle-ci, quelles alternatives).
 
+## BDD et TDD
+
+Décision de Kim du 2026-11-02 : cette méthode s'applique à la suite du projet, pour les humains comme pour les agents.
+
+### BDD : préciser le comportement attendu
+
+- Avant de développer un comportement, clarifier avec Kim les règles métier à partir d'exemples concrets, puis écrire les scénarios en Gherkin dans l'issue. Couvrir le cas nominal, les refus et les limites pertinents, notamment l'isolation entre organisations.
+- Faire valider ces scénarios avec le plan. Une validation déjà donnée reste acquise ; une question métier bloquante est résolue avant de coder le comportement concerné.
+- Décrire des résultats observables dans le vocabulaire métier. Les scénarios ne détaillent pas les classes, les appels internes ou les requêtes SQL.
+- Automatiser chaque scénario au niveau adapté avec les outils du projet (Vitest, pytest, Testcontainers, Playwright). La PR indique quel test couvre chaque scénario. Les fichiers Gherkin exécutables et Cucumber ne sont pas requis.
+
+### TDD : construire par petites étapes
+
+Pour chaque nouveau comportement ou correction de bug :
+
+1. **Rouge** : écrire d'abord un test ciblé et l'exécuter. Vérifier qu'il échoue parce que le comportement manque ou que le bug est reproduit ; une erreur d'environnement ne constitue pas cette preuve.
+2. **Vert** : écrire le code nécessaire pour faire passer ce test.
+3. **Refactorisation** : améliorer les noms, le découpage et la lisibilité du code et des tests, puis relancer les tests concernés. Cette étape fait partie du TDD.
+
+- Tester les comportements et les invariants, avec des données explicites ; éviter les tests qui recopient l'implémentation ou imposent ses détails internes.
+- Compléter les tests rapides par les tests HTTP, d'intégration ou E2E nécessaires au risque couvert. Une règle de persistance est aussi vérifiée sur une vraie base.
+- Pour une modification de documentation ou de mise en forme, appliquer les vérifications adaptées. Une refactorisation à comportement constant s'appuie sur les tests existants, complétés si leur couverture est insuffisante. Le code généré est vérifié par son générateur et ses tests de contrat.
+- Dans la PR, résumer les tests exécutés, l'échec observé avant le correctif et le résultat après. Signaler les cas où le cycle ne s'applique pas et leur vérification ; ne jamais prétendre avoir observé un échec sans l'avoir exécuté. Les commits publiés peuvent rester verts.
+
+Références : [BDD, Cucumber](https://cucumber.io/docs/bdd/) ; [TDD, Martin Fowler](https://martinfowler.com/bliki/TestDrivenDevelopment.html).
+
 ## Tests
 
-- Les tests sont écrits avant ou avec le code. Les critères Gherkin de l'issue deviennent des tests d'acceptation.
+- Les scénarios BDD validés deviennent des tests d'acceptation ; les nouveaux comportements et corrections suivent le cycle TDD décrit ci-dessus.
 - **Unitaires** : Vitest pour le domaine, les use cases (avec repository en mémoire) et les composants Angular. pytest pour le modèle et la PE.
 - **Cohérence des règles** (Hypothesis) : test bidirectionnel solveur ↔ PE pour chaque règle (ADR-0020).
 - **Temps** : chaque règle de durée a un test sur une nuit de changement d'heure.
@@ -152,7 +178,7 @@ Le code est écrit pour être relu et repris par un humain qui découvre le modu
 1. Vérifier la **Definition of Ready** de l'issue. Si elle n'est pas remplie, le signaler au lieu de commencer.
 2. Lire l'issue, `docs/cadrage.md`, les ADR et le code voisin. Imiter le module de référence.
 3. **Proposer un plan** (fichiers touchés, approche, tests) et attendre la validation avant d'implémenter.
-4. Implémenter par petits commits.
+4. Implémenter les scénarios validés par petits cycles TDD (rouge → vert → refactorisation), puis petits commits. Appliquer les vérifications adaptées aux changements sans comportement exécutable.
 5. Lancer `pnpm nx affected -t lint typecheck test --base=origin/main` (moteur compris), et `pnpm nx run-many -t integration` si la persistance est touchée. Si un contrat a changé, lancer `pnpm nx run contracts:generate` et commiter le résultat. Tout doit être vert.
 6. Mettre à jour la doc concernée. Si une décision a été prise, rédiger une ADR au statut « Proposé ».
 7. Ouvrir la PR avec le template rempli. Signaler explicitement tout doute ou écart par rapport au plan.
@@ -177,7 +203,8 @@ Le code est écrit pour être relu et repris par un humain qui découvre le modu
 Une story ne démarre que si :
 
 - [ ] la user story et sa valeur sont claires ;
-- [ ] les critères d'acceptation sont écrits en Gherkin ;
+- [ ] les scénarios BDD sont écrits en Gherkin et validés avec Kim (cas nominal, refus et limites pertinents) ;
+- [ ] les questions métier bloquantes sont résolues ;
 - [ ] la maquette est validée, si la story touche l'interface ;
 - [ ] les contrats (schémas zod) concernés sont identifiés ;
 - [ ] les dépendances sont terminées, ou simulables ;
@@ -185,7 +212,8 @@ Une story ne démarre que si :
 
 ## Definition of Done
 
-- [ ] Critères d'acceptation de l'issue couverts par des tests qui passent
+- [ ] Chaque scénario BDD est relié à un test d'acceptation qui passe
+- [ ] Cycle TDD exécuté et résumé dans la PR, ou non-applicabilité expliquée avec la vérification adaptée
 - [ ] Lint, typecheck et tests verts (CI)
 - [ ] Aucune violation des frontières d'architecture
 - [ ] Code lisible par un humain qui découvre le module (section « Lisibilité »)

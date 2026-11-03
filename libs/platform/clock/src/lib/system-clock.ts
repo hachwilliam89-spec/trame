@@ -6,6 +6,8 @@ import type { Clock } from './clock';
  */
 export class SystemClock implements Clock {
   now(): Temporal.Instant {
-    return Temporal.Now.instant();
+    // Tronqué à la milliseconde : c'est la précision que stocke PostgreSQL (`timestamptz(3)`) et
+    // celle des UUID v7. Un instant plus fin changerait entre la réponse de création et la relecture.
+    return Temporal.Now.instant().round({ smallestUnit: 'millisecond', roundingMode: 'trunc' });
   }
 }

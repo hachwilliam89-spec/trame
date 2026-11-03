@@ -60,6 +60,13 @@ describe('API des sites', () => {
       expect(response.body.errors).toEqual([expect.objectContaining({ pointer: '#/code' })]);
     });
 
+    it('refuse un nom contenant le caractère NUL, avec un pointeur vers le champ', async () => {
+      const response = await admin.post('/sites', { ...colmar, name: 'Col\u0000mar' });
+
+      expect(response.status).toBe(400);
+      expect(response.body.errors).toEqual([expect.objectContaining({ pointer: '#/name' })]);
+    });
+
     it('refuse un fuseau inconnu comme une erreur de validation', async () => {
       const response = await admin.post('/sites', { ...colmar, timeZone: 'Europe/Colmar' });
 

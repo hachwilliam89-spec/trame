@@ -80,6 +80,16 @@ describe('API des créneaux types', () => {
       expect(response.body.errors).toEqual([expect.objectContaining({ pointer: '#/endTime' })]);
     });
 
+    it('refuse un libellé contenant le caractère NUL, avec un pointeur vers le champ', async () => {
+      const response = await admin.post(`/sites/${siteId}/shift-templates`, {
+        ...night,
+        label: 'Nu\u0000it',
+      });
+
+      expect(response.status).toBe(400);
+      expect(response.body.errors).toEqual([expect.objectContaining({ pointer: '#/label' })]);
+    });
+
     it('refuse une heure mal formée', async () => {
       const response = await admin.post(`/sites/${siteId}/shift-templates`, {
         ...night,

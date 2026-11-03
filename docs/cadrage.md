@@ -301,7 +301,8 @@ Une seule résolution à la fois par environnement (file RabbitMQ consommée ave
   - Kim : tech lead et PO. Il décide, valide les specs, revoit et merge.
   - Claude : cadrage, specs, architecture, UI, revue des PR de Codex.
   - Codex : implémentation des US spécifiées, tests, CI, migrations, revue des PR de Claude.
-- **Cycle** : issue (US + critères Gherkin) → Definition of Ready vérifiée → plan proposé → plan validé → implémentation → CI verte → revue croisée → revue de Kim → squash merge.
+- **Méthode** : BDD pour clarifier les comportements avec Kim et valider les scénarios métier ; TDD pour les implémenter (test en échec → code qui passe → refactorisation pour la lisibilité). Les règles détaillées, la portée et les vérifications adaptées sont dans `AGENTS.md`, section « BDD et TDD ».
+- **Cycle** : issue (US + exemples métier et scénarios Gherkin) → Definition of Ready vérifiée → plan et scénarios validés → cycles TDD → CI verte → revue croisée → revue de Kim → squash merge.
 - **Garde-fous** : `AGENTS.md` (DoR et DoD), frontières d'architecture outillées, CI bloquante, template de PR.
 - **Métriques publiées** : part des PR mergées sans retouche, itérations moyennes par US, couverture.
 

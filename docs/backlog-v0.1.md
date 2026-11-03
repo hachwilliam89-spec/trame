@@ -2,7 +2,7 @@
 
 **Objectif de la v0.1** : un manager génère, ajuste avec la PE et publie le planning hebdomadaire d'un site. Le tout est déployé en production, documenté, observé, et accessible en démo publique.
 
-Chaque US devient une issue GitHub, à partir de ce fichier (label `epic:Ex`, milestone `v0.1`). Les critères d'acceptation en Gherkin deviennent des tests d'acceptation. La Definition of Ready et la Definition of Done sont celles d'`AGENTS.md`.
+Chaque US devient une issue GitHub, à partir de ce fichier (label `epic:Ex`, milestone `v0.1`). Les comportements sont précisés avec Kim par des exemples métier (BDD), puis leurs scénarios Gherkin sont validés avec le plan et deviennent des tests d'acceptation. Les nouveaux comportements et corrections sont implémentés en TDD : test en échec, code qui passe, puis refactorisation pour la lisibilité. La portée, les vérifications adaptées, la Definition of Ready et la Definition of Done sont celles d'`AGENTS.md`.
 
 ## Priorisation
 
