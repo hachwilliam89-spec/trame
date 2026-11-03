@@ -21,7 +21,7 @@ Le cadrage est dans [`docs/cadrage.md`](docs/cadrage.md), les décisions dans [`
 ## Qualité et sécurité
 
 - Chaque PR passe la CI : lint (frontières d'architecture et lisibilité), typecheck, tests, build, intégration sur un vrai PostgreSQL, migrations Prisma sans écart, contrats générés à jour, Knip, audit des workflows par zizmor.
-- CodeQL bloque toute nouvelle alerte haute ou critique, gitleaks tout secret commité, et l'audit des dépendances (`pnpm audit`, `pip-audit`) les vulnérabilités connues. Renovate tient les dépendances à jour, et le graphe de dépendances de GitHub voit tous les paquets, pnpm comme uv.
+- CodeQL bloque toute nouvelle alerte haute ou critique, et gitleaks tout secret commité. L'audit des dépendances bloque les vulnérabilités hautes et critiques côté Node (`pnpm audit --audit-level high`), et toute vulnérabilité connue côté moteur (`pip-audit`) ; les alertes moyennes et faibles sont suivies dans Dependabot. Renovate tient les dépendances à jour, et le graphe de dépendances de GitHub voit tous les paquets, pnpm comme uv.
 - Les règles de développement (architecture, lisibilité, tests, Definition of Done) sont dans [`AGENTS.md`](AGENTS.md).
 
 ## Démarrer
