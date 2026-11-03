@@ -106,6 +106,10 @@ export async function startApi(port: number, databaseUrl: string): Promise<ApiPr
     PORT: String(port),
     LOG_LEVEL: 'silent',
     DATABASE_URL: databaseUrl,
+    // Les sondes de santé sont publiques : ces tests ne présentent aucun jeton.
+    OIDC_ISSUER_URL: 'https://idp.invalid/realms/trame',
+    OIDC_AUDIENCE: 'trame-api',
+    OIDC_JWKS_URL: 'https://idp.invalid/realms/trame/protocol/openid-connect/certs',
   });
   const child = spawn(process.execPath, [BUILT_API_ENTRY], { env: environment, stdio: 'ignore' });
   const baseUrl = `http://127.0.0.1:${port}/api/v1`;

@@ -18,43 +18,44 @@ Priorité MoSCoW : **M** indispensable à la démo · **S** important, peut suiv
 | 4     | 003 | CI de base (avancée avant US-030)                                  | ✅       |
 | 5     | 030 | Module de référence `organization`, PR A : sites et créneaux types | ✅       |
 | 6     | 030 | Module de référence `organization`, PR B : compétences et postes   | ✅       |
-| 7     | 004 | Environnement local                                                | M        |
-| 8     | 009 | Walking skeleton                                                   | M        |
-| 9     | 005 | Déploiement staging et prod (prod fermée au public)                | M        |
-| 10    | 008 | Sauvegardes                                                        | M        |
-| 11    | 020 | Connexion OIDC et rôles                                            | M        |
+| 7     | 004 | Environnement local                                                | ✅       |
+| 8     | 020 | Connexion OIDC et rôles, PR A : jetons côté API et Keycloak local  | M        |
+| 9     | 009 | Walking skeleton                                                   | M        |
+| 10    | 005 | Déploiement staging et prod (prod fermée au public)                | M        |
+| 11    | 008 | Sauvegardes                                                        | M        |
 | 12    | 012 | Maquettes des écrans clés                                          | M        |
 | 13    | 010 | Tokens de marque                                                   | M        |
 | 14    | 011 | Composants de base                                                 | M        |
-| 15    | 030 | Module de référence `organization`, PR C : page Angular et E2E     | M        |
-| 16    | 007 | Observabilité de base et alertes                                   | S        |
-| 17    | 006 | Site de documentation                                              | S        |
+| 15    | 020 | Connexion OIDC et rôles, PR B : connexion dans le front            | M        |
+| 16    | 030 | Module de référence `organization`, PR C : page Angular et E2E     | M        |
+| 17    | 007 | Observabilité de base et alertes                                   | S        |
+| 18    | 006 | Site de documentation                                              | S        |
 
 ### Phase 2 — pendant le stage (sessions courtes : une story = un déploiement)
 
 | Ordre | US  | Titre                                        | Priorité |
 | ----- | --- | -------------------------------------------- | -------- |
-| 18    | 031 | Employés                                     | M        |
-| 19    | 032 | Contrats                                     | M        |
-| 20    | 033 | Indisponibilités et absences                 | M        |
-| 21    | 040 | Catalogue des règles légales                 | M        |
-| 22    | 050 | Besoins de couverture                        | M        |
-| 23    | 064 | Spike CP-SAT                                 | M        |
-| 24    | 061 | Modèle CP-SAT v1                             | M        |
-| 25    | 060 | Lancer une génération                        | M        |
-| 26    | 062 | Score et explication de base                 | M        |
-| 27    | 070 | PE synchrone                                 | M        |
-| 28    | 071 | Grille de planning                           | M        |
-| 29    | 072 | Drag & drop avec PE                          | M        |
-| 30    | 080 | Publier un planning                          | M        |
-| 31    | 021 | Comptes démo (une organisation par visiteur) | M        |
-| 32    | 090 | Données de démo                              | M        |
-| 33    | 092 | Protection et ouverture de la démo publique  | M        |
-| 34    | 093 | Licence, sécurité et mentions légales        | M        |
-| 35    | 091 | README vitrine et vidéo                      | M        |
-| 36    | 014 | Quality gate et tests de mutation            | S        |
-| 37    | 041 | Pondération des règles souples               | S        |
-| 38    | 081 | Consultation par l'employé                   | S        |
+| 19    | 031 | Employés                                     | M        |
+| 20    | 032 | Contrats                                     | M        |
+| 21    | 033 | Indisponibilités et absences                 | M        |
+| 22    | 040 | Catalogue des règles légales                 | M        |
+| 23    | 050 | Besoins de couverture                        | M        |
+| 24    | 064 | Spike CP-SAT                                 | M        |
+| 25    | 061 | Modèle CP-SAT v1                             | M        |
+| 26    | 060 | Lancer une génération                        | M        |
+| 27    | 062 | Score et explication de base                 | M        |
+| 28    | 070 | PE synchrone                                 | M        |
+| 29    | 071 | Grille de planning                           | M        |
+| 30    | 072 | Drag & drop avec PE                          | M        |
+| 31    | 080 | Publier un planning                          | M        |
+| 32    | 021 | Comptes démo (une organisation par visiteur) | M        |
+| 33    | 090 | Données de démo                              | M        |
+| 34    | 092 | Protection et ouverture de la démo publique  | M        |
+| 35    | 093 | Licence, sécurité et mentions légales        | M        |
+| 36    | 091 | README vitrine et vidéo                      | M        |
+| 37    | 014 | Quality gate et tests de mutation            | S        |
+| 38    | 041 | Pondération des règles souples               | S        |
+| 39    | 081 | Consultation par l'employé                   | S        |
 
 Les stories M, prises dans cet ordre, forment le **chemin critique vers la démo publique**. La démo est datée quelques semaines avant la recherche d'entreprise.
 
@@ -235,7 +236,7 @@ Scénario: Aller-retour complet
   Et la trace complète est visible dans Grafana
 ```
 
-> **Question ouverte (2026-11-03)** : les routes métier répondent 401 tant qu'OIDC n'est pas branché (US-020). Avant de démarrer, préciser comment déclencher le parcours : endpoint technique dédié, utilisateur de développement, ou US-020 avant US-009.
+> **Décidé le 2026-11-03** : les routes métier répondent 401 tant qu'OIDC n'est pas branché. US-020 passe donc avant US-009, côté API (PR A, #21) : le parcours du walking skeleton se déclenche avec un vrai jeton, sur un endpoint protégé, sans contournement à retirer.
 
 ---
 
@@ -286,6 +287,13 @@ Scénario: Accès à l'objet d'un autre
 - Validation des JWT côté API, avec des guards par rôle (`manager`, `employe`, `admin`).
 - L'`organizationId` de l'utilisateur vient du jeton et filtre toutes les requêtes. La propriété de chaque objet est vérifiée en plus (ADR-0022).
 - Keycloak rejoint la stack de dev (décision du 2026-11-03, US-004) : service Compose dans `infra/compose/dev.yml`, import du realm versionné (`infra/keycloak/`), comptes locaux pour chaque rôle.
+
+Livrée en deux PR (décision du 2026-11-03) :
+
+- **PR A** (#21) : l'API vérifie les jetons (ADR-0030), et Keycloak rejoint la stack de dev. Deux étapes : A1, le résolveur OIDC testé avec des jetons signés localement ; A2, Keycloak, le realm, la protection de l'organisation et des rôles, et le parcours Authorization Code + PKCE dans un navigateur automatisé.
+- **PR B** : la connexion dans le front, après les maquettes d'US-012.
+
+Le scénario « accès à l'objet d'un autre » ci-dessus suppose des employés et des plannings : il passe dans les stories `staff` et `scheduling`.
 
 ### US-021 — Comptes démo (une organisation par visiteur)
 
