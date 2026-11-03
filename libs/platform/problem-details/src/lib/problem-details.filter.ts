@@ -57,6 +57,9 @@ export class ProblemDetailsFilter implements ExceptionFilter {
       this.logger.error(describeForLog(exception));
     }
 
+    if (exception instanceof ProblemDetailsException) {
+      response.set(exception.headers);
+    }
     response.status(body.status).type(PROBLEM_JSON).json(body);
   }
 

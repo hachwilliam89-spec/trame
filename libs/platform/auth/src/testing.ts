@@ -19,3 +19,6 @@ export const testActorResolver: ActorResolver = (request) => {
 export function testActorHeader(actor: Actor): string {
   return JSON.stringify(actor);
 }
+
+/** Serveur JWKS local, pour tester un résolveur OIDC sans fournisseur d'identité. */
+export { JwksTestServer } from './lib/oidc/jwks-test-server';

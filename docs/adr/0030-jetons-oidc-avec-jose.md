@@ -1,0 +1,36 @@
+# ADR-0030 — Jetons OIDC : vérification par `jose`, identité lue dans les revendications
+
+- **Statut** : Proposé (2026-11-03). Précise ADR-0010.
+- **Contexte** :
+  - L'API reçoit des jetons d'accès émis par le fournisseur d'identité (ADR-0010). Elle doit en tirer l'utilisateur, son organisation (ADR-0022) et ses rôles, sans jamais accepter un jeton qu'elle n'a pas pu vérifier.
+  - Le point d'extension existe : un `ActorResolver` dans `libs/platform/auth` (ADR-0026).
+  - Le flux « password grant » est proscrit par les bonnes pratiques OAuth actuelles (RFC 9700, §2.4).
+- **Décision** :
+  - **Vérification par `jose`**, dans un résolveur générique de `libs/platform/auth` : signature `RS256` seulement, émetteur, audience, `exp` et `sub` obligatoires, `nbf`. La date de vérification vient du port `Clock`.
+  - **Clés publiques** : l'adresse du JWKS vient de la configuration, jamais du jeton (`jku` ignoré). Le JWKS est mis en cache, rafraîchi quand une clé inconnue apparaît (rotation), avec un délai de téléchargement borné.
+  - **Fournisseur injoignable : 503.** Un jeton qu'on ne peut pas vérifier n'est ni accepté ni refusé.
+  - **Jeton refusé : 401** avec `WWW-Authenticate: Bearer` (RFC 6750), toujours la même réponse, sans motif.
+  - **Identité dans les revendications** : le résolveur reçoit le nom des revendications de l'organisation, des rôles et du type de jeton, ainsi que le format d'un identifiant d'organisation. Un jeton qui n'est pas un jeton d'accès (ID token), ou dont l'organisation ou les rôles sont absents ou mal formés, est refusé.
+  - **Pour Trame (Keycloak)** :
+    - organisation dans `organization_id`, un UUID comme en base ;
+    - rôles dans `roles`, filtrés sur `admin`, `manager` et `employee` ;
+    - jeton d'accès reconnu à `typ: Bearer` ;
+    - audience `trame-api`.
+  - **Tests** :
+    - jetons signés dans les tests, avec un serveur JWKS local, pour chaque règle ;
+    - parcours réel Authorization Code + PKCE dans un navigateur automatisé, sur la page de connexion de Keycloak (US-020, étape A2). Pas de « direct grant », même en dev.
+- **Conséquences** :
+  - (+) Une seule dépendance, sans dépendance d'exécution, maintenue et conforme aux RFC JOSE. Le fournisseur se remplace en changeant la configuration et les noms de revendications.
+  - (+) Aucun jeton accepté sans vérification complète, et une panne du fournisseur se distingue d'un jeton refusé.
+  - (−) `jose` est distribué en ESM : l'API le charge par le `require` de modules ESM de Node 26, vérifié sur l'API construite.
+  - (−) Le cache du JWKS suit l'horloge interne de `jose`, pas le port `Clock`.
+- **Alternatives écartées** :
+  - `passport-jwt` avec `jwks-rsa` : deux dépendances et une couche Passport sans utilité ici ;
+  - `@nestjs/jwt` : prévu pour signer ses propres jetons, sans gestion d'un JWKS distant ;
+  - introspection du jeton auprès de Keycloak à chaque requête : un aller-retour réseau par appel, et l'API tomberait avec le fournisseur ;
+  - « direct grant » pour les tests : proscrit (RFC 9700), et il ne teste pas le parcours retenu.
+- **Références** :
+  - [RFC 6750](https://www.rfc-editor.org/rfc/rfc6750) : jetons Bearer, `WWW-Authenticate` ;
+  - [RFC 8725](https://www.rfc-editor.org/rfc/rfc8725) : bonnes pratiques JWT ;
+  - [RFC 9700](https://www.rfc-editor.org/rfc/rfc9700), §2.4 : password grant proscrit ;
+  - [jose](https://github.com/panva/jose).

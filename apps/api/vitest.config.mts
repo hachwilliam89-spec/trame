@@ -18,6 +18,11 @@ export default defineConfig(() => ({
     env: {
       DATABASE_URL: 'postgresql://trame:trame@localhost:5432/trame',
       LOG_LEVEL: 'silent',
+      // Fournisseur d'identité fictif : aucun test ne le joint, sauf app.oidc.spec.ts, qui remplace
+      // ces valeurs par celles de son serveur JWKS local.
+      OIDC_ISSUER_URL: 'https://idp.test/realms/trame',
+      OIDC_AUDIENCE: 'trame-api',
+      OIDC_JWKS_URL: 'https://idp.test/realms/trame/protocol/openid-connect/certs',
     },
     include: ['{src,tests}/**/*.{test,spec}.ts'],
     passWithNoTests: false,
