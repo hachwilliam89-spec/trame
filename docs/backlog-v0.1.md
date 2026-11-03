@@ -18,7 +18,7 @@ Priorité MoSCoW : **M** indispensable à la démo · **S** important, peut suiv
 | 4     | 003 | CI de base (avancée avant US-030)                                  | ✅       |
 | 5     | 030 | Module de référence `organization`, PR A : sites et créneaux types | ✅       |
 | 6     | 030 | Module de référence `organization`, PR B : compétences et postes   | ✅       |
-| 7     | 004 | Environnement local                                                | M        |
+| 7     | 004 | Environnement local                                                | ✅       |
 | 8     | 009 | Walking skeleton                                                   | M        |
 | 9     | 005 | Déploiement staging et prod (prod fermée au public)                | M        |
 | 10    | 008 | Sauvegardes                                                        | M        |
@@ -155,9 +155,9 @@ Les autres contrôles arrivent avec le risque qu'ils couvrent :
 - OWASP ZAP avec l'ouverture publique, dans US-092 ;
 - quality gate SonarCloud et Stryker quand le domaine a du contenu, dans US-014.
 
-### US-004 — Environnement local
+### US-004 — Environnement local ✅
 
-> Issue #13, scénarios validés le 2026-11-03. Keycloak, l'import du realm et les comptes locaux passent dans US-020 : rien ne s'en sert avant.
+> **Terminée le 2026-11-03 (#17).** Issue #13, scénarios validés le 2026-11-03. Keycloak, l'import du realm et les comptes locaux passent dans US-020 : rien ne s'en sert avant.
 
 - `infra/compose/dev.yml` : PostgreSQL et RabbitMQ (avec l'interface de management), images figées par version et digest, suivies par Renovate.
 - Healthchecks, ports publiés sur `127.0.0.1` uniquement, volumes nommés. L'API écoute sur `HOST`, `127.0.0.1` par défaut.
