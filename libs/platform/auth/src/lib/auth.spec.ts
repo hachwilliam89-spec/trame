@@ -1,4 +1,4 @@
-import { Controller, Get, type INestApplication, Logger } from '@nestjs/common';
+import { Controller, Get, type INestApplication, Logger, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { ProblemDetailsModule } from '@trame/platform/problem-details';
 import request from 'supertest';
@@ -33,6 +33,15 @@ class DemoController {
     return { ok: true };
   }
 }
+
+// Fournisseur injecté dans la factory de `forRootAsync`, comme la configuration dans l'API.
+const RESOLVER_SOURCE = Symbol('RESOLVER_SOURCE');
+
+@Module({
+  providers: [{ provide: RESOLVER_SOURCE, useValue: testActorResolver }],
+  exports: [RESOLVER_SOURCE],
+})
+class ResolverSourceModule {}
 
 const manager: Actor = { userId: 'u-1', organizationId: 'org-a', roles: ['manager'] };
 const admin: Actor = { userId: 'u-2', organizationId: 'org-a', roles: ['admin'] };
@@ -108,6 +117,34 @@ describe('AuthModule', () => {
         expect(JSON.stringify(warn.mock.calls)).not.toContain('jeanne');
       } finally {
         warn.mockRestore();
+      }
+    });
+  });
+
+  describe('configuration asynchrone', () => {
+    it('reconnaît les utilisateurs avec le résolveur fourni par une factory injectée', async () => {
+      const moduleRef = await Test.createTestingModule({
+        imports: [
+          ProblemDetailsModule,
+          AuthModule.forRootAsync({
+            imports: [ResolverSourceModule],
+            inject: [RESOLVER_SOURCE],
+            useFactory: (resolveActor: ActorResolver) => ({ resolveActor }),
+          }),
+        ],
+        controllers: [DemoController],
+      }).compile();
+      const app = moduleRef.createNestApplication({ logger: false });
+      await app.init();
+      try {
+        const response = await request(app.getHttpServer())
+          .get('/demo/me')
+          .set(TEST_ACTOR_HEADER, testActorHeader(manager));
+
+        expect(response.status).toBe(200);
+        expect(response.body).toEqual(manager);
+      } finally {
+        await app.close();
       }
     });
   });
