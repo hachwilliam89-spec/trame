@@ -99,7 +99,11 @@ export interface ApiProcess {
 }
 
 /** Démarre l'API construite (`api:build`) sur 127.0.0.1, et attend qu'elle réponde. */
-export async function startApi(port: number, databaseUrl: string): Promise<ApiProcess> {
+export async function startApi(
+  port: number,
+  databaseUrl: string,
+  issuerUrl = 'https://idp.invalid/realms/trame',
+): Promise<ApiProcess> {
   const environment = await isolatedEnvironment({
     NODE_ENV: 'production',
     HOST: '127.0.0.1',
@@ -107,9 +111,9 @@ export async function startApi(port: number, databaseUrl: string): Promise<ApiPr
     LOG_LEVEL: 'silent',
     DATABASE_URL: databaseUrl,
     // Les sondes de santé sont publiques : ces tests ne présentent aucun jeton.
-    OIDC_ISSUER_URL: 'https://idp.invalid/realms/trame',
+    OIDC_ISSUER_URL: issuerUrl,
     OIDC_AUDIENCE: 'trame-api',
-    OIDC_JWKS_URL: 'https://idp.invalid/realms/trame/protocol/openid-connect/certs',
+    OIDC_JWKS_URL: issuerUrl + '/protocol/openid-connect/certs',
   });
   const child = spawn(process.execPath, [BUILT_API_ENTRY], { env: environment, stdio: 'ignore' });
   const baseUrl = `http://127.0.0.1:${port}/api/v1`;

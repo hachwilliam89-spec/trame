@@ -31,21 +31,23 @@ Prérequis : Docker avec Compose v2, Node 26 et pnpm 12. Le moteur demande aussi
 ```bash
 cp .env.example .env
 pnpm install
-pnpm nx run infra:up     # PostgreSQL et RabbitMQ sur 127.0.0.1, sains, puis les migrations
+pnpm nx run infra:up     # PostgreSQL, RabbitMQ et Keycloak sur 127.0.0.1, puis migrations
 pnpm nx serve api        # http://127.0.0.1:3000/api/v1/health/ready
 ```
 
 - La stack et l'API n'écoutent que sur `127.0.0.1` : rien n'est joignable depuis le réseau.
 - Interface de management de RabbitMQ : http://127.0.0.1:15672, avec le compte de `.env`.
 - `pnpm nx run infra:down` arrête la stack et garde les données. `pnpm nx run infra:reset` supprime aussi les volumes : relancer ensuite `infra:up`, qui réapplique les migrations.
-- Détails dans [`infra/README.md`](infra/README.md). Keycloak rejoint la stack avec US-020.
+- Keycloak et comptes locaux : [`infra/keycloak/README.md`](infra/keycloak/README.md). Ses données et sessions sont réinitialisées à la recréation du conteneur.
+- Détails dans [`infra/README.md`](infra/README.md).
 
 Vérifications :
 
 ```bash
 pnpm nx run engine:install
+pnpm exec playwright install chromium
 pnpm nx run-many -t lint typecheck test
-pnpm nx run-many -t integration   # vrais PostgreSQL et RabbitMQ, Docker requis
+pnpm nx run-many -t integration   # PostgreSQL, RabbitMQ, Keycloak et Chromium ; Docker requis
 ```
 
 ## Licence

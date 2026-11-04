@@ -1,26 +1,27 @@
 # `infra`
 
-Infrastructure du projet. Pour l'instant, la stack de développement local (US-004) : les services dont l'API dépend, sur le poste uniquement. Keycloak la rejoint avec US-020, les fichiers de staging et de prod avec US-005.
+Infrastructure du projet : stack de développement local PostgreSQL, RabbitMQ et Keycloak (US-004, US-020 A). Les fichiers de staging et de prod arrivent avec US-005.
 
 ## Commandes
 
 Toutes lisent le `.env` à la racine, copié depuis `.env.example`.
 
-| Commande                  | Effet                                                                                                   |
-| ------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `pnpm nx run infra:up`    | Démarre PostgreSQL et RabbitMQ, attend qu'ils soient sains (2 minutes au plus), applique les migrations |
-| `pnpm nx run infra:down`  | Arrête la stack et supprime ses conteneurs. Les volumes, donc les données, sont conservés               |
-| `pnpm nx run infra:reset` | Supprime aussi les volumes : les données sont perdues. Relancer ensuite `infra:up`                      |
+| Commande                  | Effet                                                                                                             |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `pnpm nx run infra:up`    | Démarre PostgreSQL, RabbitMQ et Keycloak, attend qu'ils soient sains (2 minutes au plus), applique les migrations |
+| `pnpm nx run infra:down`  | Arrête la stack et supprime ses conteneurs. Les volumes, donc les données, sont conservés                         |
+| `pnpm nx run infra:reset` | Supprime aussi les volumes : les données sont perdues. Relancer ensuite `infra:up`                                |
 
 ## Services
 
-| Service    | Adresse sur le poste    | Compte                                                    |
-| ---------- | ----------------------- | --------------------------------------------------------- |
-| PostgreSQL | `127.0.0.1:5432`        | `POSTGRES_USER` / `POSTGRES_PASSWORD`, base `POSTGRES_DB` |
-| RabbitMQ   | `127.0.0.1:5672` (AMQP) | `RABBITMQ_USER` / `RABBITMQ_PASSWORD`                     |
-| Management | http://127.0.0.1:15672  | le même compte que RabbitMQ                               |
+| Service    | Adresse sur le poste    | Compte                                                                 |
+| ---------- | ----------------------- | ---------------------------------------------------------------------- |
+| PostgreSQL | `127.0.0.1:5432`        | `POSTGRES_USER` / `POSTGRES_PASSWORD`, base `POSTGRES_DB`              |
+| RabbitMQ   | `127.0.0.1:5672` (AMQP) | `RABBITMQ_USER` / `RABBITMQ_PASSWORD`                                  |
+| Management | http://127.0.0.1:15672  | le même compte que RabbitMQ                                            |
+| Keycloak   | http://127.0.0.1:8080   | comptes et configuration dans [keycloak/README.md](keycloak/README.md) |
 
-Les ports se changent dans `.env` (`POSTGRES_PORT`, `RABBITMQ_PORT`, `RABBITMQ_MANAGEMENT_PORT`). `DATABASE_URL` doit alors suivre.
+Les ports se changent dans `.env` (`POSTGRES_PORT`, `RABBITMQ_PORT`, `RABBITMQ_MANAGEMENT_PORT`, `KEYCLOAK_PORT`). Adapter `DATABASE_URL` pour PostgreSQL, `OIDC_ISSUER_URL` et `OIDC_JWKS_URL` pour Keycloak. Les modifications du realm Keycloak sont perdues à la recréation de son conteneur ; ses données n'ont pas de volume persistant en dev.
 
 ## Choix
 
@@ -33,3 +34,4 @@ Les ports se changent dans `.env` (`POSTGRES_PORT`, `RABBITMQ_PORT`, `RABBITMQ_M
 
 - `pnpm nx test infra` contrôle la configuration résolue par `docker compose config` avec `.env.example` : ports, healthchecks, images, volumes, comptes. La CLI Docker suffit.
 - `pnpm nx run infra:integration` démarre réellement la stack, sous le projet Compose `trame-dev-integration` et sur des ports libres, sans toucher à la stack du développeur. Il couvre les scénarios de l'issue #13. Le démon Docker est requis.
+- Le même contrôle lance les scénarios de l'issue #21 : Chromium se connecte à Keycloak en code + PKCE, puis les vrais jetons appellent l'API construite. Installer le navigateur par `pnpm exec playwright install chromium` ; la CI installe aussi ses dépendances système.
