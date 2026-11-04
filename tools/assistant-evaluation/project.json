@@ -1,0 +1,15 @@
+{
+  "name": "assistant-evaluation",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "tools/assistant-evaluation/src",
+  "projectType": "library",
+  "tags": ["scope:tooling"],
+  "targets": {
+    "evaluate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx tools/assistant-evaluation/src/main.ts"
+      }
+    }
+  }
+}

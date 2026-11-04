@@ -1,0 +1,25 @@
+{
+  "caseSetVersion": "2026-11-04.1",
+  "observations": [
+    {
+      "caseId": "cal-replacement",
+      "outcome": "proposed",
+      "candidateId": "employee-101",
+      "factIds": ["coverage-gap"],
+      "observedWrites": 0
+    },
+    {
+      "caseId": "cal-no-candidate",
+      "outcome": "no_candidate",
+      "factIds": [],
+      "observedWrites": 0
+    },
+    {
+      "caseId": "cal-missing-site",
+      "outcome": "clarification",
+      "clarification": "site",
+      "factIds": [],
+      "observedWrites": 0
+    }
+  ]
+}

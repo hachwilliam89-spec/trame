@@ -67,13 +67,14 @@ Kim a autorisé le 4 novembre 2026 un prototype Jev comme pilote d'agent : obser
 situation, choisir une action, utiliser un outil, puis proposer une réponse ou demander
 une précision. Premier cas : le remplacement après absence, sur données fictives.
 
-- [Protocole, plan et scénarios BDD proposés](experiments/jev.md).
+- [Protocole, plan et scénarios BDD validés](experiments/jev.md).
 - [Issue de suivi #24](https://github.com/hachwilliam89-spec/trame/issues/24).
 - [ADR-0031](adr/0031-experimenter-jev-pour-les-decisions-de-l-agent.md), statut Proposé.
 - Premier banc sur outils simulés possible avant la v0.4, sans dépendre des stories
   personnel/planning encore à livrer ; les résultats indiquent ces limites.
-- Validation du plan et des scénarios, puis implémentation en TDD par étapes. La DoR du
-  prototype n'est pas encore remplie par la seule autorisation de l'expérimenter.
+- Plan et scénarios validés le 4 novembre 2026, puis implémentation en TDD par étapes.
+  Première étape : [banc hors ligne, issue #26](https://github.com/hachwilliam89-spec/trame/issues/26).
+  Les budgets et critères chiffrés restent à fixer avant la campagne payante.
 - Décision d'intégration après comparaison avec une procédure déterministe et un LLM,
   avec les mêmes cas, outils, droits et mesures de qualité, de latence et de coût.
 - Aucun changement de priorité des stories v0.1 ni remplacement de CP-SAT ou de la PE.

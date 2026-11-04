@@ -1,6 +1,7 @@
 {
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
+    "tools/assistant-evaluation/src/main.ts",
     "apps/api/src/main.ts",
     "apps/web/src/main.ts",
     "apps/docs/src/content.config.ts",
