@@ -61,6 +61,23 @@ Les stories M, prises dans cet ordre, forment le **chemin critique vers la démo
 
 Plusieurs stories n'ont encore qu'une liste de besoins (031, 032, 040, 050, 071, 080…). Elles reçoivent leurs critères Gherkin avant de démarrer : c'est la Definition of Ready.
 
+### Exploration transverse — Jev et l'assistant v0.4
+
+Kim a autorisé le 4 novembre 2026 un prototype Jev comme pilote d'agent : observer une
+situation, choisir une action, utiliser un outil, puis proposer une réponse ou demander
+une précision. Premier cas : le remplacement après absence, sur données fictives.
+
+- [Protocole, plan et scénarios BDD proposés](experiments/jev.md).
+- [Issue de suivi #24](https://github.com/hachwilliam89-spec/trame/issues/24).
+- [ADR-0031](adr/0031-experimenter-jev-pour-les-decisions-de-l-agent.md), statut Proposé.
+- Premier banc sur outils simulés possible avant la v0.4, sans dépendre des stories
+  personnel/planning encore à livrer ; les résultats indiquent ces limites.
+- Validation du plan et des scénarios, puis implémentation en TDD par étapes. La DoR du
+  prototype n'est pas encore remplie par la seule autorisation de l'expérimenter.
+- Décision d'intégration après comparaison avec une procédure déterministe et un LLM,
+  avec les mêmes cas, outils, droits et mesures de qualité, de latence et de coût.
+- Aucun changement de priorité des stories v0.1 ni remplacement de CP-SAT ou de la PE.
+
 ---
 
 ## E0 — Socle et infrastructure

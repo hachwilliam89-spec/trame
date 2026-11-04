@@ -229,7 +229,7 @@ Versions vérifiées le 1er novembre 2026 sur npm et PyPI, épinglées au scaffo
 | Messaging     | RabbitMQ                                                                                                                                                                                                          |
 | Données       | PostgreSQL + TimescaleDB (v0.3) + pgvector (v0.4)                                                                                                                                                                 |
 | Auth          | Keycloak                                                                                                                                                                                                          |
-| IA (v0.4)     | LLM via API derrière un port `LlmProvider` (fournisseur choisi par évals), embeddings locaux sur CPU, pgvector                                                                                                    |
+| IA (v0.4)     | LLM via API derrière un port `LlmProvider` (ADR-0015), expérimentation Jev comme pilote de décisions (ADR-0031 proposée) ; choix par évals, embeddings locaux sur CPU, pgvector                                   |
 | Temps réel    | SSE (v0.1), Socket.IO (v0.2)                                                                                                                                                                                      |
 | Tests         | Vitest partout (SWC pour NestJS), pytest, Hypothesis, Testcontainers, Playwright (Chromium, Firefox, WebKit), k6, Stryker sur le domaine                                                                          |
 | Qualité       | ESLint, Prettier, Ruff, mypy strict, Knip, SonarCloud, lefthook, commitlint                                                                                                                                       |
@@ -329,6 +329,15 @@ Une seule résolution à la fois par environnement (file RabbitMQ consommée ave
 | **v0.3** | Prévision de charge, scénarios what-if, diagnostic d'infaisabilité lisible, benchmarks                                                                                          |
 | **v0.4** | Assistant IA : tools exposés via MCP, RAG juridique sur pgvector, évals en CI                                                                                                   |
 | **v1.0** | Multi-sites, multi-tenant (Row Level Security), app Android, observabilité complète, durcissement                                                                               |
+
+**Expérimentation IA autorisée le 4 novembre 2026** : tester Jev comme pilote d'un agent
+sur des cas fictifs de remplacement après absence, avec une boucle d'outils bornée et des
+explications construites à partir des faits. Le protocole, les scénarios BDD proposés et
+les critères de comparaison sont dans [l'expérimentation Jev](experiments/jev.md) et
+[l'ADR-0031 proposée](adr/0031-experimenter-jev-pour-les-decisions-de-l-agent.md).
+Un premier banc avec outils simulés peut précéder la v0.4, hors du chemin critique de la
+v0.1 ; le raccordement aux vrais use cases et à la PE est vérifié avant toute écriture
+réelle. L'ADR-0015 reste applicable tant qu'une nouvelle décision ne la remplace pas.
 
 Calendrier :
 
