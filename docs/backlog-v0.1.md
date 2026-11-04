@@ -19,7 +19,7 @@ Priorité MoSCoW : **M** indispensable à la démo · **S** important, peut suiv
 | 5     | 030 | Module de référence `organization`, PR A : sites et créneaux types | ✅       |
 | 6     | 030 | Module de référence `organization`, PR B : compétences et postes   | ✅       |
 | 7     | 004 | Environnement local                                                | ✅       |
-| 8     | 020 | Connexion OIDC et rôles, PR A : jetons côté API et Keycloak local  | M        |
+| 8     | 020 | Connexion OIDC et rôles, PR A : jetons côté API et Keycloak local  | ✅       |
 | 9     | 009 | Walking skeleton                                                   | M        |
 | 10    | 005 | Déploiement staging et prod (prod fermée au public)                | M        |
 | 11    | 008 | Sauvegardes                                                        | M        |
@@ -139,7 +139,7 @@ PR 1 :
 - Pipeline des contrats : export JSON Schema depuis zod, génération des modèles Pydantic (`contracts:generate`). Un test exporte tous les schémas, limités aux constructions exportables.
 - Prisma 7 avec son adaptateur `@prisma/adapter-pg`, et un test de connexion.
 - Socle API : Vitest avec SWC, `/api/v1`, filtre d'erreurs RFC 9457, `ZodValidationPipe`, `nestjs-pino`, configuration validée par zod, `@nestjs/terminus`, `X-Powered-By` masqué, port `Clock`.
-- Ce socle est rangé dans `libs/platform/` (`clock`, `problem-details`, `zod-validation`, `config`, `logging`, `health`), chaque lib avec son README. Les autres libs `platform` arrivent avec leur story : `outbox`, `inbox` et `idempotency` avec US-009, `audit` avec US-040. `auth`, `ids` et `pagination` sont arrivées avec US-030 ; `auth` attend son résolveur OIDC (US-020).
+- Ce socle est rangé dans `libs/platform/` (`clock`, `problem-details`, `zod-validation`, `config`, `logging`, `health`), chaque lib avec son README. Les libs `platform` `outbox`, `inbox` et `messaging` sont livrées avec US-009 A2 (#33) ; l’idempotence du diagnostic est livrée avec A1 (#31). `audit` reste prévue avec US-040. `auth`, `ids` et `pagination` sont arrivées avec US-030 ; le résolveur OIDC et Keycloak local sont livrés avec US-020 A (#22 et #28).
 - Socle web : Angular zoneless, Tailwind, Vitest.
 - Les commandes d'`AGENTS.md` sont figées et vérifiées.
 
@@ -251,7 +251,7 @@ Scénario: Restauration
 - **A1 — Livrée, #30 et #31** : diagnostic authentifié, idempotence par organisation,
   job et message outbox atomiques. Consultation filtrée ; calcul fixe côté serveur,
   aucune entrée de calcul arbitraire. Le job est conservé en attente jusqu’au lancement du transport et du worker.
-- **A2 — En revue, #32** : relais RabbitMQ avec confirmations, worker Python réel, résultat
+- **A2 — Livrée, #32 et #33** : relais RabbitMQ avec confirmations, worker Python réel, résultat
   via inbox atomique, redélivraisons, reprises bornées et file d'erreurs. Le worker
   reste sans accès à la base ; un recalcul après panne est possible, sans second résultat visible.
 - **A3 — À faire** : progression SSE persistée et ordonnée, reprise `Last-Event-ID`,
@@ -388,7 +388,7 @@ Livrée en trois PR (décision du 2026-11-02, Definition of Ready) :
 - **PR B** : compétences et postes (compétence utilisée).
 - **PR C** : page Angular de liste et de création, et premier E2E Playwright, après les maquettes d'US-012.
 
-En attendant US-020, l'utilisateur et son `organizationId` passent par le point d'entrée de `libs/platform/auth` : les tests y injectent un utilisateur de test, et les endpoints répondent 401 hors des tests.
+Depuis US-020 A (#22 et #28), les routes métier utilisent le résolveur OIDC de `libs/platform/auth` : l'utilisateur, son `organizationId` et ses rôles proviennent du jeton validé. Les tests peuvent injecter un utilisateur de test ; sans jeton valide, les endpoints répondent 401.
 
 > **PR A livrée le 2026-11-02 (#7).** Décisions prises en revue croisée :
 >
