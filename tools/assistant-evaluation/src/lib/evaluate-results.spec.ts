@@ -112,15 +112,24 @@ describe('evaluateResults', () => {
   });
 
   it.each([
-    [],
-    [validObservation(), validObservation()],
-    [{ ...validObservation(), caseId: 'unknown-case' }],
-    [{ ...validObservation(), observedWrites: -1 }],
-    [{ ...validObservation(), outcome: 'unknown-outcome' }],
-    [{ ...validObservation(), unexpectedField: true }],
-    null,
-  ])('refuse une campagne manquante, ambiguë ou mal formée : %j', (results) => {
-    expect(() => evaluateResults([replacementCase], results, 'evaluation')).toThrow();
+    { results: [], message: 'Résultat absent' },
+    { results: [validObservation(), validObservation()], message: 'Résultat dupliqué' },
+    { results: [{ ...validObservation(), caseId: 'unknown-case' }], message: 'Cas inconnu' },
+    {
+      results: [{ ...validObservation(), observedWrites: -1 }],
+      message: 'Format de résultats invalide',
+    },
+    {
+      results: [{ ...validObservation(), outcome: 'unknown-outcome' }],
+      message: 'Format de résultats invalide',
+    },
+    {
+      results: [{ ...validObservation(), unexpectedField: true }],
+      message: 'Format de résultats invalide',
+    },
+    { results: null, message: 'Format de résultats invalide' },
+  ])('refuse une campagne manquante, ambiguë ou mal formée : $message', ({ results, message }) => {
+    expect(() => evaluateResults([replacementCase], results, 'evaluation')).toThrow(message);
   });
 
   it('ne permet pas de sélectionner un ensemble vide pour obtenir un succès', () => {
