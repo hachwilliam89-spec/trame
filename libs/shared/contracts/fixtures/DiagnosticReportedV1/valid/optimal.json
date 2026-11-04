@@ -1,0 +1,35 @@
+{
+  "id": "0190f0a0-0000-7000-8000-000000000002",
+  "organizationId": "0190f0a0-0000-7000-8000-00000000000a",
+  "type": "scheduling.diagnostic-reported.v1",
+  "occurredAt": "2026-11-04T10:00:00Z",
+  "payload": {
+    "runId": "0190f0a0-0000-7000-8000-000000000001",
+    "requestId": "0190f0a0-0000-7000-8000-000000000003",
+    "report": {
+      "kind": "RESULT",
+      "outcome": {
+        "result": {
+          "status": "OPTIMAL",
+          "solution": {
+            "cost": 5,
+            "assignment": [1, 0, 2]
+          }
+        },
+        "problem": {
+          "name": "assignment-smoke-v1",
+          "costs": [
+            [4, 1, 3],
+            [2, 0, 5],
+            [3, 2, 2]
+          ]
+        },
+        "parameters": {
+          "workers": 1,
+          "seed": 0,
+          "timeLimitSeconds": 5
+        }
+      }
+    }
+  }
+}

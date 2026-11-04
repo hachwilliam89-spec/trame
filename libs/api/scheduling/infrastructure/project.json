@@ -6,7 +6,7 @@
   "tags": ["scope:api", "layer:infrastructure"],
   "targets": {
     "integration": {
-      "dependsOn": ["^prisma-generate"],
+      "dependsOn": ["^prisma-generate", "engine:install"],
       "command": "vitest run --config vitest.integration.config.mts",
       "options": {
         "cwd": "{projectRoot}"

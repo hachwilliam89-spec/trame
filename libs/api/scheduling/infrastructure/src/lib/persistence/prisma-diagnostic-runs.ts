@@ -1,8 +1,9 @@
+import { toDiagnosticRun } from './diagnostic-record';
 import { Injectable } from '@nestjs/common';
-import { type Prisma, PrismaService, dateToInstant, instantToDate } from '@trame/api/database';
+import { type Prisma, PrismaService, instantToDate } from '@trame/api/database';
 import type { DiagnosticRunRequest, DiagnosticRuns } from '@trame/api/scheduling/application';
 import type { DiagnosticRun } from '@trame/api/scheduling/domain';
-import { diagnosticRequestedV1, diagnosticRunStatusV1 } from '@trame/shared/contracts';
+import { diagnosticRequestedV1 } from '@trame/shared/contracts';
 
 /** La contrainte unique arbitre le double clic ; le message n'est ajouté que par le gagnant. */
 @Injectable()
@@ -34,7 +35,7 @@ export class PrismaDiagnosticRuns implements DiagnosticRuns {
             },
           },
         });
-        return toRun(record);
+        return toDiagnosticRun(record);
       },
       { isolationLevel: 'ReadCommitted' },
     );
@@ -47,7 +48,7 @@ export class PrismaDiagnosticRuns implements DiagnosticRuns {
     if (record === null) {
       return undefined;
     }
-    return toRun(record);
+    return toDiagnosticRun(record);
   }
 }
 
@@ -64,13 +65,4 @@ async function insertRun(
     RETURNING id
   `;
   return inserted.length === 1;
-}
-
-function toRun(record: Prisma.DiagnosticRunModel): DiagnosticRun {
-  return {
-    id: record.id,
-    organizationId: record.organizationId,
-    status: diagnosticRunStatusV1.parse(record.status),
-    createdAt: dateToInstant(record.createdAt),
-  };
 }

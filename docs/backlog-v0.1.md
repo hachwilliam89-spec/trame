@@ -248,10 +248,10 @@ Scénario: Restauration
 > la preuve déployée (B) suit US-005, US-007 et US-020 B (après les maquettes US-012).
 > US-009 reste ouverte jusqu'à la preuve B ci-dessous.
 
-- **A1 — En cours, #30** : diagnostic authentifié, idempotence par organisation,
+- **A1 — Livrée, #30 et #31** : diagnostic authentifié, idempotence par organisation,
   job et message outbox atomiques. Consultation filtrée ; calcul fixe côté serveur,
-  aucune entrée de calcul arbitraire. Le job reste en attente dans cette étape.
-- **A2 — À faire** : relais RabbitMQ avec confirmations, worker Python réel, résultat
+  aucune entrée de calcul arbitraire. Le job est conservé en attente jusqu’au lancement du transport et du worker.
+- **A2 — En revue, #32** : relais RabbitMQ avec confirmations, worker Python réel, résultat
   via inbox atomique, redélivraisons, reprises bornées et file d'erreurs. Le worker
   reste sans accès à la base ; un recalcul après panne est possible, sans second résultat visible.
 - **A3 — À faire** : progression SSE persistée et ordonnée, reprise `Last-Event-ID`,

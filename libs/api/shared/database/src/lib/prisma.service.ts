@@ -5,6 +5,8 @@ import { PrismaClient } from '../generated/prisma/client';
 export interface DatabaseOptions {
   /** URL PostgreSQL (`postgresql://…`). */
   url: string;
+  /** Borne connexion et requête SQL pour un processus supervisé ; défaut du pilote sinon. */
+  requestTimeoutMs?: number;
 }
 
 export const DATABASE_OPTIONS = Symbol('DATABASE_OPTIONS');
@@ -17,7 +19,13 @@ export const DATABASE_OPTIONS = Symbol('DATABASE_OPTIONS');
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleDestroy {
   constructor(@Inject(DATABASE_OPTIONS) options: DatabaseOptions) {
-    super({ adapter: new PrismaPg({ connectionString: options.url }) });
+    super({
+      adapter: new PrismaPg({
+        connectionString: options.url,
+        connectionTimeoutMillis: options.requestTimeoutMs,
+        query_timeout: options.requestTimeoutMs,
+      }),
+    });
   }
 
   async onModuleDestroy(): Promise<void> {

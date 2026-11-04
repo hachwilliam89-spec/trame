@@ -1,3 +1,6 @@
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { reserveTcpPort } from '@trame/platform/messaging/testing';
 import { randomUUID } from 'node:crypto';
 import { readFile, readdir } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -9,6 +12,7 @@ const MIGRATIONS_DIRECTORY = join(__dirname, '../../prisma/migrations');
 /** Base PostgreSQL de test, vide et migrée, propre à un fichier de test. */
 export interface TestDatabase {
   url: string;
+  setServerAvailable(available: boolean): Promise<void>;
   /** Supprime la base, et arrête le conteneur s'il a été démarré pour elle. */
   stop(): Promise<void>;
 }
@@ -18,13 +22,19 @@ export interface TestDatabase {
  * toutes les migrations appliquées. `TEST_DATABASE_URL` vise un serveur déjà démarré, quand Docker
  * n'est pas disponible : chaque appel y crée sa propre base, pour que les tests restent isolés.
  */
-export async function startTestDatabase(): Promise<TestDatabase> {
-  const externalServerUrl = process.env['TEST_DATABASE_URL'];
+export async function startTestDatabase(
+  options: { faultInjection?: boolean } = {},
+): Promise<TestDatabase> {
+  const externalServerUrl = options.faultInjection ? undefined : process.env['TEST_DATABASE_URL'];
   let container: StartedPostgreSqlContainer | undefined;
   let serverUrl: string;
 
   if (externalServerUrl === undefined) {
-    container = await new PostgreSqlContainer('postgres:18-alpine').start();
+    const definition = new PostgreSqlContainer('postgres:18-alpine');
+    if (options.faultInjection) {
+      definition.withExposedPorts({ container: 5432, host: await reserveTcpPort() });
+    }
+    container = await definition.start();
     serverUrl = container.getConnectionUri();
   } else {
     serverUrl = externalServerUrl;
@@ -37,6 +47,18 @@ export async function startTestDatabase(): Promise<TestDatabase> {
 
   return {
     url,
+    async setServerAvailable(available) {
+      if (container === undefined || !options.faultInjection) {
+        throw new Error('Injection de panne non activée pour cette base.');
+      }
+      if (available) {
+        await container.restart();
+      } else {
+        await promisify(execFile)('docker', ['stop', '--time', '0', container.getId()], {
+          timeout: 10_000,
+        });
+      }
+    },
     async stop() {
       await runOn(serverUrl, `DROP DATABASE IF EXISTS "${databaseName}" WITH (FORCE)`);
       await container?.stop();

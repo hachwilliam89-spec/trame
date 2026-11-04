@@ -35,3 +35,16 @@ Les ports se changent dans `.env` (`POSTGRES_PORT`, `RABBITMQ_PORT`, `RABBITMQ_M
 - `pnpm nx test infra` contrôle la configuration résolue par `docker compose config` avec `.env.example` : ports, healthchecks, images, volumes, comptes. La CLI Docker suffit.
 - `pnpm nx run infra:integration` démarre réellement la stack, sous le projet Compose `trame-dev-integration` et sur des ports libres, sans toucher à la stack du développeur. Il couvre les scénarios de l'issue #13. Le démon Docker est requis.
 - Le même contrôle lance les scénarios de l'issue #21 : Chromium se connecte à Keycloak en code + PKCE, puis les vrais jetons appellent l'API construite. Installer le navigateur par `pnpm exec playwright install chromium` ; la CI installe aussi ses dépendances système.
+
+## Diagnostic asynchrone
+
+US-009 A2 utilise le RabbitMQ existant, sans nouveau conteneur ni port. Après mise à jour
+d'un ancien `.env`, ajouter `AMQP_URL` depuis `.env.example` et adapter son port si
+`RABBITMQ_PORT` a changé. Lancer ensuite `diagnostic-transport:serve` et `engine:worker`
+(voir [leur procédure](../tools/diagnostic-transport/README.md)).
+
+`rabbitmq/diagnostic-topology.json` est commun à Node et Python, validé par les contrats.
+Les noms des quatre files et leur politique sont détaillés dans l'ADR-0032. Le parking
+n'est pas consommé automatiquement : il conserve les messages isolés pour examen manuel.
+La DLQ attend la finalisation persistée d'un échec avant de l'y envoyer ; une indisponibilité
+de la base ne provoque pas une perte silencieuse dans ce parking.

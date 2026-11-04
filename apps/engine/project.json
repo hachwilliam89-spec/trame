@@ -82,6 +82,13 @@
         "python"
       ],
       "cache": true
+    },
+    "worker": {
+      "continuous": true,
+      "command": "uv run python -m trame_engine.worker",
+      "options": {
+        "cwd": "apps/engine"
+      }
     }
   }
 }

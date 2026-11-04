@@ -85,8 +85,6 @@ jobs:
           persist-credentials: false
 
       - uses: $/.github/actions/setup
-        with:
-          python: 'false'
 
       - name: Chromium pour le parcours réel Keycloak
         run: pnpm exec playwright install --with-deps chromium
