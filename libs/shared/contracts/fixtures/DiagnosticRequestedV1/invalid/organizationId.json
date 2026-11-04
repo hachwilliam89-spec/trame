@@ -1,0 +1,10 @@
+{
+  "id": "0190f0a0-0000-7000-8000-000000000001",
+  "organizationId": "not-an-id",
+  "type": "scheduling.diagnostic-requested.v1",
+  "occurredAt": "2026-11-04T10:00:00Z",
+  "payload": {
+    "runId": "0190f0a0-0000-7000-8000-000000000002",
+    "problem": "assignment-smoke-v1"
+  }
+}

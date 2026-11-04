@@ -1,0 +1,8 @@
+{
+  "name": "api-scheduling-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/api/scheduling/domain/src",
+  "projectType": "library",
+  "tags": ["scope:api", "layer:domain"],
+  "targets": {}
+}
