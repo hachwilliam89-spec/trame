@@ -69,5 +69,12 @@ export class DiagnosticsController {
 }
 
 function toDiagnosticRunV1(run: DiagnosticRun): DiagnosticRunV1 {
-  return { id: run.id, status: run.status, createdAt: run.createdAt.toString() };
+  return {
+    id: run.id,
+    status: run.status,
+    createdAt: run.createdAt.toString(),
+    ...(run.outcome === undefined ? {} : { outcome: run.outcome }),
+    ...(run.failure === undefined ? {} : { failure: run.failure }),
+    ...(run.finishedAt === undefined ? {} : { finishedAt: run.finishedAt.toString() }),
+  };
 }

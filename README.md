@@ -13,10 +13,15 @@ Planification d'équipes sous contraintes pour les entrepôts logistiques : beso
 - `libs/api/<contexte>/{domain,application,infrastructure}` : un contexte métier en trois couches. `organization` est le module de référence, que les autres contextes reproduisent.
 - `libs/api/shared/database` : Prisma 7, un schéma PostgreSQL par contexte, migrations vérifiées en CI.
 - `libs/shared/contracts` : contrats zod 4, d'où sont générés les modèles Pydantic du moteur.
-- `libs/platform/*` : socle générique de l'API (horloge, identifiants, pagination, authentification, erreurs RFC 9457, validation, configuration, logs, santé).
+- `libs/platform/*` : socle générique de l'API (horloge, identifiants, pagination, authentification, erreurs RFC 9457, validation, configuration, logs, santé, outbox/inbox et messagerie).
+- `tools/diagnostic-transport` : relais outbox et réception des résultats du diagnostic Python (US-009 A2).
 - `tools/dependency-graph` : soumission des dépendances au graphe de GitHub (ADR-0029).
 
 Le cadrage est dans [`docs/cadrage.md`](docs/cadrage.md), les décisions dans [`docs/adr/`](docs/adr/README.md), les règles de contribution dans [`AGENTS.md`](AGENTS.md).
+
+Le diagnostic asynchrone du contexte `scheduling` est décrit dans
+[`libs/api/scheduling/README.md`](libs/api/scheduling/README.md). Il teste un calcul fictif,
+sans produire de planning ni annoncer une conformité légale.
 
 ## Qualité et sécurité
 

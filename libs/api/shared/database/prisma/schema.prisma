@@ -107,6 +107,13 @@ model DiagnosticRun {
   status         String   @db.VarChar(16)
   createdAt      DateTime @map("created_at") @db.Timestamptz(3)
 
+  lastSequence Int               @default(0) @map("last_sequence")
+  outcome      Json?             @db.JsonB
+  failure      String?           @db.VarChar(32)
+  finishedAt   DateTime?         @map("finished_at") @db.Timestamptz(3)
+  events       DiagnosticEvent[]
+
+  @@unique([id, organizationId])
   @@unique([organizationId, idempotencyKey])
   @@index([organizationId, id])
   @@map("diagnostic_runs")
@@ -121,7 +128,34 @@ model OutboxMessage {
   body           Json     @db.JsonB
   occurredAt     DateTime @map("occurred_at") @db.Timestamptz(3)
 
+  publishedAt DateTime? @map("published_at") @db.Timestamptz(3)
+
+  @@index([publishedAt, id])
   @@index([organizationId, id])
   @@map("outbox_messages")
+  @@schema("scheduling")
+}
+
+model InboxReceipt {
+  id             String   @id @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  receivedAt     DateTime @map("received_at") @db.Timestamptz(3)
+
+  @@map("inbox_receipts")
+  @@schema("scheduling")
+}
+
+model DiagnosticEvent {
+  id             String        @id @db.Uuid
+  organizationId String        @map("organization_id") @db.Uuid
+  runId          String        @map("run_id") @db.Uuid
+  sequence       Int
+  body           Json          @db.JsonB
+  occurredAt     DateTime      @map("occurred_at") @db.Timestamptz(3)
+  run            DiagnosticRun @relation(fields: [runId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@unique([runId, sequence])
+  @@index([organizationId, runId, sequence])
+  @@map("diagnostic_events")
   @@schema("scheduling")
 }

@@ -13,9 +13,10 @@ Accès PostgreSQL de l'API : Prisma 7 avec l'adaptateur `@prisma/adapter-pg` (AD
 
 ## Schéma par contexte
 
-| Contexte       | Schéma Postgres | Tables                     |
-| -------------- | --------------- | -------------------------- |
-| `organization` | `organization`  | `sites`, `shift_templates` |
+| Contexte       | Schéma Postgres | Tables                                                                      |
+| -------------- | --------------- | --------------------------------------------------------------------------- |
+| `organization` | `organization`  | `sites`, `shift_templates`, `skills`, `positions`, `position_skills`        |
+| `scheduling`   | `scheduling`    | `diagnostic_runs`, `outbox_messages`, `inbox_receipts`, `diagnostic_events` |
 
 - Un agrégat enfant porte l'organisation de son parent, et la clé étrangère est composite (`site_id`, `organization_id`) : la base garantit qu'un créneau type appartient à l'organisation de son site.
 - Les contraintes que Prisma n'exprime pas (CHECK) sont ajoutées à la main en fin de migration, avec un commentaire. `prisma migrate diff` les ignore.
@@ -36,3 +37,12 @@ pnpm nx run api-database:migrations-check                  # migrations appliqu�
 ```
 
 Migrations en expand/contract : une migration ne casse jamais la version précédente de l'API. Une migration mergée ne se modifie plus.
+
+Le processus de transport peut passer `requestTimeoutMs` à `PrismaService` pour borner
+la connexion et chaque requête SQL. Ce réglage reste facultatif : les autres consommateurs
+gardent les valeurs du pilote.
+
+Les tests de panne utilisent `startTestDatabase({ faultInjection: true })` : un serveur Docker
+propre au test, même si `TEST_DATABASE_URL` existe, et un port fixe au redémarrage.
+`setServerAvailable(false/true)` arrête puis redémarre uniquement ce conteneur possédé par le
+test. Une base externe ne peut pas être arrêtée par ce helper.

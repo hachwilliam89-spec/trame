@@ -1,8 +1,8 @@
-# Scheduling — diagnostic persistant (US-009 A1)
+# Scheduling — diagnostic asynchrone (US-009 A1/A2)
 
-Cette première étape vérifie l'admission durable d'un calcul fictif. Elle ne crée pas de
-planning et n'évalue aucune règle légale. Le traitement reste `QUEUED` tant qu'A2
-(relais RabbitMQ et worker Python) n'est pas livrée. La progression SSE appartient à A3.
+Ce diagnostic vérifie la chaîne de traitement d'un calcul fictif. Elle ne crée pas de
+planning et n'évalue aucune règle légale. Le transport et le worker sont lancés séparément (voir ci-dessous).
+En leur absence, le traitement reste `QUEUED`. La progression SSE appartient à A3.
 
 ## Routes
 
@@ -60,5 +60,28 @@ pnpm nx run api-scheduling-infrastructure:integration  # Docker requis
 
 PostgreSQL réel couvre concurrence, isolation, relecture après reconnexion et rollback.
 Les tests HTTP couvrent chaque route, chaque rôle, les entrées et les accès croisés.
-Le test du module sur PostgreSQL vérifie l'assemblage réel des adaptateurs. Aucun broker
-ni calcul Python n'est lancé dans A1 ; la preuve complète reste suivie par l'issue #29.
+Le test du module sur PostgreSQL vérifie l'assemblage réel des adaptateurs. Les intégrations A2 lancent aussi RabbitMQ et un vrai worker Python ; la preuve déployée reste suivie par l'issue #29.
+
+## Exécuter le diagnostic
+
+Après `infra:up`, migrations et lancement de l'API, lancer les deux processus décrits dans
+[tools/diagnostic-transport](../../../tools/diagnostic-transport/README.md).
+Le même POST renvoie 202. Le GET finit par exposer `outcome` et `finishedAt`, ou `failure`.
+`SUCCEEDED` signifie que le résultat du moteur est conservé ; l'issue CP-SAT dans
+`outcome.result.status` dit si une solution existe. Les issues sans solution restent explicites.
+`outcome` conserve la matrice fictive, la graine 0, un worker, la limite de 5 s et la solution.
+`MODEL_INVALID` est un échec technique, pas une absence de solution.
+
+Les rapports `scheduling.diagnostic-reported.v1` portent l'identifiant de la demande initiale.
+L'adaptateur le compare à l'outbox et à l'organisation, puis verrouille le job. Reçu inbox,
+état et événement ordonné sont écrits ensemble. Un terminal déjà enregistré n'est plus
+remplacé, même après recalcul ; un STARTED tardif ne le rouvre pas.
+
+Les événements de progression sont conservés pour A3 ; leur diffusion SSE, leur reprise et
+leur purge une heure après fin arrivent avec A3. A2 ne prétend pas livrer cette interface.
+Le moteur n'a ni URL PostgreSQL dans ses paramètres ni adaptateur de stockage.
+
+Les tests d'intégration supplémentaires couvrent le processus Node réel, le worker Python,
+le broker redémarré, une base arrêtée 15 s, la redélivrance et le recalcul, les publications
+non routées, les reprises retardées/épuisées et le parking. Les deux routes gardent les
+mêmes refus et les mêmes filtres d'organisation.

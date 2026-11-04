@@ -11,7 +11,8 @@
     "libs/api/shared/database/prisma.config.ts",
     "libs/platform/*/src/testing.ts",
     "libs/api/*/*/src/index.ts",
-    "libs/api/*/*/src/testing.ts"
+    "libs/api/*/*/src/testing.ts",
+    "tools/diagnostic-transport/src/main.ts"
   ],
   "project": [
     "apps/**/*.{ts,mts}",
