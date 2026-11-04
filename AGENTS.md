@@ -56,7 +56,7 @@ Prérequis : Node 26 (`.node-version`), pnpm 12, uv 0.13, Python 3.14 (installé
 ```bash
 pnpm install                                       # installe aussi les hooks Git (lefthook)
 pnpm nx run engine:install                         # environnement Python du moteur (uv sync)
-pnpm nx run infra:up                               # PostgreSQL et RabbitMQ sur 127.0.0.1, puis migrations (Docker requis)
+pnpm nx run infra:up                               # PostgreSQL, RabbitMQ et Keycloak sur 127.0.0.1, puis migrations (Docker requis)
 pnpm nx run infra:down                             # arrête la stack, garde les données (infra:reset supprime les volumes)
 pnpm nx serve api                                  # http://127.0.0.1:3000/api/v1 (DATABASE_URL requis)
 pnpm nx serve web                                  # http://localhost:4200
@@ -82,7 +82,7 @@ La CI (`.github/workflows/ci.yml`) lance ces contrôles sur chaque PR, ainsi que
 - les trois analyses « Analyse (…) » de CodeQL ;
 - le résultat « CodeQL » du code scanning, qui échoue sur toute nouvelle alerte de sécurité haute ou critique.
 
-L'infrastructure locale (`infra/compose/dev.yml`, US-004) comprend PostgreSQL et RabbitMQ. Keycloak la rejoint avec US-020.
+L'infrastructure locale (`infra/compose/dev.yml`, US-004 et US-020 A) comprend PostgreSQL, RabbitMQ et Keycloak. Les tests d'intégration Keycloak demandent Chromium (`pnpm exec playwright install chromium`) ; ses données de dev sont réinitialisées à la recréation du conteneur.
 
 ## Règles d'architecture (bloquantes)
 

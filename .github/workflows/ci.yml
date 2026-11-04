@@ -88,7 +88,10 @@ jobs:
         with:
           python: 'false'
 
-      - name: Postgres réel via Testcontainers
+      - name: Chromium pour le parcours réel Keycloak
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Postgres, RabbitMQ et Keycloak réels
         run: pnpm nx run-many -t integration
 
       # `prisma migrate deploy` applique les migrations, puis `migrate diff` vérifie qu'aucun

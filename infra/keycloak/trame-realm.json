@@ -1,0 +1,188 @@
+{
+  "realm": "trame",
+  "enabled": true,
+  "displayName": "Trame — développement local",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "resetPasswordAllowed": false,
+  "editUsernameAllowed": false,
+  "defaultSignatureAlgorithm": "RS256",
+  "roles": {
+    "realm": [
+      {
+        "name": "admin"
+      },
+      {
+        "name": "manager"
+      },
+      {
+        "name": "employee"
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "trame-dev",
+      "name": "Trame local",
+      "protocol": "openid-connect",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "fullScopeAllowed": false,
+      "redirectUris": ["${KEYCLOAK_DEV_REDIRECT_URI}"],
+      "webOrigins": ["http://127.0.0.1:4200"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "access.token.signed.response.alg": "RS256"
+      },
+      "defaultClientScopes": ["basic", "profile", "roles"],
+      "optionalClientScopes": [],
+      "protocolMappers": [
+        {
+          "name": "Organisation Trame",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.attribute": "organization_id",
+            "claim.name": "organization_id",
+            "jsonType.label": "String",
+            "multivalued": "false",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "Rôles Trame",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        },
+        {
+          "name": "Audience API",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.custom.audience": "trame-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "admin-cli",
+      "name": "Désactivé dans le realm applicatif",
+      "enabled": false,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "implicitFlowEnabled": false,
+      "serviceAccountsEnabled": false
+    }
+  ],
+  "scopeMappings": [
+    {
+      "client": "trame-dev",
+      "roles": ["admin", "manager", "employee"]
+    }
+  ],
+  "clientScopeMappings": {
+    "account": [
+      {
+        "client": "trame-dev",
+        "roles": ["manage-account", "view-profile"]
+      }
+    ]
+  },
+  "users": [
+    {
+      "username": "dev-admin",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "trame-local-only",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [],
+      "realmRoles": ["admin"],
+      "clientRoles": {
+        "account": ["manage-account", "view-profile"]
+      },
+      "attributes": {
+        "organization_id": ["019a4ac0-0000-7000-8000-000000000001"]
+      }
+    },
+    {
+      "username": "dev-manager",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "trame-local-only",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [],
+      "realmRoles": ["manager"],
+      "clientRoles": {
+        "account": ["manage-account", "view-profile"]
+      },
+      "attributes": {
+        "organization_id": ["019a4ac0-0000-7000-8000-000000000001"]
+      }
+    },
+    {
+      "username": "dev-employee",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        {
+          "type": "password",
+          "value": "trame-local-only",
+          "temporary": false
+        }
+      ],
+      "requiredActions": [],
+      "realmRoles": ["employee"],
+      "clientRoles": {
+        "account": ["manage-account", "view-profile"]
+      },
+      "attributes": {
+        "organization_id": ["019a4ac0-0000-7000-8000-000000000001"]
+      }
+    }
+  ],
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "name": "declarative-user-profile",
+        "providerId": "declarative-user-profile",
+        "subType": "",
+        "config": {
+          "kc.user.profile.config": [
+            "{\"unmanagedAttributePolicy\":null,\"attributes\":[{\"name\":\"username\",\"displayName\":\"Username\",\"required\":{\"roles\":[\"user\",\"admin\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]},\"validations\":{\"length\":{\"min\":3,\"max\":255}}},{\"name\":\"email\",\"displayName\":\"Email\",\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"validations\":{\"email\":{},\"length\":{\"max\":255}}},{\"name\":\"organization_id\",\"displayName\":\"Organisation\",\"multivalued\":false,\"permissions\":{\"view\":[\"admin\"],\"edit\":[\"admin\"]},\"validations\":{\"length\":{\"min\":36,\"max\":36}}}]}"
+          ]
+        }
+      }
+    ]
+  }
+}

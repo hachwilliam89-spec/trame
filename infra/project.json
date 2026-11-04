@@ -6,7 +6,7 @@
   "tags": ["scope:tooling"],
   "targets": {
     "up": {
-      "description": "Démarre PostgreSQL et RabbitMQ, attend qu'ils soient sains, puis applique les migrations.",
+      "description": "Démarre PostgreSQL, RabbitMQ et Keycloak, attend leur état sain, puis applique les migrations.",
       "executor": "nx:run-commands",
       "options": {
         "commands": [
@@ -18,7 +18,7 @@
       "cache": false
     },
     "down": {
-      "description": "Arrête la stack et supprime ses conteneurs. Les volumes, donc les données, sont conservés.",
+      "description": "Arrête la stack. Garde les volumes PostgreSQL et RabbitMQ ; Keycloak est réinitialisé à la recréation.",
       "command": "docker compose --env-file .env -f infra/compose/dev.yml down",
       "cache": false
     },
