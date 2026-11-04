@@ -52,6 +52,10 @@ AuthModule.forRootAsync({
 
 ## Tests
 
+Le parcours avec un fournisseur réel est couvert par `infra/src/keycloak.integration.spec.ts` :
+connexion navigateur Authorization Code + PKCE, puis appels à l'API construite. La configuration
+locale est documentée dans [infra/keycloak](../../../infra/keycloak/README.md).
+
 `@trame/platform/auth/testing` fournit :
 
 - `testActorResolver`, qui lit l'utilisateur dans l'en-tête `x-test-actor` (JSON), et `testActorHeader(actor)` ;

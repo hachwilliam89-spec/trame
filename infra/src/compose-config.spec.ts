@@ -18,8 +18,8 @@ describe('configuration Compose de dev, résolue avec .env.example', () => {
     envExample = await readEnvExample();
   });
 
-  it('contient PostgreSQL et RabbitMQ, sans Keycloak (US-020)', () => {
-    expect(Object.keys(services).sort()).toEqual(['postgres', 'rabbitmq']);
+  it('contient PostgreSQL, RabbitMQ et Keycloak', () => {
+    expect(Object.keys(services).sort()).toEqual(['keycloak', 'postgres', 'rabbitmq']);
   });
 
   it('ne publie chaque port que sur 127.0.0.1, jamais sur toutes les interfaces', () => {
@@ -30,7 +30,7 @@ describe('configuration Compose de dev, résolue avec .env.example', () => {
       }
     }
 
-    expect(hostAddresses).toHaveLength(3);
+    expect(hostAddresses).toHaveLength(4);
     expect(new Set(hostAddresses)).toEqual(new Set(['127.0.0.1']));
   });
 

@@ -268,6 +268,9 @@ Scénario: Aller-retour complet
 
 ### US-020 — Connexion OIDC et rôles
 
+> API A1 livrée dans la PR #22 ; A2 (Keycloak local et parcours réel PKCE) en revue.
+> Le front de connexion reste dans la PR B, après US-012.
+
 ```gherkin
 Scénario: Accès selon le rôle
   Étant donné un utilisateur avec le rôle "employé"

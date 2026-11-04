@@ -41,6 +41,7 @@ describe('stack de dev démarrée réellement (US-004)', () => {
         POSTGRES_PORT: String(postgresPort),
         RABBITMQ_PORT: String(rabbitmq.port),
         RABBITMQ_MANAGEMENT_PORT: String(rabbitmq.managementPort),
+        KEYCLOAK_PORT: String(await reserveFreePort()),
       },
     };
     const url = new URL(envExample['DATABASE_URL'] ?? '');
@@ -59,7 +60,11 @@ describe('stack de dev démarrée réellement (US-004)', () => {
   it('démarre PostgreSQL et RabbitMQ, sains en moins de 2 minutes', async () => {
     await startStack(options);
 
-    expect(await serviceHealth(options)).toEqual({ postgres: 'healthy', rabbitmq: 'healthy' });
+    expect(await serviceHealth(options)).toEqual({
+      postgres: 'healthy',
+      rabbitmq: 'healthy',
+      keycloak: 'healthy',
+    });
   });
 
   it('applique les migrations, sans écart avec le schéma Prisma', async () => {
