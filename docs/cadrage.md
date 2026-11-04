@@ -332,7 +332,7 @@ Une seule résolution à la fois par environnement (file RabbitMQ consommée ave
 
 **Expérimentation IA autorisée le 4 novembre 2026** : tester Jev comme pilote d'un agent
 sur des cas fictifs de remplacement après absence, avec une boucle d'outils bornée et des
-explications construites à partir des faits. Le protocole, les scénarios BDD proposés et
+explications construites à partir des faits. Le protocole, les scénarios BDD et
 les critères de comparaison sont dans [l'expérimentation Jev](experiments/jev.md) et
 [l'ADR-0031 proposée](adr/0031-experimenter-jev-pour-les-decisions-de-l-agent.md).
 Un premier banc avec outils simulés peut précéder la v0.4, hors du chemin critique de la

@@ -1,7 +1,8 @@
 # Expérimentation Jev — un agent de décision pour Trame
 
 > Expérimentation autorisée par Kim le 4 novembre 2026. Ce document prépare le prototype ;
-> ses scénarios et son plan restent à valider avant de coder, conformément à `AGENTS.md`.
+> Plan et scénarios validés par Kim le même jour pour préparer le banc hors ligne.
+> Les limites chiffrées restent à fixer avant les appels payants.
 > Rattachement : assistant v0.4, hors du chemin critique de la démo v0.1.
 > Décision proposée : [ADR-0031](../adr/0031-experimenter-jev-pour-les-decisions-de-l-agent.md).
 > Suivi : [issue #24](https://github.com/hachwilliam89-spec/trame/issues/24).
@@ -42,7 +43,7 @@ redéduire par le modèle.
 Chaque étape d'implémentation reçoit son issue, ses scénarios validés et une PR lisible.
 La présente PR ne livre que le cadrage de l'expérience.
 
-## Scénarios BDD proposés
+## Scénarios BDD validés
 
 ```gherkin
 Scénario: Proposer un remplacement après une absence
