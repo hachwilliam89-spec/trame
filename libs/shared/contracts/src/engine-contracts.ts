@@ -1,3 +1,5 @@
+import { diagnosticReportedV1 } from './scheduling/diagnostic-report.v1';
+import { diagnosticTopologyV1 } from './scheduling/diagnostic-topology.v1';
 import { z } from 'zod';
 import { diagnosticRequestedV1 } from './scheduling/diagnostic-requested.v1';
 import { engineHealthV1 } from './engine/engine-health.v1';
@@ -12,6 +14,8 @@ import { engineHealthV1 } from './engine/engine-health.v1';
 export const engineContracts = {
   EngineHealthV1: engineHealthV1,
   DiagnosticRequestedV1: diagnosticRequestedV1,
+  DiagnosticReportedV1: diagnosticReportedV1,
+  DiagnosticTopologyV1: diagnosticTopologyV1,
 } as const satisfies Record<string, z.ZodType>;
 
 const registry = z.registry<{ id: string }>();

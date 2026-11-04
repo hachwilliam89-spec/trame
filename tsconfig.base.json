@@ -47,7 +47,10 @@
       "@trame/platform/outbox": ["./libs/platform/outbox/src/index.ts"],
       "@trame/api/scheduling/application/testing": [
         "./libs/api/scheduling/application/src/testing.ts"
-      ]
+      ],
+      "@trame/platform/messaging": ["./libs/platform/messaging/src/index.ts"],
+      "@trame/platform/inbox": ["./libs/platform/inbox/src/index.ts"],
+      "@trame/platform/messaging/testing": ["./libs/platform/messaging/src/testing.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

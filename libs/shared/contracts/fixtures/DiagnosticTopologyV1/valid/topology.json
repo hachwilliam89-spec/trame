@@ -1,0 +1,60 @@
+{
+  "exchange": "trame.diagnostic.v1",
+  "requests": {
+    "name": "trame.diagnostic.requests.v1",
+    "routingKey": "requested",
+    "arguments": {
+      "x-queue-type": "quorum",
+      "x-overflow": "reject-publish",
+      "x-max-length-bytes": 16777216,
+      "x-single-active-consumer": true,
+      "x-delivery-limit": 3,
+      "x-delayed-retry-type": "failed",
+      "x-delayed-retry-min": 1000,
+      "x-delayed-retry-max": 5000,
+      "x-dead-letter-exchange": "trame.diagnostic.v1",
+      "x-dead-letter-routing-key": "dead",
+      "x-dead-letter-strategy": "at-least-once"
+    }
+  },
+  "reports": {
+    "name": "trame.diagnostic.reports.v1",
+    "routingKey": "reported",
+    "arguments": {
+      "x-queue-type": "quorum",
+      "x-overflow": "reject-publish",
+      "x-max-length-bytes": 16777216,
+      "x-single-active-consumer": true,
+      "x-delivery-limit": 3,
+      "x-delayed-retry-type": "failed",
+      "x-delayed-retry-min": 1000,
+      "x-delayed-retry-max": 5000,
+      "x-dead-letter-exchange": "trame.diagnostic.v1",
+      "x-dead-letter-routing-key": "dead",
+      "x-dead-letter-strategy": "at-least-once"
+    }
+  },
+  "deadLetters": {
+    "name": "trame.diagnostic.dead.v1",
+    "routingKey": "dead",
+    "arguments": {
+      "x-queue-type": "quorum",
+      "x-overflow": "reject-publish",
+      "x-max-length-bytes": 16777216,
+      "x-single-active-consumer": true,
+      "x-delivery-limit": -1,
+      "x-delayed-retry-type": "failed",
+      "x-delayed-retry-min": 1000,
+      "x-delayed-retry-max": 5000
+    }
+  },
+  "parking": {
+    "name": "trame.diagnostic.parking.v1",
+    "routingKey": "parking",
+    "arguments": {
+      "x-queue-type": "quorum",
+      "x-overflow": "reject-publish",
+      "x-max-length-bytes": 16777216
+    }
+  }
+}

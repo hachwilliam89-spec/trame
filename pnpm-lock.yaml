@@ -205,6 +205,9 @@ importers:
       '@prisma/client':
         specifier: 7.10.1
         version: 7.10.1(prisma@7.10.1(@types/node@24.19.2)(@types/react@19.3.0)(magicast@0.5.5)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3))(typescript@6.0.3)
+      amqplib:
+        specifier: 2.2.0
+        version: 2.2.0
       jose:
         specifier: 6.2.14
         version: 6.2.14
@@ -320,6 +323,9 @@ importers:
       '@testcontainers/postgresql':
         specifier: 12.2.1
         version: 12.2.1(supports-color@8.1.1)
+      '@testcontainers/rabbitmq':
+        specifier: 12.2.1
+        version: 12.2.1(supports-color@8.1.1)
       '@types/express':
         specifier: 5.0.6
         version: 5.0.6
@@ -341,9 +347,6 @@ importers:
       '@vitest/ui':
         specifier: 5.0.5
         version: 5.0.5(vitest@5.0.5)
-      amqplib:
-        specifier: 2.2.0
-        version: 2.2.0
       angular-eslint:
         specifier: 22.6.0
         version: 22.6.0(chokidar@5.0.0)(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript-eslint@8.72.1(eslint@9.39.5(jiti@2.4.2)(supports-color@8.1.1))(supports-color@8.1.1)(typescript@6.0.3))(typescript@6.0.3)
@@ -4187,6 +4190,9 @@ packages:
 
   '@testcontainers/postgresql@12.2.1':
     resolution: {integrity: sha512-MIbI5KjZ9M4SY4+xzxg/w4ZLBeV+Jd6ognXoWn7dh/mhIhBbn7ss0MiZHNg2XbCbu03BW9YQ9+H9xW8PFkJWaA==}
+
+  '@testcontainers/rabbitmq@12.2.1':
+    resolution: {integrity: sha512-vPYI7OHGcV9vtmu9hp8lYRVNJJxky+AJLG5uHiwfckMBS2vIRZZr3TR1QkziZJpoO8/nWAXyVmxhSQeHomR7lw==}
 
   '@tokenizer/inflate@0.5.2':
     resolution: {integrity: sha512-3AZIuReWQ7i916s/UWAzy4V4k2wrkAZLW2sTi448W3w7Hz5uoc+Y7h+cnwzr0cwrwf3PsC5xKsH8MOl0NRltlg==}
@@ -13987,6 +13993,15 @@ snapshots:
       tailwindcss: 4.3.3
 
   '@testcontainers/postgresql@12.2.1(supports-color@8.1.1)':
+    dependencies:
+      testcontainers: 12.2.1(supports-color@8.1.1)
+    transitivePeerDependencies:
+      - bare-abort-controller
+      - bare-buffer
+      - react-native-b4a
+      - supports-color
+
+  '@testcontainers/rabbitmq@12.2.1(supports-color@8.1.1)':
     dependencies:
       testcontainers: 12.2.1(supports-color@8.1.1)
     transitivePeerDependencies:
