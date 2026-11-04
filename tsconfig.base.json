@@ -39,7 +39,15 @@
       "@trame/platform/pagination": ["./libs/platform/pagination/src/index.ts"],
       "@trame/platform/problem-details": ["./libs/platform/problem-details/src/index.ts"],
       "@trame/platform/zod-validation": ["./libs/platform/zod-validation/src/index.ts"],
-      "@trame/shared/contracts": ["./libs/shared/contracts/src/index.ts"]
+      "@trame/shared/contracts": ["./libs/shared/contracts/src/index.ts"],
+      "@trame/api/scheduling/domain": ["./libs/api/scheduling/domain/src/index.ts"],
+      "@trame/api/scheduling/application": ["./libs/api/scheduling/application/src/index.ts"],
+      "@trame/api/scheduling/infrastructure": ["./libs/api/scheduling/infrastructure/src/index.ts"],
+      "@trame/platform/idempotency": ["./libs/platform/idempotency/src/index.ts"],
+      "@trame/platform/outbox": ["./libs/platform/outbox/src/index.ts"],
+      "@trame/api/scheduling/application/testing": [
+        "./libs/api/scheduling/application/src/testing.ts"
+      ]
     }
   },
   "exclude": ["node_modules", "tmp"]

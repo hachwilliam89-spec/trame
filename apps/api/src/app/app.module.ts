@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DatabaseModule, DatabaseReadiness } from '@trame/api/database';
+import { SchedulingModule } from '@trame/api/scheduling/infrastructure';
 import { OrganizationModule } from '@trame/api/organization/infrastructure';
 import { AuthModule } from '@trame/platform/auth';
 import { CLOCK, type Clock, ClockModule } from '@trame/platform/clock';
@@ -41,6 +42,7 @@ import { trameActorResolver } from './trame-actor-resolver';
     IdsModule,
     // Contextes métier.
     OrganizationModule,
+    SchedulingModule,
   ],
 })
 export class AppModule {}

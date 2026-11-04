@@ -243,6 +243,23 @@ Scénario: Restauration
 
 ### US-009 — Walking skeleton
 
+> **Découpage validé le 2026-11-04**, suivi dans [#29](https://github.com/hachwilliam89-spec/trame/issues/29).
+> US-020 A est livrée (#22 et #28). La chaîne back locale et CI (A) précède US-005 ;
+> la preuve déployée (B) suit US-005, US-007 et US-020 B (après les maquettes US-012).
+> US-009 reste ouverte jusqu'à la preuve B ci-dessous.
+
+- **A1 — En cours, #30** : diagnostic authentifié, idempotence par organisation,
+  job et message outbox atomiques. Consultation filtrée ; calcul fixe côté serveur,
+  aucune entrée de calcul arbitraire. Le job reste en attente dans cette étape.
+- **A2 — À faire** : relais RabbitMQ avec confirmations, worker Python réel, résultat
+  via inbox atomique, redélivraisons, reprises bornées et file d'erreurs. Le worker
+  reste sans accès à la base ; un recalcul après panne est possible, sans second résultat visible.
+- **A3 — À faire** : progression SSE persistée et ordonnée, reprise `Last-Event-ID`,
+  conservation 1 h après fin, keepalive 20 s, jeton Bearer hors URL et fermeture à expiration,
+  test d'acceptation réel et corrélation entre les composants.
+- **B — À faire après ses dépendances** : bouton authentifié, progression et résultat
+  dans Angular, application déployée et trace complète consultable dans Grafana.
+
 ```gherkin
 Scénario: Aller-retour complet
   Étant donné l'application déployée
@@ -286,7 +303,7 @@ Scénario: Aller-retour complet
 
 ### US-020 — Connexion OIDC et rôles
 
-> API A1 livrée dans la PR #22 ; A2 (Keycloak local et parcours réel PKCE) en revue.
+> API A1 et A2 livrées dans les PR #22 et #28 (Keycloak local et parcours réel PKCE).
 > Le front de connexion reste dans la PR B, après US-012.
 
 ```gherkin

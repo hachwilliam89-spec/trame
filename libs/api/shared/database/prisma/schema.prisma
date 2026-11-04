@@ -9,7 +9,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["organization"]
+  schemas  = ["organization", "scheduling"]
 }
 
 // ─── Contexte organization (US-030) ─────────────────────────────────────────
@@ -96,4 +96,32 @@ model ShiftTemplate {
   @@index([siteId, organizationId])
   @@map("shift_templates")
   @@schema("organization")
+}
+
+// ─── Diagnostic technique du contexte scheduling (US-009 A1) ────────────────
+
+model DiagnosticRun {
+  id             String   @id @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  idempotencyKey String   @map("idempotency_key") @db.VarChar(128)
+  status         String   @db.VarChar(16)
+  createdAt      DateTime @map("created_at") @db.Timestamptz(3)
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, id])
+  @@map("diagnostic_runs")
+  @@schema("scheduling")
+}
+
+/// Le relais et le marquage de publication arriveront avec A2.
+model OutboxMessage {
+  id             String   @id @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  type           String   @db.VarChar(100)
+  body           Json     @db.JsonB
+  occurredAt     DateTime @map("occurred_at") @db.Timestamptz(3)
+
+  @@index([organizationId, id])
+  @@map("outbox_messages")
+  @@schema("scheduling")
 }

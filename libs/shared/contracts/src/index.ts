@@ -7,3 +7,5 @@ export * from './organization/shift-template.v1';
 export * from './organization/site.v1';
 export * from './organization/skill.v1';
 export * from './problem-types';
+export * from './scheduling/diagnostic-run.v1';
+export * from './scheduling/diagnostic-requested.v1';
