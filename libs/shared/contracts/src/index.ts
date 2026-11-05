@@ -11,3 +11,4 @@ export * from './scheduling/diagnostic-run.v1';
 export * from './scheduling/diagnostic-requested.v1';
 export * from './scheduling/diagnostic-report.v1';
 export * from './scheduling/diagnostic-topology.v1';
+export * from './scheduling/diagnostic-progress.v1';

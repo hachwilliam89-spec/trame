@@ -67,3 +67,7 @@ Ce point d'entrée est interdit hors des fichiers de test par la lint.
 Test.createTestingModule({ imports: [AuthModule.forRoot({ resolveActor: testActorResolver }), ...] });
 request(app).get('/sites').set(TEST_ACTOR_HEADER, testActorHeader(admin));
 ```
+
+Le résolveur OIDC expose aussi `expiresAtEpochMilliseconds`, issu du `exp` vérifié.
+Les connexions longues l'exigent pour fermer à échéance ; aucun jeton brut n'est conservé
+sur l'Actor. Le champ reste facultatif pour les autres résolveurs et les tests de routes courtes.

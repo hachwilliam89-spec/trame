@@ -1,3 +1,4 @@
+import { proveDiagnosticProgress } from './lib/diagnostic-proof';
 import { chromium, type Browser } from 'playwright';
 import { decodeJwt } from 'jose';
 import { compose, type ComposeOptions } from './lib/compose';
@@ -137,6 +138,16 @@ describe('Keycloak et API construite, avec de vrais jetons (US-020 A2)', () => {
         "', 'OTHER-01', 'Autre site', 'Europe/Paris', CURRENT_TIMESTAMP)",
     );
     expect((await request('/sites/' + id, 'admin')).status).toBe(404);
+  });
+
+  it('suit le vrai calcul Python puis reprend après une déconnexion avec le jeton Keycloak', async () => {
+    if (api === undefined) throw new Error('API absente');
+    await proveDiagnosticProgress({
+      baseUrl: api.baseUrl,
+      accessToken: accessToken('manager'),
+      databaseUrl,
+      amqpUrl: 'amqp://trame:trame@127.0.0.1:' + options.overrides?.RABBITMQ_PORT,
+    });
   });
 
   it('refuse toute administration du realm avec le rôle applicatif admin', async () => {

@@ -1,15 +1,16 @@
-# Scheduling — diagnostic asynchrone (US-009 A1/A2)
+# Scheduling — diagnostic asynchrone (US-009 A1/A2/A3)
 
 Ce diagnostic vérifie la chaîne de traitement d'un calcul fictif. Elle ne crée pas de
 planning et n'évalue aucune règle légale. Le transport et le worker sont lancés séparément (voir ci-dessous).
-En leur absence, le traitement reste `QUEUED`. La progression SSE appartient à A3.
+En leur absence, le traitement reste `QUEUED`. La progression SSE et la reprise sont disponibles (voir ci-dessous).
 
 ## Routes
 
-| Route                                        | Rôles          | Comportement                                                       |
-| -------------------------------------------- | -------------- | ------------------------------------------------------------------ |
-| `POST /api/v1/diagnostics/solver-runs`       | admin, manager | Corps `{}`, `Idempotency-Key` obligatoire ; 202, DTO et `Location` |
-| `GET /api/v1/diagnostics/solver-runs/:runId` | admin, manager | État de la demande ; 404 si absente, mal formée ou étrangère       |
+| Route                                               | Rôles          | Comportement                                                       |
+| --------------------------------------------------- | -------------- | ------------------------------------------------------------------ |
+| `POST /api/v1/diagnostics/solver-runs`              | admin, manager | Corps `{}`, `Idempotency-Key` obligatoire ; 202, DTO et `Location` |
+| `GET /api/v1/diagnostics/solver-runs/:runId`        | admin, manager | État de la demande ; 404 si absente, mal formée ou étrangère       |
+| `GET /api/v1/diagnostics/solver-runs/:runId/events` | admin, manager | Progression SSE, reprise par `Last-Event-ID` ; détails ci-dessous  |
 
 Exemple après authentification locale par le parcours PKCE documenté dans `infra/README.md` :
 
@@ -23,7 +24,7 @@ curl --request POST http://127.0.0.1:3000/api/v1/diagnostics/solver-runs \
 
 Réponse : `{ "id": "…", "status": "QUEUED", "createdAt": "…Z" }`.
 L'organisation vient du jeton, jamais du corps ; les paramètres supplémentaires sont refusés.
-Les deux routes refusent les anonymes (401) et les employés (403), en problem+json.
+Les trois routes refusent les anonymes (401) et les employés (403), en problem+json.
 
 Une même clé retrouve le même job dans la même organisation, y compris après reconnexion.
 La clé n'expire pas dans A1 ; une nouvelle clé demande un autre diagnostic. Elle ne doit
@@ -77,8 +78,10 @@ L'adaptateur le compare à l'outbox et à l'organisation, puis verrouille le job
 état et événement ordonné sont écrits ensemble. Un terminal déjà enregistré n'est plus
 remplacé, même après recalcul ; un STARTED tardif ne le rouvre pas.
 
-Les événements de progression sont conservés pour A3 ; leur diffusion SSE, leur reprise et
-leur purge une heure après fin arrivent avec A3. A2 ne prétend pas livrer cette interface.
+La route `GET /api/v1/diagnostics/solver-runs/:runId/events` diffuse les événements en SSE.
+Elle utilise le même Bearer dans `Authorization` et reprend après `Last-Event-ID`.
+La conservation est d'une heure après fin du diagnostic ; le résultat et l'idempotence restent disponibles.
+Voir le [contrat du flux et ses erreurs](infrastructure/README.md) pour les détails.
 Le moteur n'a ni URL PostgreSQL dans ses paramètres ni adaptateur de stockage.
 
 Les tests d'intégration supplémentaires couvrent le processus Node réel, le worker Python,

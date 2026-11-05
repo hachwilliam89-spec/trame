@@ -56,3 +56,7 @@ pas une exécution physique exactement une fois du solveur. Les messages invalid
 sans réattribution hasardeuse ; les erreurs de traitement sont reprises avec délai puis isolées.
 Le worker et sa configuration vivent dans `src/trame_engine/worker/`. Le calcul reste dans
 `solver`, les modèles échangés sont toujours générés.
+
+Les rapports confirmés du diagnostic sont journalisés avec `run_id`, `request_id` et
+`report_id`. Le même `run_id` apparaît dans les réponses HTTP et SSE ; les logs ne
+contiennent ni jeton ni identité utilisateur.

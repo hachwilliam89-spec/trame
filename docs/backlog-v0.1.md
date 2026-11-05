@@ -20,42 +20,46 @@ Priorité MoSCoW : **M** indispensable à la démo · **S** important, peut suiv
 | 6     | 030 | Module de référence `organization`, PR B : compétences et postes   | ✅       |
 | 7     | 004 | Environnement local                                                | ✅       |
 | 8     | 020 | Connexion OIDC et rôles, PR A : jetons côté API et Keycloak local  | ✅       |
-| 9     | 009 | Walking skeleton                                                   | M        |
-| 10    | 005 | Déploiement staging et prod (prod fermée au public)                | M        |
-| 11    | 008 | Sauvegardes                                                        | M        |
-| 12    | 012 | Maquettes des écrans clés                                          | M        |
-| 13    | 010 | Tokens de marque                                                   | M        |
-| 14    | 011 | Composants de base                                                 | M        |
-| 15    | 020 | Connexion OIDC et rôles, PR B : connexion dans le front            | M        |
-| 16    | 030 | Module de référence `organization`, PR C : page Angular et E2E     | M        |
+| 9     | 009 | Walking skeleton : chaîne back locale (A)                          | M        |
+| 10    | 012 | Maquettes des écrans clés                                          | M        |
+| 11    | 010 | Tokens de marque                                                   | M        |
+| 12    | 011 | Composants de base                                                 | M        |
+| 13    | 020 | Connexion OIDC et rôles, PR B : connexion dans le front            | M        |
+| 14    | 009 | Front minimal : bouton, progression et résultat (B, partie locale) | M        |
+| 15    | 005 | Déploiement staging et prod (prod fermée au public)                | M        |
+| 16    | 008 | Sauvegardes                                                        | M        |
 | 17    | 007 | Observabilité de base et alertes                                   | S        |
-| 18    | 006 | Site de documentation                                              | S        |
+| 18    | 009 | Preuve de la chaîne complète déployée (B, avec Grafana)            | M        |
+| 19    | 030 | Module de référence `organization`, PR C : page Angular et E2E     | M        |
+| 20    | 006 | Site de documentation                                              | S        |
+
+**Ordre validé le 5 novembre 2026** : terminer A3, préparer la maquette et le front minimal (connexion, bouton « Tester le moteur », progression et résultat), puis déployer la chaîne complète en staging avec sauvegardes et observabilité. Seules les parties d’US-012, US-010 et US-011 nécessaires à la connexion et au diagnostic précèdent ce front minimal ; les autres maquettes et composants seront réalisés avec leurs écrans. La grille de planning n’est pas nécessaire pour cette première démonstration.
 
 ### Phase 2 — pendant le stage (sessions courtes : une story = un déploiement)
 
 | Ordre | US  | Titre                                        | Priorité |
 | ----- | --- | -------------------------------------------- | -------- |
-| 19    | 031 | Employés                                     | M        |
-| 20    | 032 | Contrats                                     | M        |
-| 21    | 033 | Indisponibilités et absences                 | M        |
-| 22    | 040 | Catalogue des règles légales                 | M        |
-| 23    | 050 | Besoins de couverture                        | M        |
-| 24    | 064 | Spike CP-SAT                                 | M        |
-| 25    | 061 | Modèle CP-SAT v1                             | M        |
-| 26    | 060 | Lancer une génération                        | M        |
-| 27    | 062 | Score et explication de base                 | M        |
-| 28    | 070 | PE synchrone                                 | M        |
-| 29    | 071 | Grille de planning                           | M        |
-| 30    | 072 | Drag & drop avec PE                          | M        |
-| 31    | 080 | Publier un planning                          | M        |
-| 32    | 021 | Comptes démo (une organisation par visiteur) | M        |
-| 33    | 090 | Données de démo                              | M        |
-| 34    | 092 | Protection et ouverture de la démo publique  | M        |
-| 35    | 093 | Licence, sécurité et mentions légales        | M        |
-| 36    | 091 | README vitrine et vidéo                      | M        |
-| 37    | 014 | Quality gate et tests de mutation            | S        |
-| 38    | 041 | Pondération des règles souples               | S        |
-| 39    | 081 | Consultation par l'employé                   | S        |
+| 21    | 031 | Employés                                     | M        |
+| 22    | 032 | Contrats                                     | M        |
+| 23    | 033 | Indisponibilités et absences                 | M        |
+| 24    | 040 | Catalogue des règles légales                 | M        |
+| 25    | 050 | Besoins de couverture                        | M        |
+| 26    | 064 | Spike CP-SAT                                 | M        |
+| 27    | 061 | Modèle CP-SAT v1                             | M        |
+| 28    | 060 | Lancer une génération                        | M        |
+| 29    | 062 | Score et explication de base                 | M        |
+| 30    | 070 | PE synchrone                                 | M        |
+| 31    | 071 | Grille de planning                           | M        |
+| 32    | 072 | Drag & drop avec PE                          | M        |
+| 33    | 080 | Publier un planning                          | M        |
+| 34    | 021 | Comptes démo (une organisation par visiteur) | M        |
+| 35    | 090 | Données de démo                              | M        |
+| 36    | 092 | Protection et ouverture de la démo publique  | M        |
+| 37    | 093 | Licence, sécurité et mentions légales        | M        |
+| 38    | 091 | README vitrine et vidéo                      | M        |
+| 39    | 014 | Quality gate et tests de mutation            | S        |
+| 40    | 041 | Pondération des règles souples               | S        |
+| 41    | 081 | Consultation par l'employé                   | S        |
 
 Les stories M, prises dans cet ordre, forment le **chemin critique vers la démo publique**. La démo est datée quelques semaines avant la recherche d'entreprise.
 
@@ -245,7 +249,8 @@ Scénario: Restauration
 
 > **Découpage validé le 2026-11-04**, suivi dans [#29](https://github.com/hachwilliam89-spec/trame/issues/29).
 > US-020 A est livrée (#22 et #28). La chaîne back locale et CI (A) précède US-005 ;
-> la preuve déployée (B) suit US-005, US-007 et US-020 B (après les maquettes US-012).
+> le front minimal (B, partie locale) suit A3 et US-020 B (après les maquettes US-012),
+> puis la preuve déployée (B) suit US-005, US-008 et US-007.
 > US-009 reste ouverte jusqu'à la preuve B ci-dessous.
 
 - **A1 — Livrée, #30 et #31** : diagnostic authentifié, idempotence par organisation,
@@ -254,11 +259,12 @@ Scénario: Restauration
 - **A2 — Livrée, #32 et #33** : relais RabbitMQ avec confirmations, worker Python réel, résultat
   via inbox atomique, redélivraisons, reprises bornées et file d'erreurs. Le worker
   reste sans accès à la base ; un recalcul après panne est possible, sans second résultat visible.
-- **A3 — À faire** : progression SSE persistée et ordonnée, reprise `Last-Event-ID`,
+- **A3 — En cours, #35** : progression SSE persistée et ordonnée, reprise `Last-Event-ID`,
   conservation 1 h après fin, keepalive 20 s, jeton Bearer hors URL et fermeture à expiration,
   test d'acceptation réel et corrélation entre les composants.
-- **B — À faire après ses dépendances** : bouton authentifié, progression et résultat
-  dans Angular, application déployée et trace complète consultable dans Grafana.
+- **B — À faire en deux temps** : bouton authentifié, progression et résultat dans Angular
+  en local après A3 et US-020 B ; puis chaîne complète déployée, sauvegardée et trace
+  consultable dans Grafana après US-005, US-008 et US-007.
 
 ```gherkin
 Scénario: Aller-retour complet

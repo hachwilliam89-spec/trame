@@ -6,3 +6,4 @@ export {
   UnmatchedDiagnosticReportError,
   type DiagnosticReports,
 } from './lib/receive-diagnostic-report';
+export * from './lib/diagnostic-progress';

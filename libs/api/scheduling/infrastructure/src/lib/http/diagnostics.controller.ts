@@ -5,6 +5,7 @@ import {
   Headers,
   HttpCode,
   Param,
+  Logger,
   ParseUUIDPipe,
   Post,
   Res,
@@ -37,6 +38,7 @@ const runIdPipe = new ParseUUIDPipe({
   ]),
 )
 export class DiagnosticsController {
+  private readonly logger = new Logger(DiagnosticsController.name);
   constructor(
     private readonly startDiagnostic: StartDiagnostic,
     private readonly getDiagnostic: GetDiagnostic,
@@ -54,6 +56,8 @@ export class DiagnosticsController {
       organizationId: actor.organizationId,
       key: IdempotencyKey.of(key),
     });
+    this.logger.log({ event: 'diagnostic_requested', runId: run.id });
+    response.setHeader('X-Correlation-ID', run.id);
     response.setHeader('Location', `/api/v1/diagnostics/solver-runs/${run.id}`);
     return toDiagnosticRunV1(run);
   }
@@ -62,8 +66,10 @@ export class DiagnosticsController {
   async get(
     @CurrentActor() actor: Actor,
     @Param('runId', runIdPipe) runId: string,
+    @Res({ passthrough: true }) response: Response,
   ): Promise<DiagnosticRunV1> {
     const run = await this.getDiagnostic.execute({ organizationId: actor.organizationId, runId });
+    response.setHeader('X-Correlation-ID', run.id);
     return toDiagnosticRunV1(run);
   }
 }

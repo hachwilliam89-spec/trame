@@ -1,3 +1,4 @@
+import { DIAGNOSTIC_PROGRESS } from '../lib/diagnostic-progress.token';
 import { Test } from '@nestjs/testing';
 import { InMemoryDiagnosticRuns } from '@trame/api/scheduling/application/testing';
 import { AuthModule, type Actor } from '@trame/platform/auth';
@@ -30,6 +31,8 @@ export async function createSchedulingTestApp() {
       SchedulingModule,
     ],
   })
+    .overrideProvider(DIAGNOSTIC_PROGRESS)
+    .useValue({ read: async () => undefined, purgeFinishedBefore: async () => 0 })
     .overrideProvider(CLOCK)
     .useValue(new FixedClock('2026-11-04T10:00:00Z'))
     .overrideProvider(ID_GENERATOR)

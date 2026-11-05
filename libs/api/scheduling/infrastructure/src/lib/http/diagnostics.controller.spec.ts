@@ -55,6 +55,7 @@ describe('API des diagnostics', () => {
         createdAt: '2026-11-04T10:00:00Z',
       });
       expect(response.headers['location']).toBe(`${collection}/${run.id}`);
+      expect(response.headers['x-correlation-id']).toBe(run.id);
       const reread = await get(actor, run.id);
       expect(reread.status).toBe(200);
       expect(reread.body).toEqual(response.body);

@@ -31,6 +31,12 @@ def handle_request(
     try:
         for report in run_diagnostic(request, clock, ids, solve):
             delivery.publish(report)
+            structlog.get_logger().info(
+                "diagnostic_reported",
+                run_id=str(request.payload.run_id),
+                request_id=str(request.id),
+                report_id=str(report.id),
+            )
     except PublicationDeadlineExceededError:
         # Ne pas réutiliser un canal dont la confirmation est incertaine.
         raise

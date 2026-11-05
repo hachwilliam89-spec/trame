@@ -137,7 +137,9 @@ function actorFrom(payload: JWTPayload, options: OidcActorResolverOptions): Acto
     return undefined;
   }
 
-  return { userId: payload.sub, organizationId, roles };
+  const expiresAtEpochMilliseconds = Math.floor(Number(payload.exp) * 1000);
+  if (!Number.isSafeInteger(expiresAtEpochMilliseconds)) return undefined;
+  return { userId: payload.sub, organizationId, roles, expiresAtEpochMilliseconds };
 }
 
 /** Les rôles connus de l'application, ou `undefined` si la revendication n'est pas une liste de chaînes. */
