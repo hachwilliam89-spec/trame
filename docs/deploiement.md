@@ -16,7 +16,7 @@ Les domaines sont retenus pour la configuration. Les enregistrements DNS et les 
 
 ## Découpage proposé
 
-1. **US-005 A — images et preuve locale**, [#40](https://github.com/hachwilliam89-spec/trame/issues/40) : Dockerfiles multi-stage, processus Node compilés, moteur installé depuis le lockfile, serveur du front non root, cible de migration distincte, configuration au démarrage et parcours complet sur les images réelles. Scénarios détaillés à valider avant implémentation.
+1. **US-005 A — images et preuve locale**, [#40](https://github.com/hachwilliam89-spec/trame/issues/40) : Dockerfiles multi-stage, processus Node compilés, moteur installé depuis le lockfile, serveur du front non root, cible de migration distincte, configuration au démarrage et parcours complet sur les images réelles. Scénarios et plan validés par Kim le 5 novembre 2026 ; implémentation en revue dans [#42](https://github.com/hachwilliam89-spec/trame/pull/42), pas encore fusionnée.
 2. **US-005 B — publication et staging** : GHCR, Trivy, SBOM, cosign, déploiement par digests, Compose/Traefik, isolation des données et des secrets, migrations avec rôle dédié et contrôle des sondes.
 3. **US-005 C — promotion/retour arrière** : même image que staging, release, API précédente compatible avec les migrations et production fermée avant protection de démo.
 
