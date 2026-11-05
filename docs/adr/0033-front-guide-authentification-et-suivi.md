@@ -1,0 +1,24 @@
+# ADR-0033 — Premier front : authentification et suivi du diagnostic
+
+- **Statut** : Proposé (2026-11-05).
+- **Contexte** : le back sait traiter un diagnostic fixe. Kim a validé le parcours et la maquette Guidé : connexion, lancement, progression et résultat, avant le staging de la chaîne complète. La connexion doit rester sur Keycloak ; une interruption du suivi ne doit pas créer un second calcul.
+- **Décision proposée** :
+  - SDK officiel `keycloak-js` 26.2.5, derrière le port `IdentityDriver` et la façade `WebSession`. Code + PKCE S256, redirection pleine page vers un URI exact ; pas de password grant, popup ou iframe de session.
+  - Le SDK est initialisé avant Angular et son routeur. Les jetons restent en mémoire. Après rechargement, une connexion par redirection retrouve la session SSO ; les identifiants du diagnostic sont conservés pour retrouver le résultat.
+  - Configuration publique `config.json` validée au démarrage. API au chemin relatif `/api/v1`, Bearer transmis par le seul adaptateur du diagnostic, sans redirection HTTP et sans jeton dans l'URL.
+  - Fetch pour le flux authentifié, `eventsource-parser` 4.1.3 pour le décodage SSE. Chaque événement passe par le contrat zod ; identifiant de trame, job et séquence sont contrôlés. Reconnexion explicite avec le dernier événement reçu, pas de boucle de nouvelles demandes.
+  - Une façade `DiagnosticState` gère les transitions, l'idempotence et l'annulation. Le marque-page conserve uniquement la clé d'idempotence, le job et le curseur ; il est isolé par sujet et organisation. Les réponses tardives d'une opération annulée ne changent pas l'affichage.
+  - CSP construite à la main pour l'origine courante et l'origine Keycloak configurée. Aucun `unsafe-eval` ; Zod est configuré en `jitless` avant la création des schémas. CSS servi séparément sans styles critiques inline. Les en-têtes Traefik restent dans US-005.
+  - Logo original, palette et mise en page Guidé ; les tokens de marque sont séparés dans `libs/web/brand`.
+- **Conséquences** :
+  - (+) Adaptateurs substituables dans les tests, état observable unique, pas de logique OIDC ou de parser SSE réécrite dans les composants.
+  - (+) Les cinq issues du solveur restent distinctes des quatre statuts techniques ; aucune affectation n'est inventée en l'absence de solution.
+  - (+) Compatibilité réelle SDK/Keycloak vérifiée dans Chromium, Firefox et WebKit ; axe vérifie l'accessibilité.
+  - (−) Un rechargement perd les jetons en mémoire et nécessite une redirection SSO, plutôt qu'un stockage persistant de jetons.
+  - (−) Si sessionStorage est bloqué, le calcul fonctionne dans l'onglet mais la reprise après rechargement n'est pas conservée.
+  - (−) La politique de déploiement et la preuve Grafana restent à livrer ; le diagnostic n'est pas un planning réel.
+- **Alternatives** : `keycloak-angular` ajoute un couplage aux versions d'Angular ; `oidc-client-ts` reste une alternative pour changer de fournisseur. Native EventSource ne permet pas d'ajouter directement notre en-tête Authorization. Un flux OAuth ou un parser SSE maison n'apportent pas de gain ici.
+- **Sources** :
+  - [SDK Keycloak](https://www.keycloak.org/securing-apps/javascript-adapter) : code, PKCE, jetons en mémoire et initialisation avant le routeur.
+  - [SSE](https://html.spec.whatwg.org/multipage/server-sent-events.html) et [eventsource-parser](https://github.com/rexxars/eventsource-parser).
+  - `zod@4.6.7`, fichier publié `v4/core/core.d.ts` de la version verrouillée ; option `jitless` et comportement vérifiés dans la version installée et par le test navigateur sous CSP.

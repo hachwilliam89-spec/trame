@@ -38,3 +38,4 @@ Les ADR 0018, 0020, 0021 et 0022 ont été amendées le 2026-11-01 après la rev
 | [0030](0030-jetons-oidc-avec-jose.md)                          | Jetons OIDC : vérification par `jose`, identité lue dans les revendications | Proposé                                   |
 | [0031](0031-experimenter-jev-pour-les-decisions-de-l-agent.md) | Expérimenter Jev comme pilote de décisions de l'agent                       | Proposé                                   |
 | [0032](0032-transport-diagnostic-et-reprises.md)               | Transport du diagnostic et séparation des reprises                          | Proposé                                   |
+| [0033](0033-front-guide-authentification-et-suivi.md)          | Premier front : authentification et suivi du diagnostic                     | Proposé                                   |

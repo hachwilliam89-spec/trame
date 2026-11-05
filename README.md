@@ -60,6 +60,11 @@ pnpm nx run-many -t lint typecheck test
 pnpm nx run-many -t integration   # PostgreSQL, RabbitMQ, Keycloak et Chromium ; Docker requis
 ```
 
+Le premier parcours Angular Guidé est disponible en local : connexion Keycloak, lancement
+et suivi du diagnostic Python, résultat et reprise. Voir [le démarrage du front](apps/web/README.md).
+La preuve déployée et Grafana restent à réaliser. Les règles de contribution précisent aussi
+l'usage de design patterns adaptés à un besoin concret, avec mesure des gains d'optimisation.
+
 ## Licence
 
 [MIT](LICENSE)

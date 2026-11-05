@@ -53,3 +53,10 @@ Le parcours Keycloak teste aussi US-009 A3 : l'API construite reçoit un vrai je
 le relais Node et le worker Python traitent le diagnostic via RabbitMQ, puis le client
 coupe le SSE après STARTED et reprend par Last-Event-ID jusqu'au résultat. Installer
 l'environnement moteur avec `pnpm nx run engine:install` avant `infra:integration`.
+
+Le premier front construit est aussi testé dans Chromium, Firefox et WebKit, avec axe.
+Installer les navigateurs via `pnpm exec playwright install chromium firefox webkit`.
+La fixture utilise une origine et un callback exacts propres à sa stack isolée (pas de wildcard).
+Elle vérifie connexion, vrai calcul, rechargement, interruption/reprise, expiration puis
+reconnexion, refus employé et référence de job étrangère. L'expiration navigateur est
+avancée par l'horloge Playwright ; le back conserve ses propres tests d'expiration JWT/SSE.

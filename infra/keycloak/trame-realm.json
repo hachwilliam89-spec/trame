@@ -33,7 +33,7 @@
       "serviceAccountsEnabled": false,
       "fullScopeAllowed": false,
       "redirectUris": ["${KEYCLOAK_DEV_REDIRECT_URI}"],
-      "webOrigins": ["http://127.0.0.1:4200"],
+      "webOrigins": ["${KEYCLOAK_DEV_WEB_ORIGIN}"],
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "access.token.signed.response.alg": "RS256"
