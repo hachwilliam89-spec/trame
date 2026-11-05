@@ -255,6 +255,8 @@ Versions vérifiées le 1er novembre 2026 sur npm et PyPI, épinglées au scaffo
   - l'infra est partagée : une instance Postgres avec 2 bases, un RabbitMQ avec 2 vhosts, un Keycloak avec 2 realms ;
   - les conteneurs applicatifs sont séparés.
 
+> Domaines retenus le 5 novembre 2026 : `trame.wkhach.dev` (prod), `staging.trame.wkhach.dev` (staging), `auth.trame.wkhach.dev` (Keycloak partagé). API sous `/api/v1` sur chaque domaine applicatif. Cadrage et préalables dans [deploiement.md](deploiement.md) ; DNS et déploiement restent à effectuer.
+
 ### Budget mémoire estimé (staging + prod)
 
 | Service                        | RAM                                      |

@@ -25,8 +25,8 @@ sans produire de planning ni annoncer une conformité légale.
 
 Le diagnostic dispose aussi d'un flux SSE authentifié, avec reprise par `Last-Event-ID`
 et fermeture à expiration du jeton. Son parcours local complet est testé avec Keycloak,
-RabbitMQ, PostgreSQL, l'API construite et le worker Python. La prochaine étape visible est
-un front minimal (connexion, bouton, progression et résultat), avant le staging de la chaîne complète.
+RabbitMQ, PostgreSQL, l'API construite et le worker Python. Le front Guidé est livré ;
+la prochaine étape est le [staging de la chaîne complète](docs/deploiement.md).
 
 ## Qualité et sécurité
 

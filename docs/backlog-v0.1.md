@@ -108,7 +108,7 @@ Scénario: Surface réseau
 
 ### US-013 — Durcissement : compléments des revues
 
-> Scripts écrits le 2026-11-01 dans `vps-edge/host/`, **pas encore appliqués sur l'hôte**.
+> Scripts écrits le 2026-11-01 dans `vps-edge/host/`, **compléments encore à appliquer et vérifier**. Précontrôle SSH du 5 novembre : huit conteneurs avec `json-file` sans plafonds, deux conteneurs web Équilibre sans projet Compose ; voir [le constat daté](deploiement.md#précontrôle-du-vps).
 
 - Logs Docker plafonnés par Docker seul (`daemon.json`, avec `live-restore`), sans outil externe sur ses fichiers. Puis Docker est redémarré et les conteneurs recréés.
 - `equilibre-web` et `equilibre-telechargements`, lancés hors compose, sont repris dans un fichier compose avant toute recréation :
@@ -189,6 +189,8 @@ Les autres contrôles arrivent avec le risque qu'ils couvrent :
 
 ### US-005 — Déploiement staging et prod
 
+> Cadrage dans [#39](https://github.com/hachwilliam89-spec/trame/issues/39) et [docs/deploiement.md](deploiement.md). Première tranche : images et preuve locale/CI ([#40](https://github.com/hachwilliam89-spec/trame/issues/40)), scénarios et plan validés par Kim le 5 novembre 2026 ; implémentation en revue dans [#42](https://github.com/hachwilliam89-spec/trame/pull/42). US-013 reste préalable à la mise en service.
+
 ```gherkin
 Scénario: Livraison continue sur staging
   Quand une PR est mergée sur main
@@ -262,7 +264,7 @@ Scénario: Restauration
 - **A3 — Livrée, #35 et #36** : progression SSE persistée et ordonnée, reprise `Last-Event-ID`,
   conservation 1 h après fin, keepalive 20 s, jeton Bearer hors URL et fermeture à expiration,
   test d'acceptation réel et corrélation entre les composants.
-- **B — Partie locale en cours (#37), preuve déployée à faire** : bouton authentifié, progression et résultat dans Angular
+- **B — Partie locale livrée (#37 et #38), preuve déployée à faire** : bouton authentifié, progression et résultat dans Angular
   en local après A3 et US-020 B ; puis chaîne complète déployée, sauvegardée et trace
   consultable dans Grafana après US-005, US-008 et US-007.
 
@@ -293,7 +295,7 @@ Scénario: Aller-retour complet
 
 ### US-010 — Tokens de marque
 
-> Première tranche dans #37 : palette clair/sombre et logo original pour le diagnostic, tokens dans `libs/web/brand`. Manifest et autres besoins de marque restent à compléter.
+> Première tranche livrée dans #38 : palette clair/sombre et logo original pour le diagnostic, tokens dans `libs/web/brand`. Manifest et autres besoins de marque restent à compléter.
 
 - Kit logo intégré (favicon, manifest, icônes).
 - Tokens CSS (couleurs clair/sombre issues de la palette Trame, typographie, espacements, rayons, ombres), plus la configuration Tailwind.
@@ -314,7 +316,7 @@ Scénario: Aller-retour complet
 ### US-020 — Connexion OIDC et rôles
 
 > API A1 et A2 livrées dans les PR #22 et #28 (Keycloak local et parcours réel PKCE).
-> Le front de connexion (PR B) est implémenté et en revue avec le premier parcours Guidé (#37), après validation de sa maquette par Kim le 5 novembre 2026.
+> Le front de connexion (PR B) est livré avec le premier parcours Guidé (#37 et #38), après validation de sa maquette par Kim le 5 novembre 2026.
 
 ```gherkin
 Scénario: Accès selon le rôle
