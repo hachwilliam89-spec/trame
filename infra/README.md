@@ -48,3 +48,8 @@ Les noms des quatre files et leur politique sont détaillés dans l'ADR-0032. Le
 n'est pas consommé automatiquement : il conserve les messages isolés pour examen manuel.
 La DLQ attend la finalisation persistée d'un échec avant de l'y envoyer ; une indisponibilité
 de la base ne provoque pas une perte silencieuse dans ce parking.
+
+Le parcours Keycloak teste aussi US-009 A3 : l'API construite reçoit un vrai jeton manager,
+le relais Node et le worker Python traitent le diagnostic via RabbitMQ, puis le client
+coupe le SSE après STARTED et reprend par Last-Event-ID jusqu'au résultat. Installer
+l'environnement moteur avec `pnpm nx run engine:install` avant `infra:integration`.

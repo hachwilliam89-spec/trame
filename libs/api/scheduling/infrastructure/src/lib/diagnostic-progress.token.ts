@@ -1,0 +1,1 @@
+export const DIAGNOSTIC_PROGRESS = Symbol('DIAGNOSTIC_PROGRESS');

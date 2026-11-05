@@ -23,6 +23,11 @@ Le diagnostic asynchrone du contexte `scheduling` est décrit dans
 [`libs/api/scheduling/README.md`](libs/api/scheduling/README.md). Il teste un calcul fictif,
 sans produire de planning ni annoncer une conformité légale.
 
+Le diagnostic dispose aussi d'un flux SSE authentifié, avec reprise par `Last-Event-ID`
+et fermeture à expiration du jeton. Son parcours local complet est testé avec Keycloak,
+RabbitMQ, PostgreSQL, l'API construite et le worker Python. La prochaine étape visible est
+un front minimal (connexion, bouton, progression et résultat), avant le staging de la chaîne complète.
+
 ## Qualité et sécurité
 
 - Chaque PR passe la CI : lint (frontières d'architecture et lisibilité), typecheck, tests, build, intégration sur un vrai PostgreSQL, migrations Prisma sans écart, contrats générés à jour, Knip, audit des workflows par zizmor.
