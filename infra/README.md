@@ -2,6 +2,8 @@
 
 Infrastructure du projet : stack de développement local PostgreSQL, RabbitMQ et Keycloak (US-004, US-020 A). Les fichiers de staging et de prod arrivent avec US-005.
 
+US-005 A ajoute les [images applicatives et leur preuve conteneurisée](docker/README.md) : `pnpm nx run infra:images-test`. La stack de preuve est isolée de la stack de développement ; ce n'est pas encore un déploiement sur le VPS.
+
 ## Commandes
 
 Toutes lisent le `.env` à la racine, copié depuis `.env.example`.

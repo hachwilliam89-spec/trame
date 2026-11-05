@@ -99,6 +99,25 @@ jobs:
         env:
           DATABASE_URL: postgresql://trame:trame@localhost:5432/trame
 
+  images:
+    name: Images et parcours conteneurisé
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: $/.github/actions/setup
+        with:
+          python: 'false'
+
+      - name: Chromium pour le parcours conteneurisé
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Construire et tester les images Linux amd64
+        run: pnpm nx run infra:images-test
+
   secrets:
     name: Secrets (gitleaks)
     runs-on: ubuntu-24.04
@@ -171,7 +190,7 @@ jobs:
   ci-ok:
     name: CI OK
     if: always()
-    needs: [verify, contracts, integration, secrets, audit, workflows]
+    needs: [verify, contracts, integration, images, secrets, audit, workflows]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:

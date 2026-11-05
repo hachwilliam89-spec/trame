@@ -5,6 +5,12 @@
   "projectType": "library",
   "tags": ["scope:tooling"],
   "targets": {
+    "images-test": {
+      "description": "Construit les images Linux amd64 et teste la chaîne réelle isolée.",
+      "command": "vitest run --config vitest.images.config.mts",
+      "options": { "cwd": "{projectRoot}" },
+      "cache": false
+    },
     "up": {
       "description": "D\u00e9marre PostgreSQL, RabbitMQ et Keycloak, attend leur \u00e9tat sain, puis applique les migrations.",
       "executor": "nx:run-commands",

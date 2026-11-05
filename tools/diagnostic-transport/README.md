@@ -34,3 +34,7 @@ La topologie et la distinction entre reprise de traitement et attente d'infrastr
 détaillées dans [l'ADR-0032](../../docs/adr/0032-transport-diagnostic-et-reprises.md).
 La supervision, les utilisateurs/vhosts et les images de déploiement appartiennent à US-005.
 Aucun port supplémentaire n'est publié par ce processus.
+
+US-005 A ajoute `pnpm nx build diagnostic-transport` et l'image `relay` : le processus livré
+exécute `node main.js`, sans `tsx`. La [preuve conteneurisée](../../infra/docker/README.md)
+teste le relais avec les mêmes contrats et la topologie versionnée, sans publier de port.
