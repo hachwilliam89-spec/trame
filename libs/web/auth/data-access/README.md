@@ -7,3 +7,5 @@ Code + PKCE S256, URI de retour exact `/oidc-callback`, aucun mot de passe trait
 Le jeton est demandé seulement avant un appel API. Une expiration ou un changement de sujet/organisation ferme la session applicative ; la page propose une reconnexion. Les rôles côté navigateur pilotent l'affichage, l'API reste l'autorité d'autorisation.
 
 `config.json` est une configuration publique, sans secret. HTTP est autorisé pour le fournisseur uniquement en loopback ; les autres origines exigent HTTPS. Le chemin d'API reste relatif. Voir ADR-0033.
+
+La déconnexion utilise le mode POST du SDK, pour ne pas placer `id_token_hint` dans l’URL. La CSP autorise le formulaire uniquement vers l’origine Keycloak configurée et l’origine courante.

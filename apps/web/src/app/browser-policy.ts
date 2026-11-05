@@ -13,7 +13,7 @@ export function applyBrowserPolicy(authorityUrl: string): void {
     "object-src 'none'",
     "base-uri 'self'",
     "frame-src 'none'",
-    "form-action 'self'",
+    `form-action 'self' ${authority}`,
   ].join('; ');
   document.head.appendChild(policy);
 }

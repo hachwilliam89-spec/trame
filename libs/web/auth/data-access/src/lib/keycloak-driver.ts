@@ -58,7 +58,7 @@ export class KeycloakDriver implements IdentityDriver {
     return this.keycloak.login({ redirectUri: this.redirectUri });
   }
   logout(): Promise<void> {
-    return this.keycloak.logout({ redirectUri: this.redirectUri });
+    return this.keycloak.logout({ redirectUri: this.redirectUri, logoutMethod: 'POST' });
   }
 }
 

@@ -16,7 +16,7 @@ Si le realm existait avant cette version, recréer uniquement le conteneur Keycl
 
 `public/config.json` est public et ne porte aucun secret. Pour changer les ports, aligner ce fichier, `proxy.conf.json`, `KEYCLOAK_DEV_REDIRECT_URI` et `KEYCLOAK_DEV_WEB_ORIGIN`. Le serveur Angular relaie `/api` vers NestJS ; le déploiement utilisera le même domaine, derrière Traefik.
 
-La connexion utilise Code + PKCE et garde les jetons en mémoire. Après rechargement, « Se connecter » retrouve le SSO et le diagnostic conservé. Le navigateur stocke seulement le marque-page de ce diagnostic par utilisateur/organisation, pas les résultats ni les jetons.
+La connexion utilise Code + PKCE et garde les jetons en mémoire. La déconnexion envoie le formulaire OIDC en POST vers Keycloak, sans indication de jeton dans l’URL. Après rechargement, « Se connecter » retrouve le SSO et le diagnostic conservé. Le navigateur stocke seulement le marque-page de ce diagnostic par utilisateur/organisation, pas les résultats ni les jetons.
 
 Le suivi est authentifié, ordonné et reprenable. Une panne de suivi ne relance pas le calcul ; un résultat sans solution n'affiche pas d'affectations. Ce test fictif ne génère pas de planning réel.
 

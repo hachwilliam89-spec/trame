@@ -125,6 +125,21 @@ describe('Front Guidé construit et chaîne réelle', () => {
         await page
           .getByRole('heading', { name: 'Les trois tâches ont été affectées.', exact: true })
           .waitFor({ timeout: 15_000 });
+        let logoutMethod: string | undefined;
+        let hintInUrl = false;
+        page.on('request', (request) => {
+          const url = new URL(request.url());
+          if (url.pathname.endsWith('/protocol/openid-connect/logout')) {
+            logoutMethod = request.method();
+            hintInUrl = url.searchParams.has('id_token_hint');
+          }
+        });
+        await page.getByRole('button', { name: 'Se déconnecter', exact: true }).click();
+        await page
+          .getByRole('button', { name: 'Se connecter', exact: true })
+          .waitFor({ timeout: 15000 });
+        expect(logoutMethod).toBe('POST');
+        expect(hintInUrl).toBe(false);
         expect(errors).toEqual([]);
       } finally {
         await browser.close();
