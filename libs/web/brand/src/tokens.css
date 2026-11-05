@@ -1,0 +1,15 @@
+:root {
+  color-scheme: light dark;
+  --brand-warp: light-dark(#0f4f58, #8fdde4);
+  --brand-weft: light-dark(#1e9aaa, #2db4c4);
+  --brand-ink: light-dark(#0d3a41, #e4f4f5);
+  --page: light-dark(#f3f7f6, #101d20);
+  --surface: light-dark(#fff, #17282c);
+  --ink: light-dark(#183b40, #e4f4f5);
+  --muted: light-dark(#536b70, #b0c5c8);
+  --line: light-dark(#dbe5e3, #354b50);
+  --action-ink: light-dark(#fff, #0d3a41);
+  --soft: light-dark(#e7f3f2, #213d41);
+  --error: light-dark(#9d332c, #ffb4ac);
+  --warning: light-dark(#7c5715, #eacb8e);
+}

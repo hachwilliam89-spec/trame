@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 
 const solutionV1 = z.object({
   cost: z.int(),

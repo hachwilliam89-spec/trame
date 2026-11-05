@@ -1,0 +1,7 @@
+{
+  "name": "web-brand",
+  "sourceRoot": "libs/web/brand/src",
+  "projectType": "library",
+  "tags": ["scope:web", "type:ui"],
+  "targets": {}
+}

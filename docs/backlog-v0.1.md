@@ -259,10 +259,10 @@ Scénario: Restauration
 - **A2 — Livrée, #32 et #33** : relais RabbitMQ avec confirmations, worker Python réel, résultat
   via inbox atomique, redélivraisons, reprises bornées et file d'erreurs. Le worker
   reste sans accès à la base ; un recalcul après panne est possible, sans second résultat visible.
-- **A3 — En cours, #35** : progression SSE persistée et ordonnée, reprise `Last-Event-ID`,
+- **A3 — Livrée, #35 et #36** : progression SSE persistée et ordonnée, reprise `Last-Event-ID`,
   conservation 1 h après fin, keepalive 20 s, jeton Bearer hors URL et fermeture à expiration,
   test d'acceptation réel et corrélation entre les composants.
-- **B — À faire en deux temps** : bouton authentifié, progression et résultat dans Angular
+- **B — Partie locale en cours (#37), preuve déployée à faire** : bouton authentifié, progression et résultat dans Angular
   en local après A3 et US-020 B ; puis chaîne complète déployée, sauvegardée et trace
   consultable dans Grafana après US-005, US-008 et US-007.
 
@@ -285,11 +285,15 @@ Scénario: Aller-retour complet
 
 ### US-012 — Maquettes des écrans clés
 
+> Première tranche validée le 5 novembre 2026 : version **Guidé**, connexion et diagnostic, états de progression et résultat, reprise/expiration. Les autres écrans restent à maquetter.
+
 - Maquettes Figma de : la grille de planning, la génération avec sa progression, l'explication d'un planning, les trois états de la PE pendant un drag & drop, la vue employé (PWA).
 - Elles fixent la direction visuelle (palette Trame, typographie, densité) et alimentent les tokens d'US-010.
 - Validées par Kim avant US-071. C'est la Definition of Ready des stories d'interface.
 
 ### US-010 — Tokens de marque
+
+> Première tranche dans #37 : palette clair/sombre et logo original pour le diagnostic, tokens dans `libs/web/brand`. Manifest et autres besoins de marque restent à compléter.
 
 - Kit logo intégré (favicon, manifest, icônes).
 - Tokens CSS (couleurs clair/sombre issues de la palette Trame, typographie, espacements, rayons, ombres), plus la configuration Tailwind.
@@ -310,7 +314,7 @@ Scénario: Aller-retour complet
 ### US-020 — Connexion OIDC et rôles
 
 > API A1 et A2 livrées dans les PR #22 et #28 (Keycloak local et parcours réel PKCE).
-> Le front de connexion reste dans la PR B, après US-012.
+> Le front de connexion (PR B) est implémenté et en revue avec le premier parcours Guidé (#37), après validation de sa maquette par Kim le 5 novembre 2026.
 
 ```gherkin
 Scénario: Accès selon le rôle

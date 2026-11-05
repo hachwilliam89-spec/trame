@@ -86,8 +86,8 @@ jobs:
 
       - uses: $/.github/actions/setup
 
-      - name: Chromium pour le parcours réel Keycloak
-        run: pnpm exec playwright install --with-deps chromium
+      - name: Navigateurs pour les parcours Keycloak et Angular
+        run: pnpm exec playwright install --with-deps chromium firefox webkit
 
       - name: Postgres, RabbitMQ et Keycloak réels
         run: pnpm nx run-many -t integration

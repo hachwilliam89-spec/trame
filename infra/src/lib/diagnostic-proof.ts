@@ -1,8 +1,6 @@
-import { spawn, type ChildProcess } from 'node:child_process';
-import { resolve } from 'node:path';
 import { expect } from 'vitest';
 import { z } from 'zod';
-import { isolatedEnvironment } from './compose';
+import { startDiagnosticProcesses } from './diagnostic-processes';
 import { queryDatabase } from './dev-stack';
 
 // Vérification externe du format HTTP ; ce test ne dépend pas des modules de l'API.
@@ -34,7 +32,7 @@ export async function proveDiagnosticProgress(options: {
   const path = options.baseUrl + '/diagnostics/solver-runs/' + run.id;
   const stream = await fetch(path + '/events', { headers, signal: AbortSignal.timeout(30_000) });
   expect(stream.status).toBe(200);
-  const processes = await startProcesses(options);
+  const processes = await startDiagnosticProcesses(options);
   try {
     const first = await firstProgress(stream);
     expect(first).toMatchObject({ runId: run.id, sequence: 1, report: { kind: 'STARTED' } });
@@ -95,48 +93,4 @@ async function firstProgress(response: Response) {
   } finally {
     await reader.cancel();
   }
-}
-
-async function startProcesses(options: { databaseUrl: string; amqpUrl: string }) {
-  const root = resolve(__dirname, '../../..');
-  const env = await isolatedEnvironment({
-    DATABASE_URL: options.databaseUrl,
-    AMQP_URL: options.amqpUrl,
-    DIAGNOSTIC_TOPOLOGY_FILE: resolve(root, 'infra/rabbitmq/diagnostic-topology.json'),
-  });
-  const transport = spawn(
-    resolve(root, 'node_modules/.bin/tsx'),
-    ['--tsconfig', 'tsconfig.base.json', 'tools/diagnostic-transport/src/main.ts'],
-    { cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'] },
-  );
-  const worker = spawn('uv', ['run', '--frozen', 'python', '-m', 'trame_engine.worker'], {
-    cwd: resolve(root, 'apps/engine'),
-    env,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-  let logs = '';
-  for (const child of [transport, worker]) {
-    child.stdout.on('data', (chunk: Buffer) => {
-      logs += chunk.toString();
-    });
-    child.stderr.on('data', (chunk: Buffer) => {
-      logs += chunk.toString();
-    });
-  }
-  return {
-    logs: () => logs,
-    stop: () => Promise.all([stopProcess(transport), stopProcess(worker)]),
-  };
-}
-
-async function stopProcess(child: ChildProcess): Promise<void> {
-  if (child.exitCode !== null || child.signalCode !== null) return;
-  await new Promise<void>((resolve) => {
-    const timeout = setTimeout(() => child.kill('SIGKILL'), 5000);
-    child.once('close', () => {
-      clearTimeout(timeout);
-      resolve();
-    });
-    child.kill('SIGTERM');
-  });
 }
