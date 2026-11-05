@@ -35,12 +35,22 @@ export async function startWebServer(options: {
   };
 }
 function proxy(request: IncomingMessage, response: ServerResponse, origin: string): void {
-  const destination = new URL(request.url ?? '/', origin);
+  const destination = new URL(origin);
   const headers = { ...request.headers, host: destination.host };
-  const outgoing = proxyRequest(destination, { method: request.method, headers }, (incoming) => {
-    response.writeHead(incoming.statusCode ?? 502, incoming.headers);
-    incoming.pipe(response);
-  });
+  const outgoing = proxyRequest(
+    {
+      protocol: destination.protocol,
+      hostname: destination.hostname,
+      port: destination.port,
+      path: request.url,
+      method: request.method,
+      headers,
+    },
+    (incoming) => {
+      response.writeHead(incoming.statusCode ?? 502, incoming.headers);
+      incoming.pipe(response);
+    },
+  );
   outgoing.on('error', () => {
     if (!response.headersSent) response.writeHead(502);
     response.end();

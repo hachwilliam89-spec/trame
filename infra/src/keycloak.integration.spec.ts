@@ -146,7 +146,7 @@ describe('Keycloak et API construite, avec de vrais jetons (US-020 A2)', () => {
       baseUrl: api.baseUrl,
       accessToken: accessToken('manager'),
       databaseUrl,
-      amqpUrl: 'amqp://trame:trame@127.0.0.1:' + options.overrides?.RABBITMQ_PORT,
+      amqpUrl: 'amqp://trame:trame@127.0.0.1:' + options.overrides?.['RABBITMQ_PORT'],
     });
   });
 
