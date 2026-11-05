@@ -1,0 +1,8 @@
+{
+  "name": "web-scheduling-data-access",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/web/scheduling/data-access/src",
+  "projectType": "library",
+  "tags": ["scope:web", "type:data-access"],
+  "targets": {}
+}

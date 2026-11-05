@@ -1,5 +1,59 @@
-<main class="mx-auto flex min-h-screen max-w-2xl flex-col justify-center gap-4 px-6">
-  <h1 class="text-3xl font-semibold tracking-tight">Trame</h1>
-  <p class="text-base">Planification d'équipes sous contraintes. Socle en construction.</p>
-  <router-outlet />
-</main>
+<a class="skip-link" href="#main">Aller au contenu</a>
+<div class="app-window">
+  <header class="app-header">
+    <picture
+      ><source media="(prefers-color-scheme: dark)" srcset="/trame-logo-dark.svg" />
+      <img src="/trame-logo.svg" width="127" height="36" alt="Trame"
+    /></picture>
+    <div class="context">
+      <span class="environment">Espace de démonstration</span>@if (session.identity(); as identity)
+      {<span class="account">{{ roleLabel() }}</span>}
+    </div>
+  </header>
+  <main id="main" class="main-content">
+    @if (session.status() === 'authenticated') {<tr-diagnostic-page />
+    <footer>
+      <button type="button" class="text-action" (click)="logout()">Se déconnecter</button>
+    </footer>
+    } @else if (session.status() === 'loading') {
+    <h1>Préparation de votre espace…</h1>
+    } @else {
+    <section class="login-layout">
+      <div class="login-copy">
+        <div class="eyebrow">Planification d’équipes</div>
+        <h1>Le bon rythme,<br />ensemble.</h1>
+        <p class="muted">
+          Un premier aperçu de Trame, avec un calcul de démonstration à suivre en direct.
+        </p>
+        <div class="login-feature">
+          <h2>Du lancement au résultat</h2>
+          <p>Suivez chaque étape du calcul.</p>
+        </div>
+        <div class="login-feature">
+          <h2>Reprenez le fil</h2>
+          <p>Retrouvez le suivi après une déconnexion.</p>
+        </div>
+      </div>
+      <div class="panel login-panel">
+        <div class="eyebrow">Bienvenue</div>
+        <h2>Accéder à votre espace</h2>
+        <p class="muted">Connectez-vous avec votre compte Trame pour lancer le test.</p>
+        @if (session.status() === 'expired') {
+        <div class="notice warning" role="status">
+          <strong>Votre session a expiré</strong>
+          <p>Reconnectez-vous pour retrouver le suivi de votre calcul.</p>
+        </div>
+        } @if (session.status() === 'unavailable') {
+        <div class="notice error" role="alert">
+          <strong>Connexion indisponible</strong>
+          <p>Rechargez la page pour réessayer.</p>
+        </div>
+        } @else {<button type="button" class="action" (click)="login()">Se connecter</button>}
+        <p class="small muted">La connexion ouvre votre page d’identification sécurisée.</p>
+      </div>
+    </section>
+    } @if (actionError()) {
+    <p class="error" role="alert">{{ actionError() }}</p>
+    }
+  </main>
+</div>

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 import { diagnosticOutcomeV1, diagnosticFailureV1 } from './diagnostic-report.v1';
 
 /** Aucune entrée de calcul arbitraire ; même une organisation fournie est refusée. */

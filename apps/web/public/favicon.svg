@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Trame">
+  <title>Trame</title>
+  <style>.v{fill:#0F4F58}.h{fill:#1E9AAA}.cell{fill:#1E9AAA}@media (prefers-color-scheme: dark){.v{fill:#8FDDE4}.h{fill:#2DB4C4}.cell{fill:#2DB4C4}}</style>
+  <g>
+    <rect x="0" y="0" width="22" height="49" class="v"/>
+    <rect x="0" y="71" width="22" height="49" class="v"/>
+    <rect x="49" y="22" width="22" height="76" class="v"/>
+    <rect x="98" y="0" width="22" height="49" class="v"/>
+    <rect x="98" y="71" width="22" height="49" class="v"/>
+    <rect x="22" y="0" width="76" height="22" class="h"/>
+    <rect x="0" y="49" width="49" height="22" class="h"/>
+    <rect x="71" y="49" width="49" height="22" class="h"/>
+    <rect x="22" y="98" width="76" height="22" class="h"/>
+    <rect x="27" y="27" width="17" height="17" class="cell"/>
+    <rect x="76" y="76" width="17" height="17" class="cell"/>
+  </g>
+</svg>

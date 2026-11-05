@@ -1,0 +1,6 @@
+{
+  "apiBasePath": "/api/v1",
+  "authServerUrl": "http://127.0.0.1:8080",
+  "realm": "trame",
+  "clientId": "trame-dev"
+}

@@ -1,0 +1,151 @@
+<div class="page-heading">
+  <div class="eyebrow">Premiers pas</div>
+  <h1>Tester le moteur</h1>
+  <p class="muted">Un petit calcul pour vérifier que tout fonctionne ensemble.</p>
+</div>
+<div class="workspace">
+  <aside class="explanation">
+    <h2>Un test simple</h2>
+    <p>Le moteur répartit trois tâches fictives entre trois postes.</p>
+    <p>Vous pourrez suivre le calcul et consulter son résultat ici.</p>
+    <p class="small">Ce diagnostic utilise uniquement des données de démonstration.</p>
+  </aside>
+  <section class="panel" aria-labelledby="diagnostic-title">
+    <div class="panel-heading">
+      <h2 id="diagnostic-title">Calcul de démonstration</h2>
+      <span class="status">{{ statusLabel() }}</span>
+    </div>
+    <div aria-live="polite" aria-atomic="true">
+      @switch (diagnostic.phase()) { @case ('ready') {
+      <div class="notice">
+        <strong>Prêt pour un premier test</strong>
+        <p>Lancez le calcul pour suivre son avancement.</p>
+      </div>
+      } @case ('creating') {
+      <div class="notice">
+        <strong>Enregistrement de votre demande</strong>
+        <p>Patientez quelques instants.</p>
+      </div>
+      } @case ('queued') {
+      <div class="notice">
+        <strong>Votre demande est enregistrée</strong>
+        <p>Le calcul démarrera dès que le moteur sera disponible.</p>
+      </div>
+      } @case ('running') {
+      <div class="notice">
+        <strong>Le moteur travaille</strong>
+        <p>Vous pouvez laisser cette page ouverte pendant le calcul.</p>
+      </div>
+      } @case ('disconnected') {
+      <div class="notice warning">
+        <strong>Le suivi a été interrompu</strong>
+        <p>Votre demande est conservée. Reprenez le suivi pour retrouver votre calcul.</p>
+      </div>
+      } @case ('unavailable') {
+      <div class="notice warning">
+        <strong>Le service est momentanément indisponible</strong>
+        <p>Réessayez dans quelques instants.</p>
+      </div>
+      } @case ('forbidden') {
+      <div class="notice error" role="alert">
+        <strong>Vous n’avez pas accès à ce diagnostic</strong>
+        <p>Le lancement du test est réservé aux managers et aux administrateurs.</p>
+      </div>
+      } @case ('missing') {
+      <div class="notice error" role="alert">
+        <strong>Diagnostic introuvable</strong>
+        <p>Ce diagnostic est absent ou ne fait pas partie de votre organisation.</p>
+      </div>
+      } @case ('failed') {
+      <div class="notice error" role="alert">
+        <strong>Le calcul n’a pas abouti</strong>
+        <p>Vous pouvez relancer un nouveau test.</p>
+      </div>
+      } }
+    </div>
+    @if (diagnostic.historyExpired()) {
+    <div class="notice warning">
+      <strong>Le détail de la progression a expiré</strong>
+      <p>Le résultat enregistré reste disponible ci-dessous.</p>
+    </div>
+    } @if (diagnostic.run() && diagnostic.phase() !== 'forbidden') {
+    <ol class="steps" aria-label="Étapes du diagnostic">
+      <li class="done">
+        <span aria-hidden="true">✓</span>
+        <div>Demande enregistrée<small>Votre calcul est conservé.</small></div>
+      </li>
+      <li [class.done]="diagnostic.phase() === 'running' || complete()">
+        <span aria-hidden="true">{{ complete() ? '✓' : '2' }}</span>
+        <div>
+          {{ complete() ? 'Calcul terminé' : 'Calcul en cours' }}<small
+            >{{ complete() ? 'Le traitement du test est terminé.' : 'Le moteur recherche une
+            affectation.' }}</small
+          >
+        </div>
+      </li>
+      <li [class.done]="complete()">
+        <span aria-hidden="true">{{ complete() ? '✓' : '3' }}</span>
+        <div>
+          Résultat disponible<small
+            >{{ complete() ? 'Consultez le résultat ci-dessous.' : 'Le résultat sera conservé ici.'
+            }}</small
+          >
+        </div>
+      </li>
+    </ol>
+    } @if (result(); as result) {
+    <section class="result" aria-label="Résultat du diagnostic">
+      <h3>{{ resultLabel() }}</h3>
+      @if (result.status === 'FEASIBLE') {
+      <p class="muted">Le caractère optimal de cette affectation n’a pas été prouvé.</p>
+      } @if (assignments().length > 0) {
+      <table>
+        <caption class="sr-only">
+          Affectations du calcul de démonstration
+        </caption>
+        <thead>
+          <tr>
+            <th scope="col">Tâche fictive</th>
+            <th scope="col">Affectation</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (assignment of assignments(); track assignment.task) {
+          <tr>
+            <td>Tâche {{ assignment.task }}</td>
+            <td>Poste {{ assignment.post }}</td>
+          </tr>
+          }
+        </tbody>
+      </table>
+      }
+      <details>
+        <summary>Détails du diagnostic</summary>
+        <dl>
+          <dt>Issue du solveur</dt>
+          <dd>{{ result.status }}</dd>
+          @if (result.solution; as solution) {
+          <dt>Coût de l’affectation</dt>
+          <dd>{{ solution.cost }}</dd>
+          }
+          <dt>Référence</dt>
+          <dd>{{ diagnostic.run()?.id }}</dd>
+        </dl>
+      </details>
+    </section>
+    }
+    <div class="actions">
+      @if (resumable()) {<button type="button" class="action" (click)="resume()">
+        Reprendre le suivi</button
+      >} @else if (diagnostic.phase() !== 'forbidden') {<button
+        type="button"
+        class="action"
+        [disabled]="busy()"
+        (click)="launch()"
+      >
+        {{ busy() ? 'Calcul en cours…' : launchLabel() }}</button
+      >}
+    </div>
+    <p class="footnote">Aucune donnée de votre équipe n’est utilisée.</p>
+  </section>
+</div>

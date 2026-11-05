@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import * as z from 'zod';
 import { diagnosticReportV1 } from './diagnostic-report.v1';
 
 /** Événement SSE public ; runId relie la requête, le worker et le résultat. */

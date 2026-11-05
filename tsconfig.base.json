@@ -50,7 +50,13 @@
       ],
       "@trame/platform/messaging": ["./libs/platform/messaging/src/index.ts"],
       "@trame/platform/inbox": ["./libs/platform/inbox/src/index.ts"],
-      "@trame/platform/messaging/testing": ["./libs/platform/messaging/src/testing.ts"]
+      "@trame/platform/messaging/testing": ["./libs/platform/messaging/src/testing.ts"],
+      "@trame/web/auth/data-access": ["./libs/web/auth/data-access/src/index.ts"],
+      "@trame/web/scheduling/data-access": ["./libs/web/scheduling/data-access/src/index.ts"],
+      "@trame/web/scheduling/feature-diagnostic": [
+        "./libs/web/scheduling/feature-diagnostic/src/index.ts"
+      ],
+      "@trame/shared/contracts/scheduling": ["./libs/shared/contracts/src/scheduling/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
