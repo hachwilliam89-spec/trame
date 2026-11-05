@@ -107,6 +107,7 @@ describe('createOidcActorResolver', () => {
       userId: 'utilisateur-opaque-1',
       organizationId: ORGANIZATION_ID,
       roles: ['admin'],
+      expiresAtEpochMilliseconds: (NOW_IN_SECONDS + 300) * 1000,
     });
   });
 

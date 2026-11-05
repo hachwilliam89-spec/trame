@@ -6,6 +6,8 @@ export interface Actor {
   /** Organisation de l'utilisateur : toute donnée lue ou écrite est filtrée dessus. */
   readonly organizationId: string;
   readonly roles: readonly string[];
+  /** Échéance vérifiée de la session ; exigée par les connexions longues. */
+  readonly expiresAtEpochMilliseconds?: number;
 }
 
 /**
