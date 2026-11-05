@@ -1,0 +1,120 @@
+# Preuve isolée US-005 A : données fictives uniquement, aucun déploiement sur le VPS.
+x-application: &application
+  platform: ${TRAME_IMAGE_PLATFORM:-linux/amd64}
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ['no-new-privileges:true']
+  tmpfs: ['/tmp:rw,noexec,nosuid,size=64m,mode=1777']
+  logging: &bounded-logs
+    driver: json-file
+    options: { max-size: '10m', max-file: '3' }
+
+services:
+  postgres:
+    extends: { file: dev.yml, service: postgres }
+    ports: !override []
+    volumes:
+      - ../docker/test-database.sql:/docker-entrypoint-initdb.d/test-database.sql:ro
+    logging: *bounded-logs
+  rabbitmq:
+    extends: { file: dev.yml, service: rabbitmq }
+    ports: !override []
+    logging: *bounded-logs
+  keycloak:
+    extends: { file: dev.yml, service: keycloak }
+    environment:
+      KC_HOSTNAME: http://127.0.0.1:${IMAGE_KEYCLOAK_PORT:?}
+      KEYCLOAK_DEV_REDIRECT_URI: http://127.0.0.1:${IMAGE_WEB_PORT:?}/oidc-callback
+      KEYCLOAK_DEV_WEB_ORIGIN: http://127.0.0.1:${IMAGE_WEB_PORT:?}
+    ports: !override ['127.0.0.1:${IMAGE_KEYCLOAK_PORT:?}:8080']
+    logging: *bounded-logs
+  migrator:
+    <<: *application
+    image: ${COMPOSE_PROJECT_NAME:?}-migrator:local
+    build: { context: ../.., dockerfile: infra/docker/node.Dockerfile, target: migrator }
+    environment:
+      DATABASE_URL: postgresql://trame:trame@postgres:5432/trame
+    depends_on:
+      postgres: { condition: service_healthy }
+  api:
+    <<: *application
+    image: ${COMPOSE_PROJECT_NAME:?}-api:local
+    build: { context: ../.., dockerfile: infra/docker/node.Dockerfile, target: api }
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: '3000'
+      LOG_LEVEL: info
+      DATABASE_URL: postgresql://trame_api:trame-api-test-only@postgres:5432/trame
+      OIDC_ISSUER_URL: http://127.0.0.1:${IMAGE_KEYCLOAK_PORT:?}/realms/trame
+      OIDC_AUDIENCE: trame-api
+      OIDC_JWKS_URL: http://keycloak:8080/realms/trame/protocol/openid-connect/certs
+    depends_on:
+      migrator: { condition: service_completed_successfully }
+      keycloak: { condition: service_healthy }
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/v1/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  relay:
+    <<: *application
+    image: ${COMPOSE_PROJECT_NAME:?}-relay:local
+    build: { context: ../.., dockerfile: infra/docker/node.Dockerfile, target: relay }
+    environment:
+      DATABASE_URL: postgresql://trame_api:trame-api-test-only@postgres:5432/trame
+      AMQP_URL: amqp://trame:trame@rabbitmq:5672
+    depends_on:
+      migrator: { condition: service_completed_successfully }
+      rabbitmq: { condition: service_healthy }
+  engine:
+    <<: *application
+    image: ${COMPOSE_PROJECT_NAME:?}-engine:local
+    build: { context: ../.., dockerfile: infra/docker/engine.Dockerfile, target: engine }
+    environment: { ENGINE_MAX_WORKERS: '1' }
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+  worker:
+    <<: *application
+    image: ${COMPOSE_PROJECT_NAME:?}-worker:local
+    build: { context: ../.., dockerfile: infra/docker/engine.Dockerfile, target: worker }
+    environment:
+      AMQP_URL: amqp://trame:trame@rabbitmq:5672
+      ENGINE_MAX_WORKERS: '1'
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+  web:
+    <<: *application
+    image: ${COMPOSE_PROJECT_NAME:?}-web:local
+    build: { context: ../.., dockerfile: infra/docker/node.Dockerfile, target: web }
+    environment:
+      WEB_AUTH_SERVER_URL: http://127.0.0.1:${IMAGE_KEYCLOAK_PORT:?}
+      WEB_AUTH_REALM: trame
+      WEB_AUTH_CLIENT_ID: trame-dev
+    ports: ['127.0.0.1:${IMAGE_WEB_PORT:?}:8080']
+    depends_on:
+      api: { condition: service_healthy }
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8080/health']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  postgres-data:
+  rabbitmq-data:

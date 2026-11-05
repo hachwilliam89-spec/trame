@@ -232,6 +232,9 @@ importers:
       rxjs:
         specifier: 7.8.2
         version: 7.8.2
+      tslib:
+        specifier: ^2.3.0
+        version: 2.9.1
       uuid:
         specifier: 14.0.3
         version: 14.0.3
@@ -407,9 +410,6 @@ importers:
       tailwindcss:
         specifier: 4.3.3
         version: 4.3.3
-      tslib:
-        specifier: ^2.3.0
-        version: 2.9.1
       tsx:
         specifier: 4.23.15
         version: 4.23.15

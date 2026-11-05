@@ -10,7 +10,7 @@ export default defineConfig(() => ({
     globals: true,
     environment: 'node',
     include: ['src/**/*.spec.ts'],
-    exclude: ['src/**/*.integration.spec.ts'],
+    exclude: ['src/**/*.integration.spec.ts', 'src/**/*.images.spec.ts'],
     passWithNoTests: false,
     reporters: ['default'],
   },

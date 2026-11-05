@@ -1,0 +1,27 @@
+# Seules les sources et les manifestes nécessaires à la construction quittent le poste.
+**
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!nx.json
+!tsconfig.base.json
+!.node-version
+!eslint.config.mjs
+!apps/**
+!libs/**
+!tools/**
+!infra/**
+**/node_modules
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/*.spec.ts
+**/tests
+**/test-results
+**/.env*
+**/*.pem
+**/*.key
+infra/keycloak
+infra/src

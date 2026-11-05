@@ -18,6 +18,8 @@ module.exports = {
       optimization: false,
       outputHashing: 'none',
       generatePackageJson: true,
+      // Les helpers émis par TypeScript ne sont pas des imports explicites du code source.
+      runtimeDependencies: ['tslib'],
       sourceMap: true,
     }),
   ],
