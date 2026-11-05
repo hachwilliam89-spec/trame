@@ -100,6 +100,15 @@ L'infrastructure locale (`infra/compose/dev.yml`, US-004 et US-020 A) comprend P
 
 Les règles 1 à 4 et 11 sont vérifiées par `@nx/enforce-module-boundaries` côté TypeScript, et par import-linter côté Python.
 
+## Design patterns : usage pertinent
+
+Décision de Kim du 2026-11-05 : utiliser les design patterns lorsqu'ils répondent à un besoin concret du projet et rendent la construction de l'application plus claire, testable ou efficace.
+
+- Choisir le pattern à partir du problème à résoudre et expliquer brièvement son utilité dans le code ou la PR quand le choix n'est pas évident.
+- Préserver les règles de lisibilité et les frontières d'architecture ; les noms restent orientés métier.
+- Pour une optimisation, mesurer le coût initial et le gain obtenu. Le poids mouche (_Flyweight_) convient au partage de données immuables répétées lorsque ce partage est utile ; ne pas mutualiser de données métier mutables entre utilisateurs ou organisations.
+- Garder une solution simple quand une abstraction supplémentaire ne rend pas de service concret.
+
 ## Lisibilité (priorité)
 
 Le code est écrit pour être relu et repris par un humain qui découvre le module, pas pour être court. Un code correct mais difficile à lire est une raison suffisante de demander une reprise en revue.
