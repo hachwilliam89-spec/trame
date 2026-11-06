@@ -4,6 +4,7 @@ import { type Browser, type BrowserContext, type Page, chromium } from 'playwrig
 import { decodeJwt } from 'jose';
 import { type KeycloakContainer, startKeycloakWithRealm } from './lib/keycloak-container';
 import { totpCode } from './lib/totp';
+import { launchTestBrowser } from './lib/test-browser';
 
 /**
  * Scénarios d'authentification d'US-005 B2 (#47) sur un vrai Keycloak, avec le realm de staging
@@ -47,7 +48,7 @@ describe('realm de staging sur un vrai Keycloak (US-005 B2)', () => {
 
   beforeAll(async () => {
     keycloak = await startKeycloakWithRealm(REALM_FILE);
-    browser = await chromium.launch({ args: [UNRESOLVABLE_APPLICATION_HOST] });
+    browser = await launchTestBrowser(chromium, { args: [UNRESOLVABLE_APPLICATION_HOST] });
   });
 
   afterAll(async () => {

@@ -2,6 +2,7 @@ import { chromium, type Page } from 'playwright';
 import { randomUUID } from 'node:crypto';
 import { reserveFreePort } from './lib/dev-stack';
 import { docker, imageCompose, type ImageStack } from './lib/image-stack';
+import { launchTestBrowser } from './lib/test-browser';
 
 let stack: ImageStack;
 let origin: string;
@@ -172,7 +173,7 @@ it('réserve le DDL au migrateur et vérifie l’absence de dérive Prisma', asy
 });
 
 it('exécute le calcul Python via le front et reprend le suivi après une coupure', async () => {
-  const browser = await chromium.launch();
+  const browser = await launchTestBrowser(chromium);
   const page = await browser.newPage();
   try {
     await login(page, 'manager');
@@ -229,7 +230,7 @@ it('exécute le calcul Python via le front et reprend le suivi après une coupur
 });
 
 it('refuse le diagnostic à l’employé sur la chaîne conteneurisée', async () => {
-  const browser = await chromium.launch();
+  const browser = await launchTestBrowser(chromium);
   const page = await browser.newPage();
   try {
     const tokenResponse = page.waitForResponse((response) =>
