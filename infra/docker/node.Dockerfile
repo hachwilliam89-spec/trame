@@ -1,6 +1,10 @@
 FROM node:26.13.0-bookworm-slim@sha256:add5c17c14752c54d2f3d519ec46a3815684d41c33f198bcb09fb998f7dcbf68 AS base
 WORKDIR /app
 ENV NODE_ENV=production
+# Les processus ne lancent que node : npm et corepack, fournis par l'image de base, ne servent pas
+# à l'exécution et embarquent leurs propres dépendances (failles hautes relevées par Trivy, #44).
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 
 # La construction et la CLI de migration ont besoin de Git/OpenSSL déjà figés dans cette base.
 # Les processus API/relais gardent la variante slim, sans les outils de compilation.
@@ -53,6 +57,9 @@ COPY --from=builder /workspace/dist/migrator/package.json /workspace/dist/migrat
 RUN pnpm install --prod --frozen-lockfile
 
 FROM toolchain AS migrator
+# La migration ne lance que la CLI Prisma avec node : npm et corepack ne lui servent pas.
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 COPY --from=migration-dependencies /runtime/node_modules ./node_modules
 COPY libs/api/shared/database/prisma ./prisma
 COPY infra/docker/prisma.config.ts ./prisma.config.ts
@@ -65,6 +72,10 @@ FROM builder AS web-assets
 RUN rm /workspace/dist/apps/web/browser/config.json
 
 FROM nginx/nginx-unprivileged:1.30.6-alpine@sha256:44e74ca483234093081138b6d7b6f561d55557756a2deefc3a5056148defeb99 AS web
+# L'image de base (digest inchangé au 2026-11-06) a libexpat 2.9.0, aux failles hautes corrigées
+# en 2.10.0. Sans effet dès qu'une base plus récente l'inclut.
+USER root
+RUN apk upgrade --no-cache libexpat && apk info --exists 'libexpat>=2.10.0'
 COPY --from=web-assets /workspace/dist/apps/web/browser /usr/share/nginx/html
 COPY infra/docker/web/nginx.conf /etc/nginx/nginx.conf
 COPY --chmod=555 infra/docker/web/entrypoint.sh /trame-entrypoint.sh

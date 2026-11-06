@@ -15,7 +15,8 @@
     "format": "nx format:write",
     "format:check": "nx format:check",
     "knip": "knip",
-    "pr:merge": "tsx tools/merge-pr/src/main.ts"
+    "pr:merge": "tsx tools/merge-pr/src/main.ts",
+    "release-images": "tsx tools/release-images/src/main.ts"
   },
   "dependencies": {
     "@angular/common": "22.2.4",
