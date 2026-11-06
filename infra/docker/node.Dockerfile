@@ -23,7 +23,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Les scripts des dépendances restent contrôlés par allowBuilds.
 RUN npm pkg delete scripts.prepare && pnpm install --frozen-lockfile
 COPY . .
-RUN pnpm nx run-many -t build -p api diagnostic-transport web --configuration=production
+RUN pnpm nx run-many -t build -p api relay web --configuration=production
 RUN node infra/docker/package-migrator.cjs
 
 FROM installer AS api-dependencies
@@ -40,12 +40,12 @@ CMD ["node", "main.js"]
 
 FROM installer AS relay-dependencies
 WORKDIR /runtime
-COPY --from=builder /workspace/dist/tools/diagnostic-transport/package.json /workspace/dist/tools/diagnostic-transport/pnpm-lock.yaml /workspace/dist/tools/diagnostic-transport/pnpm-workspace.yaml ./
+COPY --from=builder /workspace/dist/apps/relay/package.json /workspace/dist/apps/relay/pnpm-lock.yaml /workspace/dist/apps/relay/pnpm-workspace.yaml ./
 RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 
 FROM base AS relay
 COPY --from=relay-dependencies /runtime/node_modules ./node_modules
-COPY --from=builder /workspace/dist/tools/diagnostic-transport/main.js ./main.js
+COPY --from=builder /workspace/dist/apps/relay/main.js ./main.js
 COPY infra/rabbitmq/diagnostic-topology.json ./topology.json
 ENV DIAGNOSTIC_TOPOLOGY_FILE=/app/topology.json
 USER node

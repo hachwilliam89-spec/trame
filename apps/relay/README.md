@@ -9,7 +9,7 @@ pnpm nx run infra:up
 pnpm nx run engine:install
 pnpm nx serve api
 # Dans deux autres terminaux :
-pnpm nx run diagnostic-transport:serve
+pnpm nx run relay:serve
 pnpm nx run engine:worker
 ```
 
@@ -35,6 +35,6 @@ détaillées dans [l'ADR-0032](../../docs/adr/0032-transport-diagnostic-et-repri
 La supervision, les utilisateurs/vhosts et les images de déploiement appartiennent à US-005.
 Aucun port supplémentaire n'est publié par ce processus.
 
-US-005 A ajoute `pnpm nx build diagnostic-transport` et l'image `relay` : le processus livré
+US-005 A ajoute `pnpm nx build relay` et l'image `relay` : le processus livré
 exécute `node main.js`, sans `tsx`. La [preuve conteneurisée](../../infra/docker/README.md)
 teste le relais avec les mêmes contrats et la topologie versionnée, sans publier de port.

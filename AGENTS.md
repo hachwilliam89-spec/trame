@@ -19,6 +19,7 @@ Trame planifie automatiquement les équipes d'un entrepôt logistique : besoins 
 apps/
   web/        Angular — manager, admin, PWA employé (v0.2)
   api/        NestJS — monolithe modulaire
+  relay/      Node — relais outbox vers RabbitMQ et réception des rapports du moteur (image relay)
   engine/     Python — FastAPI + worker AMQP, OR-Tools CP-SAT, PE
               src/trame_engine/contracts/ : modèles Pydantic GÉNÉRÉS, ne pas éditer
   docs/       Astro Starlight

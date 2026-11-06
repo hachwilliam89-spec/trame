@@ -44,8 +44,8 @@ Les ports se changent dans `.env` (`POSTGRES_PORT`, `RABBITMQ_PORT`, `RABBITMQ_M
 
 US-009 A2 utilise le RabbitMQ existant, sans nouveau conteneur ni port. Après mise à jour
 d'un ancien `.env`, ajouter `AMQP_URL` depuis `.env.example` et adapter son port si
-`RABBITMQ_PORT` a changé. Lancer ensuite `diagnostic-transport:serve` et `engine:worker`
-(voir [leur procédure](../tools/diagnostic-transport/README.md)).
+`RABBITMQ_PORT` a changé. Lancer ensuite `relay:serve` et `engine:worker`
+(voir [leur procédure](../apps/relay/README.md)).
 
 `rabbitmq/diagnostic-topology.json` est commun à Node et Python, validé par les contrats.
 Les noms des quatre files et leur politique sont détaillés dans l'ADR-0032. Le parking

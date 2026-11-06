@@ -5,7 +5,7 @@ Depuis la racine, avec la stack locale et les environnements Node/Python install
 ```bash
 pnpm nx run infra:up
 pnpm nx serve api
-pnpm nx run diagnostic-transport:serve
+pnpm nx run relay:serve
 pnpm nx run engine:worker
 pnpm nx serve web
 ```

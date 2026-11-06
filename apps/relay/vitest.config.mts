@@ -2,10 +2,10 @@ import { defineConfig } from 'vitest/config';
 
 export default defineConfig(() => ({
   root: import.meta.dirname,
-  cacheDir: '../../node_modules/.vite/tools/diagnostic-transport',
+  cacheDir: '../../node_modules/.vite/apps/relay',
   resolve: { tsconfigPaths: true },
   test: {
-    name: 'diagnostic-transport',
+    name: 'relay',
     watch: false,
     globals: true,
     environment: 'node',
@@ -13,7 +13,7 @@ export default defineConfig(() => ({
     passWithNoTests: false,
     reporters: ['default'],
     coverage: {
-      reportsDirectory: '../../coverage/tools/diagnostic-transport',
+      reportsDirectory: '../../coverage/apps/relay',
       provider: 'v8' as const,
     },
   },

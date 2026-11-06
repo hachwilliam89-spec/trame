@@ -1,0 +1,14 @@
+{
+  "name": "relay",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "apps/relay/src",
+  "projectType": "application",
+  "tags": ["scope:api", "type:app"],
+  "targets": {
+    "serve": {
+      "continuous": true,
+      "dependsOn": ["api-database:prisma-generate"],
+      "command": "tsx --tsconfig tsconfig.base.json apps/relay/src/main.ts"
+    }
+  }
+}

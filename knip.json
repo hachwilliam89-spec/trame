@@ -14,7 +14,7 @@
     "libs/platform/*/src/testing.ts",
     "libs/api/*/*/src/index.ts",
     "libs/api/*/*/src/testing.ts",
-    "tools/diagnostic-transport/src/main.ts"
+    "apps/relay/src/main.ts"
   ],
   "project": [
     "apps/**/*.{ts,mts}",
