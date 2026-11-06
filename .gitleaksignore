@@ -1,0 +1,5 @@
+# Faux positifs de gitleaks, un par empreinte (commit:fichier:règle:ligne). Chaque ligne est justifiée.
+#
+# Phrase de passe vide d'une clé cosign jetable, créée et détruite par la preuve de signature de la
+# CI (infra/release/signature-proof.sh). Ce n'est pas un secret ; la ligne a été réécrite ensuite.
+425e9addfdc55c8cd1dbea7224f0bc15d3327797:infra/release/signature-proof.sh:generic-api-key:12
