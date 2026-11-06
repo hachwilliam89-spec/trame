@@ -105,7 +105,7 @@
   ],
   "scopeMappings": [
     {
-      "client": "trame-dev",
+      "client": "trame-web",
       "roles": [
         "admin",
         "manager",
@@ -116,7 +116,7 @@
   "clientScopeMappings": {
     "account": [
       {
-        "client": "trame-dev",
+        "client": "trame-web",
         "roles": [
           "manage-account",
           "view-profile"

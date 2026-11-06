@@ -92,7 +92,41 @@ export function buildEnvironmentRealm(
     ...BRUTE_FORCE_PROTECTION,
     requiredActions: REQUIRED_ACTIONS,
     clients: environmentClients(realm, environment.applicationOrigin),
+    scopeMappings: renameClientInMappings(realm['scopeMappings']),
+    clientScopeMappings: renameClientInClientScopeMappings(realm['clientScopeMappings']),
   };
+}
+
+interface ScopeMapping {
+  client?: string;
+  roles: string[];
+}
+
+/**
+ * Les associations de portée désignent le client par son identifiant : Keycloak refuse d'importer
+ * un realm dont une association vise un client absent. Elles suivent donc le renommage.
+ */
+function renameClientInMappings(mappings: unknown): ScopeMapping[] {
+  const renamed: ScopeMapping[] = [];
+  for (const mapping of (mappings ?? []) as ScopeMapping[]) {
+    if (mapping.client === LOCAL_CLIENT_ID) {
+      renamed.push({ ...mapping, client: APPLICATION_CLIENT_ID });
+    } else {
+      renamed.push(mapping);
+    }
+  }
+  return renamed;
+}
+
+function renameClientInClientScopeMappings(
+  mappingsByClient: unknown,
+): Record<string, ScopeMapping[]> {
+  const renamed: Record<string, ScopeMapping[]> = {};
+  const entries = Object.entries((mappingsByClient ?? {}) as Record<string, ScopeMapping[]>);
+  for (const [clientId, mappings] of entries) {
+    renamed[clientId] = renameClientInMappings(mappings);
+  }
+  return renamed;
 }
 
 function environmentClients(

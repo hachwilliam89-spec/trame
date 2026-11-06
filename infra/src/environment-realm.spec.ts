@@ -65,6 +65,11 @@ describe('realm d’environnement dérivé du realm local (US-005 B2)', () => {
     expect(text).not.toContain('trame-local-only');
   });
 
+  it('ne garde aucune référence au client local, associations de portée comprises', () => {
+    // Keycloak refuse d'importer un realm dont une association vise un client absent.
+    expect(JSON.stringify(staging)).not.toContain('trame-dev');
+  });
+
   it('expose un seul client applicatif, avec callback et origine HTTPS exacts', () => {
     expect(applicationClient(staging)).toMatchObject({
       enabled: true,
