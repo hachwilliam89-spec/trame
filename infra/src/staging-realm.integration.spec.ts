@@ -101,14 +101,27 @@ describe('realm de staging sur un vrai Keycloak (US-005 B2)', () => {
     await page.locator('#kc-login').click();
   }
 
-  /** Attend le callback ; sinon, dit où la page s'est arrêtée et ce qu'elle affiche. */
-  async function waitForCallback(page: Page): Promise<void> {
+  /**
+   * Soumet le formulaire et rend l'URL du callback demandée par le navigateur, code compris. La
+   * page du callback n'est pas chargée : le nom du staging n'a pas encore d'enregistrement DNS.
+   */
+  async function submitAndCaptureCallback(
+    page: Page,
+    submit: () => Promise<void>,
+  ): Promise<string> {
+    const callbackRequest = page.waitForRequest(
+      (request) => request.url().startsWith(REDIRECT_URI),
+      {
+        timeout: 20_000,
+      },
+    );
+    await submit();
     try {
-      await page.waitForURL((url) => url.toString().startsWith(REDIRECT_URI), { timeout: 20_000 });
+      return (await callbackRequest).url();
     } catch (error) {
       const text = (await page.locator('body').innerText()).slice(0, 800);
       throw new Error(
-        `Callback non atteint. URL : ${page.url()}\nPage : ${text}\n${String(error)}`,
+        `Callback non demandé. URL : ${page.url()}\nPage : ${text}\n${String(error)}`,
       );
     }
   }
@@ -117,8 +130,8 @@ describe('realm de staging sur un vrai Keycloak (US-005 B2)', () => {
     return page.url().startsWith(REDIRECT_URI);
   }
 
-  async function exchangeCode(page: Page, verifier: string): Promise<string> {
-    const code = new URL(page.url()).searchParams.get('code') ?? '';
+  async function exchangeCode(callbackUrl: string, verifier: string): Promise<string> {
+    const code = new URL(callbackUrl).searchParams.get('code') ?? '';
     const response = await fetch(
       `${keycloak.baseUrl}/realms/${REALM}/protocol/openid-connect/token`,
       {
@@ -165,10 +178,11 @@ describe('realm de staging sur un vrai Keycloak (US-005 B2)', () => {
 
       await page.locator('#totp').fill(totpCode(enrolledSecret, currentSeconds()));
       await page.locator('#userLabel').fill('Test');
-      await page.locator('#saveTOTPBtn').click();
-      await waitForCallback(page);
+      const callbackUrl = await submitAndCaptureCallback(page, () =>
+        page.locator('#saveTOTPBtn').click(),
+      );
 
-      const claims = decodeJwt(await exchangeCode(page, request.verifier));
+      const claims = decodeJwt(await exchangeCode(callbackUrl, request.verifier));
       expect(claims).toMatchObject({
         iss: `${keycloak.baseUrl}/realms/${REALM}`,
         organization_id: ORGANIZATION_ID,
@@ -197,9 +211,10 @@ describe('realm de staging sur un vrai Keycloak (US-005 B2)', () => {
       // Le code de l'enrôlement ne se réutilise pas : celui du pas suivant est admis par la
       // fenêtre de tolérance de Keycloak.
       await page.locator('#otp').fill(totpCode(enrolledSecret, currentSeconds() + 30));
-      await page.locator('#kc-login').click();
-      await waitForCallback(page);
-      expect(await exchangeCode(page, request.verifier)).not.toBe('');
+      const callbackUrl = await submitAndCaptureCallback(page, () =>
+        page.locator('#kc-login').click(),
+      );
+      expect(await exchangeCode(callbackUrl, request.verifier)).not.toBe('');
     } finally {
       await context.close();
     }
