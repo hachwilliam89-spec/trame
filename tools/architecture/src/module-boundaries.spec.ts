@@ -121,8 +121,10 @@ describe('frontières d’architecture vérifiées par la lint (AGENTS.md)', () 
       }
     });
 
-    it('refuse à l’application Prisma, AMQP et l’infrastructure', async () => {
+    it('refuse à l’application NestJS, Prisma, AMQP et l’infrastructure', async () => {
       for (const forbidden of [
+        '@nestjs/common',
+        '@nestjs/core',
         '@prisma/client',
         'amqplib',
         '@trame/api/scheduling/infrastructure',

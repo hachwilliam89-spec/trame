@@ -111,7 +111,16 @@ export default [
                 'scope:shared',
                 'scope:platform',
               ],
-              bannedExternalImports: ['@prisma/*', 'prisma', 'express', 'amqplib', 'pg'],
+              // Règle 2 : les use cases ne dépendent que du domaine et de leurs ports. NestJS ne
+              // les assemble que depuis l'infrastructure.
+              bannedExternalImports: [
+                '@nestjs/*',
+                '@prisma/*',
+                'prisma',
+                'express',
+                'amqplib',
+                'pg',
+              ],
             },
             {
               sourceTag: 'layer:infrastructure',
