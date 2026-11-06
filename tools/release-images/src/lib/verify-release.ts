@@ -1,6 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { CommandFailedError, type CommandRunner, runOrFail } from './command-runner';
+import {
+  CommandFailedError,
+  type CommandRunner,
+  MissingCommandError,
+  runOrFail,
+} from './command-runner';
 import { GITHUB_REPOSITORY, OIDC_ISSUER, RELEASE_REPOSITORY, SIGNER_IDENTITY } from './policy';
 import {
   type ReleaseManifest,
@@ -17,6 +22,9 @@ export interface VerifyReleaseOptions {
 
 /** Version refusée : le message nomme l'image ou le manifeste en cause. */
 export class ReleaseVerificationError extends Error {}
+
+/** Vérification impossible faute d'outil : ni un refus, ni une publication incomplète. */
+export class VerificationUnavailableError extends Error {}
 
 const DIGEST_PATTERN = /^sha256:[0-9a-f]{64}$/;
 
@@ -101,7 +109,16 @@ async function pullReleaseManifest(
   return readFileSync(join(workingDirectory, 'images.json'), 'utf8');
 }
 
+/**
+ * Un outil absent n'est pas un manifeste introuvable ni une signature refusée : on le dit, pour
+ * que l'on installe l'outil plutôt que de chercher une publication manquante.
+ */
 function messageOf(error: unknown): string {
+  if (error instanceof MissingCommandError) {
+    throw new VerificationUnavailableError(
+      `Vérification impossible : ${error.message}. Installer oras et cosign (voir infra/docker/README.md).`,
+    );
+  }
   if (error instanceof CommandFailedError) {
     return error.message;
   }

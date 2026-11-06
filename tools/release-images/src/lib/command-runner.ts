@@ -27,6 +27,15 @@ export type CommandRunner = (
 /** Une commande attendue a échoué ; le message reprend sa sortie d'erreur. */
 export class CommandFailedError extends Error {}
 
+/** L'exécutable n'est pas installé : à distinguer d'un échec de la commande elle-même. */
+export class MissingCommandError extends CommandFailedError {}
+
+const MISSING_COMMAND_PREFIX = 'commande introuvable : ';
+
+function missingCommandMessage(command: string): string {
+  return `${MISSING_COMMAND_PREFIX}${command} (absente du PATH)`;
+}
+
 export function createCommandRunner(): CommandRunner {
   return (command, args, options = {}) =>
     new Promise((resolve) => {
@@ -37,6 +46,10 @@ export function createCommandRunner(): CommandRunner {
       const timeout = timeoutForExecFile(options.timeoutMilliseconds);
       execFile(command, args, { env, maxBuffer, cwd, timeout }, (error, stdout, stderr) => {
         const timedOut = timeout > 0 && error?.killed === true;
+        if (error?.code === 'ENOENT') {
+          resolve({ exitCode: 127, stdout, stderr: missingCommandMessage(command), timedOut });
+          return;
+        }
         resolve({ exitCode: exitCodeOf(error), stdout, stderr, timedOut });
       });
     });
@@ -52,6 +65,9 @@ export async function runOrFail(
   const result = await run(command, args, options);
   if (result.exitCode !== 0) {
     const detail = result.stderr.trim() || `code de sortie ${result.exitCode}`;
+    if (detail.startsWith(MISSING_COMMAND_PREFIX)) {
+      throw new MissingCommandError(detail);
+    }
     throw new CommandFailedError(`${command} ${args[0] ?? ''} a échoué : ${detail}`);
   }
   return result.stdout;

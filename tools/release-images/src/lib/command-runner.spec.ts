@@ -17,6 +17,13 @@ describe('createCommandRunner', () => {
     });
   });
 
+  it('nomme un exécutable absent du PATH, plutôt que de rendre un échec muet', async () => {
+    const result = await run('trame-outil-absent', ['resolve']);
+
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toBe('commande introuvable : trame-outil-absent (absente du PATH)');
+  });
+
   it('interrompt une commande qui dépasse sa durée maximale, même fractionnaire', async () => {
     const result = await run('sleep', ['5'], { timeoutMilliseconds: 0.4 });
 

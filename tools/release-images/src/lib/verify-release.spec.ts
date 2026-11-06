@@ -6,6 +6,7 @@ import { IMAGE_NAMES } from './policy';
 import { ReleaseManifestError } from './release-manifest';
 import {
   ReleaseVerificationError,
+  VerificationUnavailableError,
   isReleaseComplete,
   verifyPublishedRelease,
 } from './verify-release';
@@ -130,6 +131,18 @@ describe('verifyPublishedRelease, avec de faux cosign et oras', () => {
     );
   });
 
+  it('dit qu’oras manque, plutôt que d’annoncer un manifeste introuvable', async () => {
+    const commands = trustedCommands().on('oras', 'resolve', () =>
+      fails('commande introuvable : oras (absente du PATH)'),
+    );
+
+    await expect(verify(commands)).rejects.toThrow(
+      new VerificationUnavailableError(
+        'Vérification impossible : commande introuvable : oras (absente du PATH). Installer oras et cosign (voir infra/docker/README.md).',
+      ),
+    );
+  });
+
   it('échoue quand la résolution du tag ne rend pas un digest sha256', async () => {
     const commands = trustedCommands().on('oras', 'resolve', () => succeeds('latest\n'));
 
@@ -219,6 +232,16 @@ describe('isReleaseComplete', () => {
     await expect(
       isReleaseComplete({ run: commands.run, expectedCommit: COMMIT, workingDirectory }),
     ).resolves.toBe(false);
+  });
+
+  it('échoue quand oras manque, plutôt que de conclure à une publication incomplète', async () => {
+    const commands = trustedCommands().on('oras', 'resolve', () =>
+      fails('commande introuvable : oras (absente du PATH)'),
+    );
+
+    await expect(
+      isReleaseComplete({ run: commands.run, expectedCommit: COMMIT, workingDirectory }),
+    ).rejects.toThrow('Vérification impossible : commande introuvable : oras (absente du PATH).');
   });
 
   it('manifeste signé et six images vérifiées : publication terminée', async () => {
