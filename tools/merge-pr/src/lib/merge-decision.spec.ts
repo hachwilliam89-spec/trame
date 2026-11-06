@@ -74,11 +74,11 @@ describe('decideNextStep', () => {
     expect(step).toEqual({ kind: 'wait', reason: 'En attente des checks : CI OK' });
   });
 
-  it('s’arrête quand un check requis échoue, est annulé ou ignoré', () => {
+  it('s’arrête quand un check requis échoue ou est annulé', () => {
     const checks: CheckState[] = [
       { name: 'CI OK', bucket: 'fail' },
       { name: 'Analyse (python)', bucket: 'cancel' },
-      { name: 'CodeQL', bucket: 'skipping' },
+      { name: 'CodeQL', bucket: 'pass' },
     ];
 
     const step = decideNextStep({
@@ -89,8 +89,45 @@ describe('decideNextStep', () => {
 
     expect(step).toEqual({
       kind: 'stop',
-      reason: 'Checks requis non réussis : CI OK, Analyse (python), CodeQL',
+      reason: 'Checks requis non réussis : CI OK, Analyse (python)',
     });
+  });
+
+  // `gh pr checks` range un verdict NEUTRAL avec les checks ignorés ; le résultat « CodeQL » du
+  // code scanning passe par ce verdict avant le sien, juste après une mise à jour de la branche.
+  it('attend un check requis neutre ou ignoré, sans le fusionner ni s’arrêter', () => {
+    const checks: CheckState[] = [
+      { name: 'CI OK', bucket: 'pass' },
+      { name: 'Analyse (python)', bucket: 'pass' },
+      { name: 'CodeQL', bucket: 'skipping' },
+    ];
+
+    const step = decideNextStep({
+      pullRequest: openPullRequest(),
+      requiredCheckNames: REQUIRED_CHECKS,
+      checks,
+    });
+
+    expect(step).toEqual({
+      kind: 'wait',
+      reason: 'En attente d’un verdict pour les checks neutres ou ignorés : CodeQL',
+    });
+  });
+
+  it('s’arrête sur un échec, même si un autre check requis est neutre', () => {
+    const checks: CheckState[] = [
+      { name: 'CI OK', bucket: 'fail' },
+      { name: 'Analyse (python)', bucket: 'pass' },
+      { name: 'CodeQL', bucket: 'skipping' },
+    ];
+
+    const step = decideNextStep({
+      pullRequest: openPullRequest(),
+      requiredCheckNames: REQUIRED_CHECKS,
+      checks,
+    });
+
+    expect(step).toEqual({ kind: 'stop', reason: 'Checks requis non réussis : CI OK' });
   });
 
   it('ignore l’échec d’un check qui n’est pas requis', () => {
