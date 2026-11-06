@@ -85,9 +85,10 @@ const UNSUCCESSFUL_BUCKETS: CheckBucket[] = ['fail', 'cancel'];
 /*
  * Un check ignoré ou neutre compte comme réussi pour GitHub ; ici, on exige qu'il ait vraiment
  * réussi, sans s'arrêter pour autant. `gh pr checks` range le verdict NEUTRAL avec les checks
- * ignorés, et le résultat « CodeQL » du code scanning passe par ce verdict juste après une mise à
- * jour de la branche, avant le sien. On attend donc : un check qui resterait ignoré épuise le délai,
- * et rien n'est fusionné.
+ * ignorés (gh 2.89, aggregate.go). Juste après une mise à jour de branche, pr:merge s'est arrêté sur
+ * « CodeQL », qui a fini vert peu après : un passage transitoire par NEUTRAL est l'explication la
+ * plus probable, sans être confirmée. On attend donc : un check qui resterait ignoré épuise le
+ * délai, et rien n'est fusionné.
  */
 
 function findBlockingReason(pullRequest: PullRequestState): string | undefined {

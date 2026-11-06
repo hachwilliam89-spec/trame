@@ -93,8 +93,8 @@ describe('decideNextStep', () => {
     });
   });
 
-  // `gh pr checks` range un verdict NEUTRAL avec les checks ignorés ; le résultat « CodeQL » du
-  // code scanning passe par ce verdict avant le sien, juste après une mise à jour de la branche.
+  // `gh pr checks` range un verdict NEUTRAL avec les checks ignorés. Après une mise à jour de
+  // branche, « CodeQL » a arrêté pr:merge avant de finir vert : un passage par NEUTRAL est probable.
   it('attend un check requis neutre ou ignoré, sans le fusionner ni s’arrêter', () => {
     const checks: CheckState[] = [
       { name: 'CI OK', bucket: 'pass' },
