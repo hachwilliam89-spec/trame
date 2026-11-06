@@ -53,13 +53,12 @@ trivy image --insecure --platform linux/amd64 --scanners vuln \
 trivy image --insecure --platform linux/amd64 --scanners vuln --skip-db-update \
   --severity HIGH,CRITICAL --ignore-unfixed --exit-code 1 "$scan_reference"
 
-# SBOM et provenance lisibles depuis le registre, tels qu'ils seront publiés.
+# SBOM et provenance lisibles depuis le registre, tels qu'ils seront publiés. Le gabarit n'écrit
+# que des marqueurs de présence : le contenu du SBOM, lui, peut contenir n'importe quel mot.
 attestations="$(docker buildx imagetools inspect "$scan_reference" \
-  --format '{{json .SBOM}} {{json .Provenance}}')"
-case "$attestations" in
-  *null*)
-    echo "SBOM ou provenance absent pour $name : $attestations" >&2
-    exit 1
-    ;;
-esac
+  --format '{{if .SBOM.SPDX}}sbom{{end}} {{if .Provenance.SLSA}}provenance{{end}}')"
+if [ "$attestations" != "sbom provenance" ]; then
+  echo "SBOM ou provenance absent pour $name (trouvé : « $attestations »)." >&2
+  exit 1
+fi
 echo "SBOM et provenance présents pour $name."
