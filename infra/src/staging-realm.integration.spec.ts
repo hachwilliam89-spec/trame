@@ -7,18 +7,32 @@ import { totpCode } from './lib/totp';
 
 /**
  * Scénarios d'authentification d'US-005 B2 (#47) sur un vrai Keycloak, avec le realm de staging
- * versionné : TOTP obligatoire, refus sans second facteur, force brute, password grant refusé.
+ * versionné : TOTP obligatoire, y compris après sa réinitialisation, refus sans second facteur,
+ * force brute, password grant refusé.
  */
 const REALM = 'trame-staging';
 const CLIENT_ID = 'trame-web';
 const REDIRECT_URI = 'https://staging.trame.wkhach.dev/oidc-callback';
 const ORGANIZATION_ID = '019a4ac0-0000-7000-8000-0000000000b2';
 const REALM_FILE = join(__dirname, '../keycloak/generated/trame-staging-realm.json');
+/**
+ * Playwright n'intercepte pas une navigation issue d'une redirection : le nom du staging ne doit
+ * donc jamais se résoudre, même une fois son DNS publié, pour qu'aucun code ne quitte le test.
+ */
+const UNRESOLVABLE_APPLICATION_HOST =
+  '--host-resolver-rules=MAP staging.trame.wkhach.dev ~NOTFOUND';
 
 interface TestAccount {
   username: string;
   password: string;
   id: string;
+}
+
+/** Un navigateur neuf, qui note si le callback de l'application a été demandé. */
+interface LoginSession {
+  context: BrowserContext;
+  page: Page;
+  callbackRequested: () => boolean;
 }
 
 describe('realm de staging sur un vrai Keycloak (US-005 B2)', () => {
@@ -33,7 +47,7 @@ describe('realm de staging sur un vrai Keycloak (US-005 B2)', () => {
 
   beforeAll(async () => {
     keycloak = await startKeycloakWithRealm(REALM_FILE);
-    browser = await chromium.launch();
+    browser = await chromium.launch({ args: [UNRESOLVABLE_APPLICATION_HOST] });
   });
 
   afterAll(async () => {
@@ -70,13 +84,32 @@ describe('realm de staging sur un vrai Keycloak (US-005 B2)', () => {
     return location.slice(location.lastIndexOf('/') + 1);
   }
 
-  /** Contexte de navigateur dont le callback de l'application est intercepté, sans réseau. */
-  async function newLoginContext(): Promise<BrowserContext> {
+  async function openLoginSession(): Promise<LoginSession> {
     const context = await browser.newContext();
-    await context.route('https://staging.trame.wkhach.dev/**', (route) =>
-      route.fulfill({ status: 200, contentType: 'text/html', body: '<title>Callback</title>' }),
-    );
-    return context;
+    let callbackRequested = false;
+    context.on('request', (request) => {
+      if (request.url().startsWith(REDIRECT_URI)) {
+        callbackRequested = true;
+      }
+    });
+    const page = await context.newPage();
+    page.setDefaultTimeout(20_000);
+    return { context, page, callbackRequested: () => callbackRequested };
+  }
+
+  async function deleteTotpCredentials(userId: string): Promise<void> {
+    const credentials = (await (await admin(`/users/${userId}/credentials`)).json()) as {
+      id: string;
+      type: string;
+    }[];
+    const totpCredentials = credentials.filter((credential) => credential.type === 'otp');
+    expect(totpCredentials).toHaveLength(1);
+    for (const credential of totpCredentials) {
+      const response = await admin(`/users/${userId}/credentials/${credential.id}`, {
+        method: 'DELETE',
+      });
+      expect(response.status).toBe(204);
+    }
   }
 
   function authorizationRequest(): { url: string; verifier: string } {
@@ -102,6 +135,39 @@ describe('realm de staging sur un vrai Keycloak (US-005 B2)', () => {
   }
 
   /**
+   * Envoie un formulaire que Keycloak doit refuser, et rend le statut de sa réponse : 200 quand il
+   * réaffiche le formulaire avec une erreur. Attendre cette réponse évite de conclure trop tôt.
+   */
+  async function submitRefusedForm(page: Page, submitButton: string): Promise<number> {
+    const answer = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' && response.url().includes('/login-actions/'),
+    );
+    await page.locator(submitButton).click();
+    return (await answer).status();
+  }
+
+  /** Attend la page d'enrôlement TOTP imposée par Keycloak et rend le secret affiché. */
+  async function readImposedTotpSecret(session: LoginSession): Promise<string> {
+    try {
+      await session.page.locator('#mode-manual').click();
+    } catch (error) {
+      throw new Error(
+        `Enrôlement TOTP non imposé ; callback demandé : ${session.callbackRequested()}.\n${String(error)}`,
+      );
+    }
+    expect(session.callbackRequested()).toBe(false);
+    return (await session.page.locator('#kc-totp-secret-key').innerText()).trim();
+  }
+
+  /** Enrôle le secret affiché et rend l'URL du callback qui suit. */
+  async function enrolTotp(page: Page, secret: string): Promise<string> {
+    await page.locator('#totp').fill(totpCode(secret, currentSeconds()));
+    await page.locator('#userLabel').fill('Test');
+    return submitAndCaptureCallback(page, () => page.locator('#saveTOTPBtn').click());
+  }
+
+  /**
    * Soumet le formulaire et rend l'URL du callback demandée par le navigateur, code compris. La
    * page du callback n'est pas chargée : le nom du staging n'a pas encore d'enregistrement DNS.
    */
@@ -124,10 +190,6 @@ describe('realm de staging sur un vrai Keycloak (US-005 B2)', () => {
         `Callback non demandé. URL : ${page.url()}\nPage : ${text}\n${String(error)}`,
       );
     }
-  }
-
-  function reachedCallback(page: Page): boolean {
-    return page.url().startsWith(REDIRECT_URI);
   }
 
   async function exchangeCode(callbackUrl: string, verifier: string): Promise<string> {
@@ -163,24 +225,14 @@ describe('realm de staging sur un vrai Keycloak (US-005 B2)', () => {
 
   it('Enrôlement TOTP obligatoire : aucun jeton avant l’enrôlement du second facteur', async () => {
     account.id = await createAccount(account.username, account.password);
-    const context = await newLoginContext();
+    const session = await openLoginSession();
     try {
-      const page = await context.newPage();
-      page.setDefaultTimeout(20_000);
       const request = authorizationRequest();
-      await page.goto(request.url);
-      await submitPassword(page, account.username, account.password);
+      await session.page.goto(request.url);
+      await submitPassword(session.page, account.username, account.password);
 
-      // Keycloak impose l'enrôlement : pas de redirection vers l'application.
-      await page.locator('#mode-manual').click();
-      enrolledSecret = (await page.locator('#kc-totp-secret-key').innerText()).trim();
-      expect(reachedCallback(page)).toBe(false);
-
-      await page.locator('#totp').fill(totpCode(enrolledSecret, currentSeconds()));
-      await page.locator('#userLabel').fill('Test');
-      const callbackUrl = await submitAndCaptureCallback(page, () =>
-        page.locator('#saveTOTPBtn').click(),
-      );
+      enrolledSecret = await readImposedTotpSecret(session);
+      const callbackUrl = await enrolTotp(session.page, enrolledSecret);
 
       const claims = decodeJwt(await exchangeCode(callbackUrl, request.verifier));
       expect(claims).toMatchObject({
@@ -189,24 +241,22 @@ describe('realm de staging sur un vrai Keycloak (US-005 B2)', () => {
         aud: expect.arrayContaining(['trame-api']),
       });
     } finally {
-      await context.close();
+      await session.context.close();
     }
   });
 
   it('Connexion refusée sans second facteur : un code faux ne donne aucun jeton', async () => {
-    const context = await newLoginContext();
+    const session = await openLoginSession();
     try {
-      const page = await context.newPage();
-      page.setDefaultTimeout(20_000);
+      const page = session.page;
       const request = authorizationRequest();
       await page.goto(request.url);
       await submitPassword(page, account.username, account.password);
 
       await page.locator('#otp').fill('000000');
-      await page.locator('#kc-login').click();
       // Keycloak réaffiche la saisie du code : aucune redirection vers l'application.
-      await page.locator('#otp').waitFor({ state: 'visible' });
-      expect(reachedCallback(page)).toBe(false);
+      expect(await submitRefusedForm(page, '#kc-login')).toBe(200);
+      expect(session.callbackRequested()).toBe(false);
 
       // Le code de l'enrôlement ne se réutilise pas : celui du pas suivant est admis par la
       // fenêtre de tolérance de Keycloak.
@@ -216,7 +266,26 @@ describe('realm de staging sur un vrai Keycloak (US-005 B2)', () => {
       );
       expect(await exchangeCode(callbackUrl, request.verifier)).not.toBe('');
     } finally {
-      await context.close();
+      await session.context.close();
+    }
+  });
+
+  it('Réenrôlement imposé après la suppression du TOTP par l’administration', async () => {
+    await deleteTotpCredentials(account.id);
+    const session = await openLoginSession();
+    try {
+      const request = authorizationRequest();
+      await session.page.goto(request.url);
+      await submitPassword(session.page, account.username, account.password);
+
+      // Le mot de passe seul ne suffit pas : Keycloak impose un nouveau TOTP avant tout jeton.
+      const renewedSecret = await readImposedTotpSecret(session);
+      expect(renewedSecret).not.toBe(enrolledSecret);
+      const callbackUrl = await enrolTotp(session.page, renewedSecret);
+
+      expect(await exchangeCode(callbackUrl, request.verifier)).not.toBe('');
+    } finally {
+      await session.context.close();
     }
   });
 
@@ -227,22 +296,26 @@ describe('realm de staging sur un vrai Keycloak (US-005 B2)', () => {
       id: '',
     };
     target.id = await createAccount(target.username, target.password);
-    const context = await newLoginContext();
+    const session = await openLoginSession();
     try {
-      const page = await context.newPage();
-      page.setDefaultTimeout(20_000);
+      const page = session.page;
       await page.goto(authorizationRequest().url);
       for (let attempt = 0; attempt < 5; attempt++) {
-        await submitPassword(page, target.username, 'mauvais-mot-de-passe');
+        await page.locator('#username').fill(target.username);
+        await page.locator('#password').fill('mauvais-mot-de-passe');
+        expect(await submitRefusedForm(page, '#kc-login')).toBe(200);
       }
 
       const status = await (await admin(`/attack-detection/brute-force/users/${target.id}`)).json();
       expect(status).toMatchObject({ disabled: true });
 
-      await submitPassword(page, target.username, target.password);
-      expect(reachedCallback(page)).toBe(false);
+      // Même le bon mot de passe est refusé tant que le verrou dure.
+      await page.locator('#username').fill(target.username);
+      await page.locator('#password').fill(target.password);
+      expect(await submitRefusedForm(page, '#kc-login')).toBe(200);
+      expect(session.callbackRequested()).toBe(false);
     } finally {
-      await context.close();
+      await session.context.close();
     }
   });
 
