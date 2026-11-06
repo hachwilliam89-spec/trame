@@ -11,6 +11,7 @@ import {
 } from './lib/dev-stack';
 import { startWebServer } from './lib/web-test-server';
 import { startDiagnosticProcesses } from './lib/diagnostic-processes';
+import { launchTestBrowser } from './lib/test-browser';
 
 describe('Front Guidé construit et chaîne réelle', () => {
   let stack: ComposeOptions;
@@ -102,7 +103,7 @@ describe('Front Guidé construit et chaîne réelle', () => {
     ['WebKit', webkit],
   ] as const) {
     it(`${name} : connexion, calcul Python, résultat conservé et accessibilité`, async () => {
-      const browser: Browser = await browserType.launch();
+      const browser: Browser = await launchTestBrowser(browserType);
       const context = await browser.newContext();
       const page = await context.newPage();
       const errors: string[] = [];
@@ -147,7 +148,7 @@ describe('Front Guidé construit et chaîne réelle', () => {
     }, 90_000);
   }
   it('interrompt puis reprend le suivi sans créer de nouveau calcul', async () => {
-    const browser = await chromium.launch();
+    const browser = await launchTestBrowser(chromium);
     const context = await browser.newContext();
     const page = await context.newPage();
     try {
@@ -186,7 +187,7 @@ describe('Front Guidé construit et chaîne réelle', () => {
     }
   }, 60_000);
   it('refuse le test à l’employé et reste utilisable à 320 pixels', async () => {
-    const browser = await chromium.launch();
+    const browser = await launchTestBrowser(chromium);
     const context = await browser.newContext({ viewport: { width: 320, height: 900 } });
     const page = await context.newPage();
     try {
@@ -204,7 +205,7 @@ describe('Front Guidé construit et chaîne réelle', () => {
     }
   });
   it('ferme la session expirée puis retrouve le même calcul après reconnexion', async () => {
-    const browser = await chromium.launch();
+    const browser = await launchTestBrowser(chromium);
     const context = await browser.newContext();
     const page = await context.newPage();
     try {
@@ -237,7 +238,7 @@ describe('Front Guidé construit et chaîne réelle', () => {
       databaseUrl,
       "INSERT INTO scheduling.diagnostic_runs (id,organization_id,idempotency_key,status,created_at) VALUES ('0190f0a0-0000-7000-8000-000000000099','0190f0a0-0000-7000-8000-00000000000b','foreign-web-proof','QUEUED','2026-11-05T10:00:00Z')",
     );
-    const browser = await chromium.launch();
+    const browser = await launchTestBrowser(chromium);
     const context = await browser.newContext();
     const page = await context.newPage();
     try {
