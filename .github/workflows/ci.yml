@@ -43,6 +43,11 @@ jobs:
       - name: Lint, typecheck, tests et build des projets touchés
         run: pnpm nx affected -t lint typecheck test build --base="$NX_BASE" --head="$NX_HEAD"
 
+      # Les frontières dépendent des tags de tous les projets et de la configuration ESLint :
+      # `affected` ne sélectionne pas ces tests, et leur cache est désactivé (tools/architecture).
+      - name: Frontières d'architecture, à chaque fois
+        run: pnpm nx run architecture:test
+
       - name: Formatage (Prettier)
         run: pnpm nx format:check --base="$NX_BASE" --head="$NX_HEAD"
 
