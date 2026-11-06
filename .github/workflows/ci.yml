@@ -139,9 +139,19 @@ jobs:
           status=0
           for image in api:node relay:node migrator:node web:node engine:engine worker:engine; do
             name="${image%%:*}" dockerfile="infra/docker/${image##*:}.Dockerfile"
-            infra/release/build-and-scan.sh "$name" "$dockerfile" "$name" "$RUNNER_TEMP/proof" || status=1
+            infra/release/build-and-scan.sh "$name" "$dockerfile" "$name" \
+              "$RUNNER_TEMP/proof" "$RUNNER_TEMP/trivy-reports" || status=1
           done
           exit "$status"
+
+      - name: Garder les rapports Trivy complets
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: trivy-reports
+          path: ${{ runner.temp }}/trivy-reports
+          retention-days: 30
+          if-no-files-found: warn
 
       - name: Signer, vérifier par commit et lire anonymement
         env:

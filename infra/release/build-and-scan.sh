@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Construit une image en layout OCI, la scanne et vérifie ses attestations, sans la publier.
 #
-#   build-and-scan.sh <nom> <dockerfile> <cible> <dossier de sortie>
+#   build-and-scan.sh <nom> <dockerfile> <cible> <dossier de sortie> <dossier des rapports>
 #
 # Utilisé par le workflow de publication (US-005 B1, issue #44) et par la preuve de la CI : les
 # deux suivent exactement le même chemin. Attend dans l'environnement :
@@ -10,13 +10,14 @@
 #   SCAN_REGISTRY    registre local éphémère (127.0.0.1:5000), en HTTP
 #   REVISION         commit construit
 #
-# Produit dans le dossier de sortie : <nom>/ (le layout), <nom>.scanned-digest (digest de
-# l'index de l'image) et <nom>.trivy.json (rapport complet).
+# Produit dans le dossier de sortie : <nom>/ (le layout) et <nom>.scanned-digest (digest de
+# l'index de l'image). Le rapport complet <nom>.trivy.json va dans un dossier à part, envoyé même
+# quand le contrôle bloquant échoue : c'est alors qu'on en a besoin.
 set -euo pipefail
 
-name="$1" dockerfile="$2" target="$3" output_directory="$4"
+name="$1" dockerfile="$2" target="$3" output_directory="$4" reports_directory="$5"
 layout="$output_directory/$name"
-mkdir -p "$output_directory"
+mkdir -p "$output_directory" "$reports_directory"
 
 # Le layout garde l'index de l'image, son manifeste linux/amd64 et le manifeste d'attestation
 # (SBOM et provenance). Le stockage Docker classique, lui, les perdrait.
@@ -47,7 +48,7 @@ fi
 
 # Rapport complet : toutes les sévérités, vulnérabilités sans correctif comprises.
 trivy image --insecure --platform linux/amd64 --scanners vuln \
-  --format json --output "$output_directory/$name.trivy.json" --exit-code 0 "$scan_reference"
+  --format json --output "$reports_directory/$name.trivy.json" --exit-code 0 "$scan_reference"
 # Contrôle bloquant, séparé : critiques et hautes qui ont un correctif. Une erreur du scanner ou
 # de sa base fait aussi échouer cette commande.
 trivy image --insecure --platform linux/amd64 --scanners vuln --skip-db-update \

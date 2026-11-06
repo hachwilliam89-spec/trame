@@ -97,8 +97,21 @@ jobs:
           IMAGE_NAME: ${{ matrix.name }}
           DOCKERFILE: ${{ matrix.dockerfile }}
           TARGET: ${{ matrix.target }}
-        run: infra/release/build-and-scan.sh "$IMAGE_NAME" "$DOCKERFILE" "$TARGET" "$RUNNER_TEMP/scanned"
+        run: >-
+          infra/release/build-and-scan.sh "$IMAGE_NAME" "$DOCKERFILE" "$TARGET"
+          "$RUNNER_TEMP/scanned" "$RUNNER_TEMP/trivy-reports"
 
+      # Le rapport complet est gardé même si le contrôle bloquant a échoué : il dit pourquoi.
+      - name: Garder le rapport Trivy complet
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: trivy-${{ matrix.name }}
+          path: ${{ runner.temp }}/trivy-reports
+          retention-days: 30
+          if-no-files-found: warn
+
+      # Le layout, lui, n'est transmis à la publication qu'après un scan réussi.
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: layout-${{ matrix.name }}

@@ -69,7 +69,7 @@ Premier relevé du 5 novembre 2026 sur Docker Desktop arm64, images applicatives
 
 Le workflow `.github/workflows/publish-images.yml` publie les six images de la tête de `main` sur GHCR (`ghcr.io/hachwilliam89-spec/trame-<nom>`), étiquetées par le SHA du commit. Il ne déploie rien : le staging (B2) lit le manifeste de version signé. Le plan et ses scénarios sont dans l'issue #44.
 
-1. **Admissibilité** (`pnpm release-images gate`). Le commit publié est celui du push, qui est aussi le `sha` du jeton OIDC qui signera. Le gate attend au plus 60 minutes, puis vérifie, sur ce commit précis :
+1. **Admissibilité** (`pnpm release-images gate`). Le commit publié est celui du push, qui est aussi le `sha` du jeton OIDC qui signera. Le gate attend au plus 60 minutes : l'échéance est vérifiée avant chaque lecture et avant d'autoriser, et chaque commande est bornée au temps restant. Il vérifie, sur ce commit précis :
    - « CI OK » et les trois « Analyse (…) » réussis ;
    - une analyse CodeQL traitée par catégorie ;
    - aucune alerte de code scanning haute ou critique ouverte sur `main`.
@@ -79,7 +79,7 @@ Le workflow `.github/workflows/publish-images.yml` publie les six images de la t
 2. **Construction et scan** (`infra/release/build-and-scan.sh`, un job par image, sans droit d'écriture) :
    - buildx exporte un layout OCI, avec le SBOM et la provenance ;
    - `release-images layout-digest` relève le digest de l'index de l'image ;
-   - `oras` le copie tel quel dans un registre local, où Trivy produit un rapport complet puis applique un contrôle bloquant (critiques et hautes qui ont un correctif) ;
+   - `oras` le copie tel quel dans un registre local, où Trivy produit un rapport complet puis applique un contrôle bloquant (critiques et hautes qui ont un correctif). Le rapport complet, vulnérabilités sans correctif comprises, est conservé 30 jours en artefact `trivy-<nom>`, même quand le contrôle bloquant échoue ;
    - `imagetools` vérifie la présence du SBOM et de la provenance.
 3. **Publication** (`pnpm release-images publish`, seul job avec `packages: write` et `id-token: write`) :
    - `main` est revérifiée ;
