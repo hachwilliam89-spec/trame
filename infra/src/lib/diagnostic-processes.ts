@@ -10,7 +10,7 @@ export async function startDiagnosticProcesses(options: { databaseUrl: string; a
   });
   const transport = spawn(
     resolve(root, 'node_modules/.bin/tsx'),
-    ['--tsconfig', 'tsconfig.base.json', 'tools/diagnostic-transport/src/main.ts'],
+    ['--tsconfig', 'tsconfig.base.json', 'apps/relay/src/main.ts'],
     { cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'] },
   );
   const worker = spawn('uv', ['run', '--frozen', 'python', '-m', 'trame_engine.worker'], {

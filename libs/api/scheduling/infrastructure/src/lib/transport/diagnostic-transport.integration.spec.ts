@@ -234,7 +234,7 @@ describe('Aller-retour RabbitMQ ↔ vrai moteur Python', () => {
     let logs = '';
     const service = spawn(
       resolve(root, 'node_modules/.bin/tsx'),
-      ['--tsconfig', 'tsconfig.base.json', 'tools/diagnostic-transport/src/main.ts'],
+      ['--tsconfig', 'tsconfig.base.json', 'apps/relay/src/main.ts'],
       {
         cwd: root,
         env: {

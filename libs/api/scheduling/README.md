@@ -66,7 +66,7 @@ Le test du module sur PostgreSQL vérifie l'assemblage réel des adaptateurs. Le
 ## Exécuter le diagnostic
 
 Après `infra:up`, migrations et lancement de l'API, lancer les deux processus décrits dans
-[tools/diagnostic-transport](../../../tools/diagnostic-transport/README.md).
+[apps/relay](../../../apps/relay/README.md).
 Le même POST renvoie 202. Le GET finit par exposer `outcome` et `finishedAt`, ou `failure`.
 `SUCCEEDED` signifie que le résultat du moteur est conservé ; l'issue CP-SAT dans
 `outcome.result.status` dit si une solution existe. Les issues sans solution restent explicites.
