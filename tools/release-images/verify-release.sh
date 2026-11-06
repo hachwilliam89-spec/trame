@@ -47,6 +47,15 @@ work_directory="$(mktemp -d)"
 readonly work_directory
 trap 'rm -rf "$work_directory"' EXIT
 
+# Comme trim() en TypeScript : retire les blancs du début et de la fin, jamais ceux de l'intérieur.
+trim() {
+  local text="$1"
+  local leading_blanks="${text%%[![:space:]]*}"
+  text="${text#"$leading_blanks"}"
+  local trailing_blanks="${text##*[![:space:]]}"
+  printf '%s' "${text%"$trailing_blanks"}"
+}
+
 # Le motif d'échec d'un outil : sa dernière ligne d'erreur.
 last_error_line() {
   tail -n 1 "$work_directory/error"
@@ -74,7 +83,7 @@ resolve_release_digest() {
   if ! output="$(oras resolve "$RELEASE_REPOSITORY:$commit" 2>"$work_directory/error")"; then
     refuse "Manifeste de version introuvable pour $commit : $(last_error_line)"
   fi
-  output="$(printf '%s' "$output" | tr -d '[:space:]')"
+  output="$(trim "$output")"
   if ! [[ "$output" =~ ^sha256:[0-9a-f]{64}$ ]]; then
     refuse "Digest du manifeste de version mal formé : $output."
   fi
