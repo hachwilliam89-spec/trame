@@ -48,7 +48,17 @@ export async function startKeycloakWithRealm(realmFile: string): Promise<Keycloa
     '--import-realm',
   ]);
   const baseUrl = `http://127.0.0.1:${port}`;
-  await waitUntilReady(baseUrl);
+  try {
+    await waitUntilReady(baseUrl);
+  } catch (error) {
+    // Sans les journaux, un import de realm refusé ne se distingue pas d'un démarrage lent.
+    const { stdout, stderr } = await run('docker', ['logs', '--tail', '60', name]).catch(() => ({
+      stdout: '',
+      stderr: 'journaux indisponibles',
+    }));
+    await run('docker', ['rm', '--force', name]).catch(() => undefined);
+    throw new Error(`${String(error)}\nJournaux de Keycloak :\n${stdout}${stderr}`);
+  }
   return {
     baseUrl,
     adminToken: () => masterAdminToken(baseUrl, adminPassword),
