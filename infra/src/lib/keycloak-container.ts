@@ -1,8 +1,7 @@
 import { execFile } from 'node:child_process';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { reserveFreePort } from './dev-stack';
+import { devStackImage } from './pinned-images';
 
 const run = promisify(execFile);
 
@@ -11,14 +10,6 @@ export interface KeycloakContainer {
   /** Administration du serveur : compte initial du conteneur jetable, propre au test. */
   adminToken(): Promise<string>;
   stop(): Promise<void>;
-}
-
-/** L'image figée de `dev.yml` : la même version de Keycloak pour le poste et pour ces tests. */
-function keycloakImage(): string {
-  const compose = readFileSync(join(__dirname, '../../compose/dev.yml'), 'utf8');
-  const match = /image: (quay\.io\/keycloak\/keycloak:[^\s]+@sha256:[0-9a-f]{64})/.exec(compose);
-  if (match?.[1] === undefined) throw new Error('Image Keycloak figée introuvable dans dev.yml.');
-  return match[1];
 }
 
 /**
@@ -42,7 +33,7 @@ export async function startKeycloakWithRealm(realmFile: string): Promise<Keycloa
     `KC_BOOTSTRAP_ADMIN_PASSWORD=${adminPassword}`,
     '--volume',
     `${realmFile}:/opt/keycloak/data/import/realm.json:ro`,
-    keycloakImage(),
+    devStackImage('keycloak'),
     'start-dev',
     '--import-realm',
   ]);
