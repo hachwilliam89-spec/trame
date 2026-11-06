@@ -87,7 +87,7 @@ Le workflow `.github/workflows/publish-images.yml` publie les six images de la t
    - chaque digest est signé sans clé avec l'annotation `commit=<sha>`, vérifié, puis lu anonymement ;
    - le manifeste de version `trame-release:<sha>` (`images.json`) n'est poussé, signé et vérifié qu'en dernier.
 
-Vérifier une version publiée, comme le fera B2 :
+Vérifier une version publiée, comme le fera B2. La vérification demande `oras` et `cosign` dans le `PATH` (sous macOS : `brew install oras cosign`). Sans eux, elle échoue en nommant l'outil manquant.
 
 ```bash
 pnpm release-images verify <sha>
@@ -97,14 +97,11 @@ Le tag du manifeste de version est résolu une seule fois en digest. La signatur
 
 Les versions des outils (oras, cosign, Trivy, registry) et leurs sommes SHA-256 sont dans `.github/actions/release-tools/action.yml`. BuildKit et le générateur SBOM sont figés par digest dans `infra/release/pins.env`.
 
-### Premier passage
+### Visibilité des packages
 
-Un nouveau package GHCR est privé, même pour un dépôt public. Le premier passage se fait donc en deux temps.
+GitHub crée un nouveau package GHCR en privé par défaut. Lors de la première publication (run [42219643979](https://github.com/hachwilliam89-spec/trame/actions/runs/42219643979), commit `db4100e`), les sept packages étaient pourtant lisibles anonymement au moment du contrôle. Cela prouve qu'ils étaient publics à ce moment-là, pas qu'ils le seront toujours à leur création.
 
-1. Le téléchargement anonyme échoue sur la première image : rendre publics les six packages `trame-api`, `trame-relay`, `trame-migrator`, `trame-web`, `trame-engine` et `trame-worker` (Paramètres du package, puis Visibilité), puis relancer le job « Publication » échoué. Il repousse les mêmes layouts, donc les mêmes digests.
-2. Le manifeste de version est créé, mais son téléchargement anonyme échoue : rendre `trame-release` public, puis relancer.
-
-La publication n'est terminée qu'après le téléchargement anonyme du manifeste de version.
+Si le téléchargement anonyme échoue, le job « Publication » nomme le package concerné. Rendre ce package public (Paramètres du package, puis Visibilité), puis relancer le job échoué : il repousse les mêmes layouts, donc les mêmes digests. La publication n'est terminée qu'après le téléchargement anonyme du manifeste de version.
 
 ### Preuve sur les PR
 
