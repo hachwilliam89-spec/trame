@@ -15,9 +15,9 @@ Une fusion lancée trop tôt est refusée, parce que les checks requis ne sont p
 
 1. Il lit les checks exigés par la protection de `main`, et refuse de continuer si `CI OK` ou `CodeQL` n'en font pas partie.
 2. Toutes les 20 secondes, il relit la PR et ses checks, puis :
-   - il **s'arrête** si la PR est fermée, en brouillon, vise une autre branche que `main` ou est en conflit, ou si un check requis a échoué, a été annulé ou a été ignoré ;
+   - il **s'arrête** si la PR est fermée, en brouillon, vise une autre branche que `main` ou est en conflit, ou si un check requis a échoué ou a été annulé ;
    - il demande à GitHub de **mettre la branche à jour** si elle est en retard sur `main`, puis attend les checks du nouveau commit ;
-   - il **attend** tant qu'un check requis est absent ou en cours ;
+   - il **attend** tant qu'un check requis est absent, en cours, neutre ou ignoré. `gh` range un verdict neutre avec les checks ignorés, et le résultat « CodeQL » passe par ce verdict juste après une mise à jour de la branche. Un check qui resterait ignoré épuise le délai, sans fusion ;
    - il **fusionne** une fois tous les checks requis réussis, avec `--match-head-commit` : GitHub refuse la fusion si un commit est arrivé depuis la vérification.
 3. Le délai est une échéance mesurée sur une horloge monotone, qui ne dépend pas de l'heure du système. Le temps des commandes `gh` compte autant que les pauses :
    - chaque commande `gh` est interrompue si elle dépasse le temps restant, et n'est pas lancée une fois l'échéance atteinte ;

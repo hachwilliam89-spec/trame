@@ -65,6 +65,14 @@ export function decideNextStep(situation: MergeSituation): NextStep {
   if (pendingNames.length > 0) {
     return { kind: 'wait', reason: `En attente des checks : ${pendingNames.join(', ')}` };
   }
+  const withoutVerdictNames = namesWithBucket(requiredChecks, ['skipping']);
+  if (withoutVerdictNames.length > 0) {
+    const names = withoutVerdictNames.join(', ');
+    return {
+      kind: 'wait',
+      reason: `En attente d’un verdict pour les checks neutres ou ignorés : ${names}`,
+    };
+  }
 
   if (pullRequest.mergeable === 'UNKNOWN') {
     return { kind: 'wait', reason: 'GitHub calcule si la PR est fusionnable' };
@@ -72,8 +80,15 @@ export function decideNextStep(situation: MergeSituation): NextStep {
   return { kind: 'merge', headCommit: pullRequest.headRefOid };
 }
 
-/** Un check ignoré compte comme réussi pour GitHub ; ici, on exige qu'il ait vraiment tourné. */
-const UNSUCCESSFUL_BUCKETS: CheckBucket[] = ['fail', 'cancel', 'skipping'];
+const UNSUCCESSFUL_BUCKETS: CheckBucket[] = ['fail', 'cancel'];
+
+/*
+ * Un check ignoré ou neutre compte comme réussi pour GitHub ; ici, on exige qu'il ait vraiment
+ * réussi, sans s'arrêter pour autant. `gh pr checks` range le verdict NEUTRAL avec les checks
+ * ignorés, et le résultat « CodeQL » du code scanning passe par ce verdict juste après une mise à
+ * jour de la branche, avant le sien. On attend donc : un check qui resterait ignoré épuise le délai,
+ * et rien n'est fusionné.
+ */
 
 function findBlockingReason(pullRequest: PullRequestState): string | undefined {
   const label = `La PR #${pullRequest.number}`;
