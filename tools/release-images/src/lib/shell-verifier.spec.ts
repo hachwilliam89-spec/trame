@@ -124,6 +124,28 @@ describe('vérificateur shell de la version publiée (verify-release.sh)', () =>
     expect(run.stderr).toContain('Digest du manifeste de version mal formé : sha256:abc.');
   });
 
+  // Comme trim() en TypeScript : seuls les blancs du début et de la fin sont retirés.
+  it('refuse un digest du manifeste de version qui contient un blanc interne', () => {
+    const digestWithInnerSpace = `sha256: ${'1'.repeat(64)}`;
+    tools.resolvesTo(`${digestWithInnerSpace}\n`);
+
+    const run = tools.verify(COMMIT);
+
+    expect(run.exitCode).toBe(1);
+    expect(run.stderr).toContain(
+      `Digest du manifeste de version mal formé : ${digestWithInnerSpace}.`,
+    );
+  });
+
+  it('accepte un digest du manifeste de version entouré de blancs', () => {
+    tools.resolvesTo(`  ${RELEASE_DIGEST} \n\n`);
+
+    const run = tools.verify(COMMIT);
+
+    expect(run.exitCode).toBe(0);
+    expect(tools.calls().find((call) => call[1] === 'pull')?.[2]).toBe(RELEASE_REFERENCE);
+  });
+
   it('ne télécharge pas un manifeste de version dont la signature est refusée', () => {
     tools.refusesSignatureOf(RELEASE_REFERENCE);
 
