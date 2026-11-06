@@ -1,0 +1,12 @@
+{
+  "name": "architecture",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "tools/architecture/src",
+  "projectType": "library",
+  "tags": ["scope:tooling"],
+  "targets": {
+    "test": {
+      "cache": false
+    }
+  }
+}

@@ -65,6 +65,14 @@ export function decideNextStep(situation: MergeSituation): NextStep {
   if (pendingNames.length > 0) {
     return { kind: 'wait', reason: `En attente des checks : ${pendingNames.join(', ')}` };
   }
+  const withoutVerdictNames = namesWithBucket(requiredChecks, ['skipping']);
+  if (withoutVerdictNames.length > 0) {
+    const names = withoutVerdictNames.join(', ');
+    return {
+      kind: 'wait',
+      reason: `En attente d’un verdict pour les checks neutres ou ignorés : ${names}`,
+    };
+  }
 
   if (pullRequest.mergeable === 'UNKNOWN') {
     return { kind: 'wait', reason: 'GitHub calcule si la PR est fusionnable' };
@@ -72,8 +80,16 @@ export function decideNextStep(situation: MergeSituation): NextStep {
   return { kind: 'merge', headCommit: pullRequest.headRefOid };
 }
 
-/** Un check ignoré compte comme réussi pour GitHub ; ici, on exige qu'il ait vraiment tourné. */
-const UNSUCCESSFUL_BUCKETS: CheckBucket[] = ['fail', 'cancel', 'skipping'];
+const UNSUCCESSFUL_BUCKETS: CheckBucket[] = ['fail', 'cancel'];
+
+/*
+ * Un check ignoré ou neutre compte comme réussi pour GitHub ; ici, on exige qu'il ait vraiment
+ * réussi, sans s'arrêter pour autant. `gh pr checks` range le verdict NEUTRAL avec les checks
+ * ignorés (gh 2.89, aggregate.go). Juste après une mise à jour de branche, pr:merge s'est arrêté sur
+ * « CodeQL », qui a fini vert peu après : un passage transitoire par NEUTRAL est l'explication la
+ * plus probable, sans être confirmée. On attend donc : un check qui resterait ignoré épuise le
+ * délai, et rien n'est fusionné.
+ */
 
 function findBlockingReason(pullRequest: PullRequestState): string | undefined {
   const label = `La PR #${pullRequest.number}`;

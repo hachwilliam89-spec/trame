@@ -38,7 +38,8 @@ Les ports se changent dans `.env` (`POSTGRES_PORT`, `RABBITMQ_PORT`, `RABBITMQ_M
 
 - `pnpm nx test infra` contrôle la configuration résolue par `docker compose config` avec `.env.example` : ports, healthchecks, images, volumes, comptes. La CLI Docker suffit.
 - `pnpm nx run infra:integration` démarre réellement la stack, sous le projet Compose `trame-dev-integration` et sur des ports libres, sans toucher à la stack du développeur. Il couvre les scénarios de l'issue #13. Le démon Docker est requis.
-- Le même contrôle lance les scénarios de l'issue #21 : Chromium se connecte à Keycloak en code + PKCE, puis les vrais jetons appellent l'API construite. Installer le navigateur par `pnpm exec playwright install chromium` ; la CI installe aussi ses dépendances système.
+- Le même contrôle lance les scénarios de l'issue #21 : Chromium se connecte à Keycloak en code + PKCE, puis les vrais jetons appellent l'API construite. Sur un poste, installer le navigateur par `pnpm exec playwright install chromium`.
+- En CI, les navigateurs ne sont pas installés : ils tournent dans l'image officielle de Playwright, épinglée par digest, sur le réseau de l'hôte (`.github/actions/playwright-server`). Les tests s'y connectent quand `PLAYWRIGHT_SERVER` est défini (`src/lib/test-browser.ts`). L'image reste à la version de `playwright` de `package.json`, ce que vérifie `src/ci-playwright-image.spec.ts`.
 
 ## Diagnostic asynchrone
 

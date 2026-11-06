@@ -10,6 +10,7 @@ import {
   startStack,
   queryDatabase,
 } from './lib/dev-stack';
+import { launchTestBrowser } from './lib/test-browser';
 import {
   loginWithPkce,
   exchangeToken,
@@ -49,7 +50,7 @@ describe('Keycloak et API construite, avec de vrais jetons (US-020 A2)', () => {
     await startStack(options);
     await runPrisma(['migrate', 'deploy'], databaseUrl);
     api = await startApi(await reserveFreePort(), databaseUrl, issuer);
-    browser = await chromium.launch();
+    browser = await launchTestBrowser(chromium);
     for (const role of ['admin', 'manager', 'employee']) {
       tokens.set(role, await loginWithPkce(browser, issuer, 'dev-' + role, callback.redirectUri));
     }
