@@ -191,7 +191,7 @@ Les autres contrôles arrivent avec le risque qu'ils couvrent :
 
 ### US-005 — Déploiement staging et prod
 
-> Cadrage dans [#39](https://github.com/hachwilliam89-spec/trame/issues/39) et [docs/deploiement.md](deploiement.md). Première tranche : images et preuve locale/CI ([#40](https://github.com/hachwilliam89-spec/trame/issues/40)), scénarios et plan validés par Kim le 5 novembre 2026 ; implémentation en revue dans [#42](https://github.com/hachwilliam89-spec/trame/pull/42). US-013 reste préalable à la mise en service.
+> Cadrage dans [#39](https://github.com/hachwilliam89-spec/trame/issues/39) et [docs/deploiement.md](deploiement.md). Première tranche : images et preuve locale/CI ([#40](https://github.com/hachwilliam89-spec/trame/issues/40)), scénarios et plan validés par Kim le 5 novembre 2026 ; livrée par [#42](https://github.com/hachwilliam89-spec/trame/pull/42). Publication des images (B1, [#44](https://github.com/hachwilliam89-spec/trame/issues/44)) livrée le 6 novembre 2026 par [#45](https://github.com/hachwilliam89-spec/trame/pull/45) : images scannées, avec SBOM et provenance, signées sans clé pour leur commit, et un manifeste de version signé. Reste le staging (B2), après US-013, qui reste préalable à la mise en service.
 
 ```gherkin
 Scénario: Livraison continue sur staging
