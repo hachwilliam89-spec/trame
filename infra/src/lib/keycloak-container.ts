@@ -32,7 +32,6 @@ export async function startKeycloakWithRealm(realmFile: string): Promise<Keycloa
   await run('docker', [
     'run',
     '--detach',
-    '--rm',
     '--name',
     name,
     '--publish',
