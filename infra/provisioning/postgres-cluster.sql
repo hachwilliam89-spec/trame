@@ -1,0 +1,1 @@
+-- À écrire (US-005 B2a, étape 3a).

@@ -1,0 +1,137 @@
+# Stack partagée des environnements déployés (US-005 B2a, #47) : PostgreSQL, RabbitMQ et Keycloak.
+# Staging et production y sont séparés par base, vhost et realm (infra/provisioning).
+#
+#   docker compose -f infra/compose/shared.yml build keycloak
+#   docker compose -f infra/compose/shared.yml up -d --wait postgres rabbitmq
+#   (provisionnement : infra/provisioning/README.md)
+#   docker compose -f infra/compose/shared.yml up -d --wait keycloak
+#
+# Variables : TRAME_SECRETS_DIR, dossier des secrets (modèles dans secrets.example/shared), et
+# KEYCLOAK_ADMIN_URL, adresse locale du tunnel SSH vers la console d'administration.
+# Aucun port publié : seul Keycloak rejoint `edge`, avec une route limitée par Traefik (ADR-0016).
+name: trame-shared
+
+x-service: &service
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ['no-new-privileges:true']
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: '10m', max-file: '3' }
+
+services:
+  postgres:
+    <<: *service
+    image: postgres:18.6-alpine@sha256:10a5c69a83035ab5239f5620d708520e8b28f5aa1f2b20143e6024532edadfb5
+    # L'utilisateur de l'image, sans passer par root : aucune capacité n'est nécessaire.
+    user: postgres
+    env_file:
+      - path: ${TRAME_SECRETS_DIR:?}/postgres.env
+        required: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+      - /var/run/postgresql:rw,noexec,nosuid,size=1m,mode=1777
+    volumes:
+      # PostgreSQL 18 range ses données sous /var/lib/postgresql/18 : on monte le dossier parent.
+      - postgres-data:/var/lib/postgresql
+    networks: [data]
+    mem_limit: 1536m
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -U postgres -d postgres']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  rabbitmq:
+    <<: *service
+    image: rabbitmq:4.3.7-management-alpine@sha256:1528a88eebf2bc4d0ab7e9d5d9bc542e9bdf5e1b105e65848fcf8de5c2186528
+    user: rabbitmq
+    # Le nom du nœud dérive du nom d'hôte : fixé, il retrouve ses données à la recréation.
+    hostname: rabbitmq
+    # RABBITMQ_DEFAULT_USER et RABBITMQ_DEFAULT_PASS : sans eux, l'image crée guest/guest, joignable
+    # depuis le réseau.
+    env_file:
+      - path: ${TRAME_SECRETS_DIR:?}/rabbitmq.env
+        required: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks: [data]
+    mem_limit: 512m
+    healthcheck:
+      test: ['CMD', 'rabbitmq-diagnostics', '--quiet', 'check_port_connectivity']
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+  keycloak:
+    <<: *service
+    image: quay.io/keycloak/keycloak:26.8.1@sha256:3f3c5f8e03c614774b4bd9173b88391fefa4153bfc010d8012d59ad825377332
+    command: ['start', '--import-realm']
+    environment:
+      KC_DB: postgres
+      KC_HEALTH_ENABLED: 'true'
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: keycloak
+      # L'émetteur des jetons est toujours l'adresse publique, même pour une requête interne.
+      KC_HOSTNAME: https://auth.trame.wkhach.dev
+      # La console d'administration n'est pas routée : elle s'ouvre par le tunnel SSH.
+      KC_HOSTNAME_ADMIN: ${KEYCLOAK_ADMIN_URL:?}
+      KC_PROXY_HEADERS: xforwarded
+      KC_HTTP_ENABLED: 'true'
+    # KC_DB_PASSWORD, et le compte d'administration initial, temporaire (KC_BOOTSTRAP_ADMIN_*).
+    env_file:
+      - path: ${TRAME_SECRETS_DIR:?}/keycloak.env
+        required: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m,mode=1777
+      - /opt/keycloak/data:rw,noexec,nosuid,size=128m,mode=1777
+    volumes:
+      # Realms générés (infra/keycloak/generated) : importés seulement s'ils sont absents.
+      - type: bind
+        source: ../keycloak/generated
+        target: /opt/keycloak/data/import
+        read_only: true
+    networks: [auth, edge]
+    mem_limit: 1g
+    healthcheck:
+      # L'image n'a pas curl. Le port de gestion reste interne au conteneur.
+      test:
+        - CMD
+        - bash
+        - -ec
+        - "exec 3<>/dev/tcp/127.0.0.1/9000; printf 'HEAD /health/ready HTTP/1.0\\r\\n\\r\\n' >&3; head -n 1 <&3 | grep -q ' 200 '"
+      interval: 5s
+      timeout: 5s
+      retries: 60
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=edge
+      # Seuls le realm de staging et les ressources des pages de connexion sont publics : ni
+      # /admin/ ni /realms/master/ (recommandations de Keycloak sur les chemins exposés).
+      - traefik.http.routers.trame-auth.rule=Host(`auth.trame.wkhach.dev`) && (PathPrefix(`/realms/trame-staging/`) || PathPrefix(`/resources/`))
+      - traefik.http.routers.trame-auth.entrypoints=websecure
+      - traefik.http.routers.trame-auth.middlewares=trame-auth-ratelimit
+      # Valeurs techniques de départ, à ajuster après la mesure de l'étape 4.
+      - traefik.http.middlewares.trame-auth-ratelimit.ratelimit.average=5
+      - traefik.http.middlewares.trame-auth-ratelimit.ratelimit.burst=20
+      - traefik.http.services.trame-auth.loadbalancer.server.port=8080
+
+networks:
+  # PostgreSQL, RabbitMQ, Keycloak et les services des environnements qui en ont besoin.
+  data:
+    name: trame-data
+    internal: true
+  # Keycloak et les API, qui y lisent les clés de signature (JWKS).
+  auth:
+    name: trame-auth
+    internal: true
+  edge:
+    name: edge
+    external: true
+
+volumes:
+  postgres-data:
+  rabbitmq-data:
