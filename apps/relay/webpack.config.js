@@ -2,7 +2,7 @@ const { NxAppWebpackPlugin } = require('@nx/webpack/app-plugin');
 const { join } = require('path');
 
 module.exports = {
-  output: { path: join(__dirname, '../../dist/tools/diagnostic-transport'), clean: true },
+  output: { path: join(__dirname, '../../dist/apps/relay'), clean: true },
   plugins: [
     new NxAppWebpackPlugin({
       target: 'node',
