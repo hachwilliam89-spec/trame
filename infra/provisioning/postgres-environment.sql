@@ -14,9 +14,19 @@
 \set ON_ERROR_STOP on
 \set QUIET on
 
--- Le serveur ne journalise pas une requête en erreur de cette session : elle pourrait contenir un
--- mot de passe.
+-- Aucun texte de requête de cette session n'atteint le journal du serveur : la suite contient des
+-- mots de passe. Chaque mode qui journalise ce texte est coupé, quel que soit le réglage du serveur :
+-- toutes les requêtes, celles qui durent, un échantillon de requêtes ou de transactions, celles en
+-- erreur, et les options de débogage qui journalisent l'arbre d'une requête. Ces réglages exigent
+-- le superutilisateur : sans lui, le script s'arrête ici, avant tout secret.
+SET log_statement = none;
+SET log_min_duration_statement = -1;
+SET log_min_duration_sample = -1;
+SET log_transaction_sample_rate = 0;
 SET log_min_error_statement = panic;
+SET debug_print_parse = off;
+SET debug_print_rewritten = off;
+SET debug_print_plan = off;
 
 \set environment ''
 \set migrator_password ''
