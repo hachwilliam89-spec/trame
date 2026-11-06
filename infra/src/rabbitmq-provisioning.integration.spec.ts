@@ -48,10 +48,15 @@ describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
   const production = { relay: `prod-relay-${testRun}`, worker: `prod-worker-${testRun}` };
   const allSecrets = [staging.relay, staging.worker, production.relay, production.worker];
   const openConnections: ChannelModel[] = [];
+  const administrator = { user: 'test-admin', password: `admin-${testRun}` };
 
   beforeAll(async () => {
     topology = JSON.parse(await readFile(TOPOLOGY_FILE, 'utf8')) as DiagnosticTopology;
     broker = await new RabbitMQContainer(devStackImage('rabbitmq'))
+      .withEnvironment({
+        RABBITMQ_DEFAULT_USER: administrator.user,
+        RABBITMQ_DEFAULT_PASS: administrator.password,
+      })
       .withStartupTimeout(120_000)
       .start();
   });
@@ -149,6 +154,19 @@ describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
     throw new Error(`Aucun message dans ${queue.name}.`);
   }
 
+  async function managementStatus(credentials: {
+    user: string;
+    password: string;
+  }): Promise<number> {
+    const managementUrl = `http://${broker.getHost()}:${broker.getMappedPort(MANAGEMENT_PORT)}`;
+    const basic = Buffer.from(`${credentials.user}:${credentials.password}`).toString('base64');
+    const response = await fetch(`${managementUrl}/api/whoami`, {
+      headers: { authorization: `Basic ${basic}` },
+      signal: AbortSignal.timeout(10_000),
+    });
+    return response.status;
+  }
+
   /** Le relay publie une demande que le worker reçoit, puis le worker publie le rapport. */
   async function exchangeDiagnostic(relay: ConfirmChannel, worker: ConfirmChannel): Promise<void> {
     await publish(relay, topology.requests, 'demande');
@@ -225,16 +243,12 @@ describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
   });
 
   it('Messagerie : aucun accès à l’interface de gestion', async () => {
-    const managementUrl = `http://${broker.getHost()}:${broker.getMappedPort(MANAGEMENT_PORT)}`;
     const relay = account('staging', 'relay', staging.relay);
-    const credentials = Buffer.from(`${relay.user}:${relay.password}`).toString('base64');
+    // Témoins : ces identifiants ouvrent la messagerie, et l'interface répond à un administrateur.
+    await open(relay);
+    expect(await managementStatus(administrator)).toBe(200);
 
-    const response = await fetch(`${managementUrl}/api/whoami`, {
-      headers: { authorization: `Basic ${credentials}` },
-      signal: AbortSignal.timeout(10_000),
-    });
-
-    expect(response.status).toBe(401);
+    expect(await managementStatus(relay)).toBe(401);
   });
 
   it('Provisionnement rejouable : change les mots de passe sans toucher aux files', async () => {
