@@ -113,6 +113,14 @@ Décision de Kim du 2026-11-05 : utiliser les design patterns lorsqu'ils répond
 - Pour une optimisation, mesurer le coût initial et le gain obtenu. Le poids mouche (_Flyweight_) convient au partage de données immuables répétées lorsque ce partage est utile ; ne pas mutualiser de données métier mutables entre utilisateurs ou organisations.
 - Garder une solution simple quand une abstraction supplémentaire ne rend pas de service concret.
 
+## Mesure dans l'infrastructure
+
+Décision de Kim du 2026-11-06, après la relecture de structure de Codex : la valeur de Trame est dans son cœur métier (planification, règles, PE, explication). L'infrastructure le sert ; elle ne doit pas prendre sa place.
+
+- Une nouvelle abstraction, lib, brique d'infrastructure ou outil répond à un besoin déjà rencontré, nommé dans l'issue ou la PR. On ne l'ajoute pas pour un besoin seulement prévu.
+- Hors des stories du backlog validé, une amélioration d'infrastructure ou d'outillage est notée dans le backlog (« Améliorations notées »), pas réalisée. Exceptions : une faille de sécurité, ou une panne qui bloque le travail.
+- Une story d'infrastructure annonce son périmètre minimal ; ce qui le dépasse est proposé à part.
+
 ## Lisibilité (priorité)
 
 Le code est écrit pour être relu et repris par un humain qui découvre le module, pas pour être court. Un code correct mais difficile à lire est une raison suffisante de demander une reprise en revue.
