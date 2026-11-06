@@ -128,12 +128,20 @@ jobs:
       - name: Registre local de la preuve
         run: infra/release/scan-registry.sh
 
-      - name: Construire et scanner une image comme la publication
+      # Les six images, comme la publication : une faille bloquante est vue dès la PR, plutôt
+      # qu'au premier passage sur main.
+      - name: Construire et scanner les six images comme la publication
         env:
           BUILDER: trame-release
           SCAN_REGISTRY: 127.0.0.1:5000
           REVISION: ${{ github.sha }}
-        run: infra/release/build-and-scan.sh web infra/docker/node.Dockerfile web "$RUNNER_TEMP/proof"
+        run: |
+          status=0
+          for image in api:node relay:node migrator:node web:node engine:engine worker:engine; do
+            name="${image%%:*}" dockerfile="infra/docker/${image##*:}.Dockerfile"
+            infra/release/build-and-scan.sh "$name" "$dockerfile" "$name" "$RUNNER_TEMP/proof" || status=1
+          done
+          exit "$status"
 
       - name: Signer, vérifier par commit et lire anonymement
         env:

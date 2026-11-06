@@ -9,7 +9,9 @@ set -euo pipefail
 
 reference="$1" commit="$2"
 key_directory="$(mktemp -d)"
-export COSIGN_PASSWORD='' COSIGN_YES=true
+# Clé jetable, sans phrase de passe : elle ne vit que le temps de la preuve.
+export COSIGN_YES=true
+export COSIGN_PASSWORD=
 (cd "$key_directory" && cosign generate-key-pair > /dev/null)
 
 cosign sign --key "$key_directory/cosign.key" --allow-http-registry \
