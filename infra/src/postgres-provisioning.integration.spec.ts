@@ -288,6 +288,38 @@ describe('provisionnement PostgreSQL d’un environnement (US-005 B2a)', () => {
     await migrate(stagingMigrator(rotated.migrator), 'trame_staging');
   });
 
+  it('ferme aux rôles d’environnement les bases système, sans en priver le superutilisateur', async () => {
+    const stagingRoles = [stagingApi(rotated.api), stagingMigrator(rotated.migrator)];
+    const systemDatabases = ['postgres', 'template1'];
+    for (const credentials of stagingRoles) {
+      for (const database of systemDatabases) {
+        expect(await outcomeOf(() => query(credentials, database, 'SELECT 1'))).toBe('réussi');
+      }
+    }
+
+    const run = await runPsqlScript('postgres-cluster.sql', {});
+
+    expectSuccess(run);
+    for (const credentials of stagingRoles) {
+      for (const database of systemDatabases) {
+        const outcome = await outcomeOf(() => query(credentials, database, 'SELECT 1'));
+        expect({ user: credentials.user, database, outcome }).toEqual({
+          user: credentials.user,
+          database,
+          outcome: PERMISSION_DENIED,
+        });
+      }
+    }
+    for (const database of systemDatabases) {
+      expect(await query(superuser(), database, 'SELECT 1 AS ok')).toEqual([{ ok: 1 }]);
+    }
+    // Une base créée ensuite garde ses propres droits : template1 n'en transmet aucun.
+    expectSuccess(await runPsqlScript('postgres-cluster.sql', {}));
+    expect(await query(stagingApi(rotated.api), 'trame_staging', 'SELECT 1 AS ok')).toEqual([
+      { ok: 1 },
+    ]);
+  });
+
   it('Journal du serveur sans secret, même quand toutes les requêtes sont journalisées', async () => {
     await query(superuser(), 'postgres', `SELECT 'temoin-journal-${testRun}'`);
 
