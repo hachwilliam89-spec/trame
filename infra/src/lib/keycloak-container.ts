@@ -52,12 +52,9 @@ export async function startKeycloakWithRealm(realmFile: string): Promise<Keycloa
     await waitUntilReady(baseUrl);
   } catch (error) {
     // Sans les journaux, un import de realm refusé ne se distingue pas d'un démarrage lent.
-    const { stdout, stderr } = await run('docker', ['logs', '--tail', '60', name]).catch(() => ({
-      stdout: '',
-      stderr: 'journaux indisponibles',
-    }));
+    const diagnostics = await containerDiagnostics(name);
     await run('docker', ['rm', '--force', name]).catch(() => undefined);
-    throw new Error(`${String(error)}\nJournaux de Keycloak :\n${stdout}${stderr}`);
+    throw new Error(`${String(error)}\n${diagnostics}`);
   }
   return {
     baseUrl,
@@ -66,6 +63,22 @@ export async function startKeycloakWithRealm(realmFile: string): Promise<Keycloa
       await run('docker', ['rm', '--force', name]);
     },
   };
+}
+
+async function containerDiagnostics(name: string): Promise<string> {
+  const sections: string[] = [];
+  for (const args of [
+    ['ps', '--all', '--filter', `name=${name}`, '--format', '{{.Names}} {{.Status}}'],
+    ['logs', '--tail', '80', name],
+  ]) {
+    try {
+      const { stdout, stderr } = await run('docker', args);
+      sections.push(`docker ${args[0]} :\n${stdout}${stderr}`);
+    } catch (error) {
+      sections.push(`docker ${args[0]} a échoué : ${String(error)}`);
+    }
+  }
+  return sections.join('\n');
 }
 
 async function waitUntilReady(baseUrl: string): Promise<void> {
