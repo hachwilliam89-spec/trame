@@ -1,0 +1,35 @@
+name: Serveur Playwright
+description: >-
+  Démarre le serveur Playwright de l'image officielle, épinglée par digest, sur le réseau de l'hôte.
+  Ses navigateurs et leurs dépendances système y sont déjà installés : la CI n'installe plus de
+  paquets apt à chaque passage, dont le miroir a fait annuler plusieurs jobs. Les tests s'y
+  connectent par PLAYWRIGHT_SERVER (infra/src/lib/test-browser.ts).
+
+inputs:
+  image:
+    description: Image officielle de Playwright, à la version de package.json, épinglée par digest.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Démarrer le serveur Playwright
+      shell: bash
+      env:
+        PLAYWRIGHT_IMAGE: ${{ inputs.image }}
+      # Le paquet playwright du dépôt (lockfile) pilote les navigateurs de l'image, de même version.
+      # Le dépôt est monté au même chemin, pour que les liens de pnpm restent valides.
+      run: |
+        docker run --detach --name playwright-server --init --network host \
+          --volume "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE:ro" \
+          "$PLAYWRIGHT_IMAGE" \
+          node "$GITHUB_WORKSPACE/node_modules/playwright/cli.js" run-server --host 127.0.0.1 --port 3333
+        for attempt in $(seq 1 60); do
+          if docker logs playwright-server 2>&1 | grep -q 'Listening on'; then
+            echo "PLAYWRIGHT_SERVER=ws://127.0.0.1:3333/" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          sleep 1
+        done
+        docker logs playwright-server
+        exit 1

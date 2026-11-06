@@ -17,6 +17,9 @@ env:
   NX_NO_CLOUD: 'true'
   # Les hooks Git n'ont pas de sens en CI.
   LEFTHOOK: '0'
+  # Navigateurs des tests : image officielle de Playwright, à la version de package.json, épinglée
+  # par digest. Un test d'infra vérifie l'accord des versions (ci-playwright-image.spec.ts).
+  PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
 
 jobs:
   verify:
@@ -86,8 +89,10 @@ jobs:
 
       - uses: $/.github/actions/setup
 
-      - name: Navigateurs pour les parcours Keycloak et Angular
-        run: pnpm exec playwright install --with-deps chromium firefox webkit
+      # Navigateurs des parcours Keycloak et Angular (Chromium, Firefox, WebKit).
+      - uses: $/.github/actions/playwright-server
+        with:
+          image: ${{ env.PLAYWRIGHT_IMAGE }}
 
       - name: Postgres, RabbitMQ et Keycloak réels
         run: pnpm nx run-many -t integration
@@ -112,8 +117,10 @@ jobs:
         with:
           python: 'false'
 
-      - name: Chromium pour le parcours conteneurisé
-        run: pnpm exec playwright install --with-deps chromium
+      # Chromium du parcours conteneurisé.
+      - uses: $/.github/actions/playwright-server
+        with:
+          image: ${{ env.PLAYWRIGHT_IMAGE }}
 
       - name: Construire et tester les images Linux amd64
         run: pnpm nx run infra:images-test
