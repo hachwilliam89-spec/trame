@@ -1,0 +1,8 @@
+{
+  "name": "release-images",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "tools/release-images/src",
+  "projectType": "library",
+  "tags": ["scope:tooling"],
+  "targets": {}
+}
