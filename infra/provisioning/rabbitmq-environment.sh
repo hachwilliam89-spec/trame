@@ -35,8 +35,14 @@ vhost="trame-$environment"
 # la crée : les deux reçoivent donc les mêmes droits, sur les seules ressources de diagnostic.
 diagnostic_resources='^trame\.diagnostic\.'
 
-# La liste est lue en entier avant d'être filtrée : `grep -q` s'arrêterait à la première ligne
-# trouvée, et `rabbitmqctl`, privé de sa sortie, journaliserait une erreur.
+# Une liste de `rabbitmqctl` est d'abord capturée seule (`liste="$(ctl …)"`) : en tête d'un tube,
+# son échec serait masqué par la commande suivante, et `set -e` ne l'arrêterait pas. Elle n'est
+# filtrée qu'ensuite, car `grep -q` s'arrête à la première ligne trouvée : `rabbitmqctl`, privé de
+# sa sortie, journaliserait une erreur.
+first_column() {
+  printf '%s\n' "$1" | cut -f1
+}
+
 is_listed() {
   printf '%s\n' "$1" | grep -qx "$2"
 }
@@ -53,8 +59,8 @@ ensure_vhost() {
 set_password() {
   user="$1"
   password="$2"
-  users="$(ctl list_users | cut -f1)"
-  if is_listed "$users" "$user"; then
+  users="$(ctl list_users)"
+  if is_listed "$(first_column "$users")" "$user"; then
     printf '%s\n' "$password" | rabbitmqctl change_password "$user" >/dev/null
   else
     printf '%s\n' "$password" | rabbitmqctl add_user "$user" >/dev/null
@@ -63,7 +69,8 @@ set_password() {
 
 revoke_other_vhosts() {
   user="$1"
-  for granted_vhost in $(ctl list_user_permissions "$user" | cut -f1); do
+  permissions="$(ctl list_user_permissions "$user")"
+  for granted_vhost in $(first_column "$permissions"); do
     if [ "$granted_vhost" != "$vhost" ]; then
       ctl clear_permissions -p "$granted_vhost" "$user"
     fi
