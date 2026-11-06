@@ -23,6 +23,35 @@ const currentTimeRestrictions = [
   },
 ];
 
+/**
+ * Contextes métier (AGENTS.md, règle 4). Une lib d'un contexte n'importe jamais une lib d'un autre :
+ * ils communiquent par événement, ou par un use case public appelé à travers un port, l'adaptateur
+ * étant assemblé dans l'application. Les tests de `tools/architecture` lisent cette liste.
+ */
+export const BOUNDED_CONTEXTS = [
+  'organization',
+  'staff',
+  'rules',
+  'demand',
+  'scheduling',
+  'swaps',
+  'forecasting',
+  'assistant',
+];
+
+/** Pour chaque contexte, l'interdiction d'importer une lib des autres contextes. */
+function boundedContextConstraints() {
+  const constraints = [];
+  for (const context of BOUNDED_CONTEXTS) {
+    const otherContexts = BOUNDED_CONTEXTS.filter((other) => other !== context);
+    constraints.push({
+      sourceTag: `context:${context}`,
+      notDependOnLibsWithTags: otherContexts.map((other) => `context:${other}`),
+    });
+  }
+  return constraints;
+}
+
 export default [
   ...nx.configs['flat/base'],
   ...nx.configs['flat/typescript'],
@@ -42,13 +71,16 @@ export default [
   {
     files: ['**/*.ts', '**/*.tsx', '**/*.js', '**/*.jsx', '**/*.mjs', '**/*.mts'],
     rules: {
-      // Frontières d'architecture (AGENTS.md, règles 1 à 4 et 11 ; ADR-0003, ADR-0026).
+      // Frontières d'architecture (AGENTS.md, règles 1, 2, 4 et 11 ; ADR-0003, ADR-0026), prouvées par
+      // les tests de tools/architecture.
       '@nx/enforce-module-boundaries': [
         'error',
         {
           enforceBuildableLibDependency: true,
           allow: ['^.*/eslint(\\.base)?\\.config\\.[cm]?[jt]s$'],
           depConstraints: [
+            // Contextes métier : aucun n'importe une lib d'un autre (règle 4).
+            ...boundedContextConstraints(),
             // Socle générique : aucune dépendance vers le métier.
             { sourceTag: 'scope:platform', onlyDependOnLibsWithTags: ['scope:platform'] },
             // Contrats partagés : autonomes.
@@ -79,7 +111,16 @@ export default [
                 'scope:shared',
                 'scope:platform',
               ],
-              bannedExternalImports: ['@prisma/*', 'prisma', 'express', 'amqplib', 'pg'],
+              // Règle 2 : les use cases ne dépendent que du domaine et de leurs ports. NestJS ne
+              // les assemble que depuis l'infrastructure.
+              bannedExternalImports: [
+                '@nestjs/*',
+                '@prisma/*',
+                'prisma',
+                'express',
+                'amqplib',
+                'pg',
+              ],
             },
             {
               sourceTag: 'layer:infrastructure',

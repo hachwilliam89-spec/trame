@@ -3,6 +3,6 @@
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/web/scheduling/feature-diagnostic/src",
   "projectType": "library",
-  "tags": ["scope:web", "type:feature"],
+  "tags": ["scope:web", "type:feature", "context:scheduling"],
   "targets": {}
 }
