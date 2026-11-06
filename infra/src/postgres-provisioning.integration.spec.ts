@@ -17,6 +17,27 @@ const PERMISSION_DENIED = '42501';
 const INVALID_PASSWORD = '28P01';
 const SITE_ID = '019a4ac0-0000-7000-8000-0000000000c1';
 const ORGANIZATION_ID = '019a4ac0-0000-7000-8000-0000000000c2';
+/**
+ * Toute la journalisation de requêtes de PostgreSQL activée, comme sur un serveur réglé pour le
+ * diagnostic : le provisionnement ne doit y laisser aucun mot de passe.
+ */
+const STATEMENT_LOGGING_SERVER = [
+  'postgres',
+  '-c',
+  'log_statement=all',
+  '-c',
+  'log_duration=on',
+  '-c',
+  'log_min_duration_statement=0',
+  '-c',
+  'log_min_duration_sample=0',
+  '-c',
+  'log_statement_sample_rate=1',
+  '-c',
+  'log_transaction_sample_rate=1',
+  '-c',
+  'debug_print_parse=on',
+];
 
 interface EnvironmentSecrets {
   migrator?: string;
@@ -34,10 +55,21 @@ describe('provisionnement PostgreSQL d’un environnement (US-005 B2a)', () => {
   const staging = { migrator: `staging-migrator-${testRun}`, api: `staging-api-${testRun}` };
   const production = { migrator: `prod-migrator-${testRun}`, api: `prod-api-${testRun}` };
   const keycloakPassword = `keycloak-${testRun}`;
-  const allSecrets = [staging.migrator, staging.api, production.migrator, production.api];
+  const rotated = { migrator: `rotated-migrator-${testRun}`, api: `rotated-api-${testRun}` };
+  const allSecrets = [
+    staging.migrator,
+    staging.api,
+    production.migrator,
+    production.api,
+    keycloakPassword,
+    rotated.migrator,
+    rotated.api,
+  ];
 
   beforeAll(async () => {
-    server = await new PostgreSqlContainer(devStackImage('postgres')).start();
+    server = await new PostgreSqlContainer(devStackImage('postgres'))
+      .withCommand(STATEMENT_LOGGING_SERVER)
+      .start();
   });
 
   afterAll(async () => {
@@ -120,6 +152,14 @@ describe('provisionnement PostgreSQL d’un environnement (US-005 B2a)', () => {
 
   function stagingMigrator(password = staging.migrator): Credentials {
     return { user: 'trame_staging_migrator', password };
+  }
+
+  async function serverLog(): Promise<string> {
+    const { stdout, stderr } = await promisify(execFile)('docker', ['logs', server.getId()], {
+      maxBuffer: 64 * 1024 * 1024,
+      timeout: 30_000,
+    });
+    return stdout + stderr;
   }
 
   async function migrate(credentials: Credentials, database: string): Promise<void> {
@@ -236,8 +276,6 @@ describe('provisionnement PostgreSQL d’un environnement (US-005 B2a)', () => {
   });
 
   it('Provisionnement rejouable : change les mots de passe sans toucher aux données', async () => {
-    const rotated = { migrator: `rotated-migrator-${testRun}`, api: `rotated-api-${testRun}` };
-
     expectSuccess(await provisionEnvironment('staging', rotated));
 
     expect(await outcomeOf(() => query(stagingApi(), 'trame_staging', 'SELECT 1'))).toBe(
@@ -248,5 +286,17 @@ describe('provisionnement PostgreSQL d’un environnement (US-005 B2a)', () => {
     ).toEqual([{ name: 'Mulhouse Nord' }]);
     // Le migrator garde la main sur le schéma : aucune migration en attente, aucune erreur.
     await migrate(stagingMigrator(rotated.migrator), 'trame_staging');
+  });
+
+  it('Journal du serveur sans secret, même quand toutes les requêtes sont journalisées', async () => {
+    await query(superuser(), 'postgres', `SELECT 'temoin-journal-${testRun}'`);
+
+    const log = await serverLog();
+
+    // Témoin : le serveur a bien journalisé une requête du test.
+    expect(log).toContain(`temoin-journal-${testRun}`);
+    for (const secret of allSecrets) {
+      expect(log.includes(secret), `secret présent dans le journal : ${secret}`).toBe(false);
+    }
   });
 });

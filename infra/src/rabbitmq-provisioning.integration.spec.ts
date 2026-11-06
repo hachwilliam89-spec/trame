@@ -14,6 +14,11 @@ import { devStackImage } from './lib/pinned-images';
 const PROVISIONING_SCRIPT = join(__dirname, '../provisioning/rabbitmq-environment.sh');
 const TOPOLOGY_FILE = join(__dirname, '../rabbitmq/diagnostic-topology.json');
 const MANAGEMENT_PORT = 15672;
+const FAULT_DIRECTORY = '/tmp/trame-fault';
+const UNREADABLE_PERMISSIONS_RABBITMQCTL = join(
+  __dirname,
+  'fixtures/rabbitmqctl-permissions-unreadable.sh',
+);
 
 interface QueueTopology {
   name: string;
@@ -46,7 +51,15 @@ describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
   const testRun = String(process.pid);
   const staging = { relay: `staging-relay-${testRun}`, worker: `staging-worker-${testRun}` };
   const production = { relay: `prod-relay-${testRun}`, worker: `prod-worker-${testRun}` };
-  const allSecrets = [staging.relay, staging.worker, production.relay, production.worker];
+  const rotated = { relay: `rotated-relay-${testRun}`, worker: `rotated-worker-${testRun}` };
+  const allSecrets = [
+    staging.relay,
+    staging.worker,
+    production.relay,
+    production.worker,
+    rotated.relay,
+    rotated.worker,
+  ];
   const openConnections: ChannelModel[] = [];
   const administrator = { user: 'test-admin', password: `admin-${testRun}` };
 
@@ -71,7 +84,11 @@ describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
     await broker?.stop();
   });
 
-  function provision(environment: string, secrets: EnvironmentSecrets): Promise<ScriptRun> {
+  function provision(
+    environment: string,
+    secrets: EnvironmentSecrets,
+    shell: string[] = ['sh', '-s'],
+  ): Promise<ScriptRun> {
     const variables: Record<string, string> = { TRAME_ENVIRONMENT: environment };
     if (secrets.relay !== undefined) {
       variables['TRAME_RELAY_PASSWORD'] = secrets.relay;
@@ -81,7 +98,7 @@ describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
     }
     return runScriptInContainer({
       containerId: broker.getId(),
-      command: ['sh', '-s'],
+      command: shell,
       scriptPath: PROVISIONING_SCRIPT,
       environment: variables,
     });
@@ -95,6 +112,25 @@ describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
     for (const secret of allSecrets) {
       expect(run.stdout + run.stderr).not.toContain(secret);
     }
+  }
+
+  async function dockerExec(...command: string[]): Promise<void> {
+    await promisify(execFile)('docker', ['exec', broker.getId(), ...command], { timeout: 30_000 });
+  }
+
+  /** Place dans le conteneur un faux rabbitmqctl, prioritaire pour les scripts qui l'appellent. */
+  async function installUnreadablePermissionsFault(): Promise<void> {
+    await dockerExec('mkdir', '-p', FAULT_DIRECTORY);
+    await promisify(execFile)(
+      'docker',
+      [
+        'cp',
+        UNREADABLE_PERMISSIONS_RABBITMQCTL,
+        `${broker.getId()}:${FAULT_DIRECTORY}/rabbitmqctl`,
+      ],
+      { timeout: 30_000 },
+    );
+    await dockerExec('chmod', '755', `${FAULT_DIRECTORY}/rabbitmqctl`);
   }
 
   /** Une liste de l'outil d'administration du serveur, au format JSON. */
@@ -288,7 +324,6 @@ describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
   it('Provisionnement rejouable : change les mots de passe sans toucher aux files', async () => {
     const seeder = await open(account('staging', 'relay', staging.relay));
     await publish(seeder, topology.requests, 'en attente');
-    const rotated = { relay: `rotated-relay-${testRun}`, worker: `rotated-worker-${testRun}` };
 
     expectSuccess(await provision('staging', rotated));
 
@@ -297,5 +332,39 @@ describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
     );
     const worker = await open(account('staging', 'worker', rotated.worker));
     expect(await receive(worker, topology.requests)).toBe('en attente');
+  });
+
+  it('Lecture des permissions en échec : le provisionnement échoue au lieu de garder un droit étranger', async () => {
+    await dockerExec(
+      'rabbitmqctl',
+      'set_permissions',
+      '-p',
+      '/',
+      'trame_staging_relay',
+      '.*',
+      '.*',
+      '.*',
+    );
+    await installUnreadablePermissionsFault();
+
+    const run = await provision('staging', rotated, [
+      'sh',
+      '-c',
+      `PATH="${FAULT_DIRECTORY}:$PATH" exec sh -s`,
+    ]);
+
+    expect(run.exitCode).not.toBe(0);
+    expect(run.stderr).toContain('panne simulée de list_user_permissions');
+    expectNoSecretIn(run);
+  });
+
+  it('retire au passage suivant un droit sur un autre vhost, ajouté à la main', async () => {
+    await dockerExec('rm', '-r', FAULT_DIRECTORY);
+
+    expectSuccess(await provision('staging', rotated));
+
+    expect(await rabbitmqctlList('list_user_permissions', 'trame_staging_relay')).toEqual([
+      expect.objectContaining({ vhost: 'trame-staging' }),
+    ]);
   });
 });
