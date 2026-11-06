@@ -3,7 +3,7 @@
   "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "libs/api/scheduling/infrastructure/src",
   "projectType": "library",
-  "tags": ["scope:api", "layer:infrastructure"],
+  "tags": ["scope:api", "layer:infrastructure", "context:scheduling"],
   "targets": {
     "integration": {
       "dependsOn": ["^prisma-generate", "engine:install"],

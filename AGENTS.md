@@ -34,6 +34,7 @@ libs/
   api/<context>/application/     use cases, ports (interfaces)
   api/<context>/infrastructure/  adaptateurs : Prisma, AMQP, HTTP
 tools/
+  architecture/       tests des frontières d'architecture (règles 1, 2, 4 et 11)
   dependency-graph/   soumission des dépendances au graphe de GitHub (ADR-0029)
   release-images/     publication des images scannées et signées, vérification d'une version (US-005 B1)
 infra/
@@ -92,7 +93,7 @@ L'infrastructure locale (`infra/compose/dev.yml`, US-004 et US-020 A) comprend P
 1. `domain` n'importe rien de NestJS, Prisma, HTTP ni AMQP. Du TypeScript pur.
 2. `application` dépend uniquement de `domain` et de ses propres ports.
 3. Les contrôleurs, les gateways et l'agent IA sont des adaptateurs primaires : ils appellent des use cases, jamais un repository directement.
-4. Un bounded context n'importe jamais l'intérieur d'un autre. Ils communiquent par use case public ou par événement.
+4. Une lib d'un bounded context n'importe jamais une lib d'un autre contexte, quelle que soit sa couche. Les contextes communiquent par événement, ou par un use case public appelé à travers un port : l'adaptateur est assemblé dans l'application (`apps/api`), hors des contextes. Chaque lib d'un contexte porte le tag `context:<contexte>`.
 5. **Aucune logique de contrainte de planning hors du moteur.** Chaque règle est une classe unique avec `add_to_model()` et `evaluate()`, livrée avec son test de cohérence (ADR-0020).
 6. Le moteur est sans état : il ne lit ni n'écrit jamais la base.
 7. Tout contrat (DTO, message, événement) est un schéma zod de `libs/shared/contracts`. Un changement incompatible crée une nouvelle version, jamais une modification sur place. Les modèles Pydantic du moteur sont générés, jamais écrits à la main (ADR-0018).
@@ -101,7 +102,7 @@ L'infrastructure locale (`infra/compose/dev.yml`, US-004 et US-020 A) comprend P
 10. Le LLM ne produit jamais un planning. Toute écriture initiée par l'agent passe par un use case, par la PE et par une confirmation humaine (ADR-0014).
 11. `libs/platform/*` n'importe que d'autres libs `platform`, et ne contient aucun terme de planification. Un code n'y entre que s'il sert déjà Trame (ADR-0026).
 
-Les règles 1 à 4 et 11 sont vérifiées par `@nx/enforce-module-boundaries` côté TypeScript, et par import-linter côté Python.
+Les règles 1, 2, 4 et 11 sont vérifiées par `@nx/enforce-module-boundaries` côté TypeScript, et par import-linter côté Python ; la règle 3 relève de la revue, car la lint ne distingue pas un contrôleur d'un repository dans une même couche. Les tests de `tools/architecture` prouvent que chaque import interdit est refusé : un nouveau contexte se déclare dans `BOUNDED_CONTEXTS` (`eslint.config.mjs`), sinon ces tests échouent.
 
 ## Design patterns : usage pertinent
 
