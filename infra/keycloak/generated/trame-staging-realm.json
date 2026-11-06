@@ -152,7 +152,7 @@
       "name": "Configure OTP",
       "providerId": "CONFIGURE_TOTP",
       "enabled": true,
-      "defaultAction": true,
+      "defaultAction": false,
       "priority": 10,
       "config": {}
     },
@@ -165,5 +165,50 @@
       "priority": 30,
       "config": {}
     }
-  ]
+  ],
+  "authenticationFlows": [
+    {
+      "alias": "trame browser",
+      "description": "Session existante, ou mot de passe puis TOTP obligatoire",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 10
+        },
+        {
+          "authenticatorFlow": true,
+          "flowAlias": "trame browser forms",
+          "requirement": "ALTERNATIVE",
+          "priority": 20
+        }
+      ]
+    },
+    {
+      "alias": "trame browser forms",
+      "description": "Mot de passe puis TOTP, sans condition",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-username-password-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 20
+        }
+      ]
+    }
+  ],
+  "browserFlow": "trame browser"
 }

@@ -1,3 +1,5 @@
+import { BROWSER_FLOW_ALIAS, MANDATORY_TOTP_FLOWS } from './mandatory-totp-flow';
+
 /** Paramètres d'un realm d'environnement déployé (staging, puis production). */
 export interface RealmEnvironment {
   /** Nom du realm, qui fixe l'émetteur : `https://auth.trame.wkhach.dev/realms/<nom>`. */
@@ -40,9 +42,10 @@ const BRUTE_FORCE_PROTECTION = {
 };
 
 /**
- * Actions imposées : tout nouveau compte enrôle un TOTP à sa première connexion (second facteur
- * obligatoire, issue #47). Un compte créé par l'administration reçoit un mot de passe temporaire,
- * d'où la mise à jour du mot de passe, active mais non imposée par défaut.
+ * Actions requises activées. CONFIGURE_TOTP n'est pas imposée à la création : le flux de connexion
+ * exige l'OTP et la déclenche dès qu'il manque, à la première connexion comme après une
+ * suppression (voir `mandatory-totp-flow.ts`). Un compte créé par l'administration reçoit un mot de
+ * passe temporaire, d'où la mise à jour du mot de passe, active mais non imposée par défaut.
  */
 const REQUIRED_ACTIONS = [
   {
@@ -50,7 +53,7 @@ const REQUIRED_ACTIONS = [
     name: 'Configure OTP',
     providerId: 'CONFIGURE_TOTP',
     enabled: true,
-    defaultAction: true,
+    defaultAction: false,
     priority: 10,
     config: {},
   },
@@ -68,7 +71,8 @@ const REQUIRED_ACTIONS = [
 /**
  * Dérive le realm d'un environnement déployé à partir du realm local : mêmes rôles, mappers et
  * protection de l'organisation, mais sans aucun compte, avec le client `trame-web` limité à
- * l'origine HTTPS de l'environnement, TLS exigé, force brute détectée et TOTP obligatoire.
+ * l'origine HTTPS de l'environnement, TLS exigé, force brute détectée et TOTP exigé à chaque
+ * connexion par mot de passe.
  */
 export function buildEnvironmentRealm(
   localRealm: RealmRepresentation,
@@ -86,11 +90,15 @@ export function buildEnvironmentRealm(
     displayName: environment.displayName,
     enabled: true,
     registrationAllowed: false,
+    // Le flux de réinitialisation de Keycloak ne demande l'OTP qu'à un compte qui en a un.
+    resetPasswordAllowed: false,
     // « external » : TLS exigé hors réseau privé. Derrière Traefik, l'adresse du client vient des
     // en-têtes du proxy ; un réseau Docker interne reste utilisable par les tests.
     sslRequired: 'external',
     ...BRUTE_FORCE_PROTECTION,
     requiredActions: REQUIRED_ACTIONS,
+    authenticationFlows: MANDATORY_TOTP_FLOWS,
+    browserFlow: BROWSER_FLOW_ALIAS,
     clients: environmentClients(realm, environment.applicationOrigin),
     scopeMappings: renameClientInMappings(realm['scopeMappings']),
     clientScopeMappings: renameClientInClientScopeMappings(realm['clientScopeMappings']),

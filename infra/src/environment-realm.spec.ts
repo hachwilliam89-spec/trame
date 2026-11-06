@@ -24,6 +24,45 @@ interface ClientRepresentation {
   attributes?: Record<string, string>;
 }
 
+interface FlowExecution {
+  authenticator?: string;
+  authenticatorFlow: boolean;
+  flowAlias?: string;
+  requirement: string;
+  priority: number;
+}
+
+interface FlowRepresentation {
+  alias: string;
+  topLevel: boolean;
+  authenticationExecutions: FlowExecution[];
+}
+
+function flows(realm: RealmRepresentation): FlowRepresentation[] {
+  return (realm['authenticationFlows'] ?? []) as FlowRepresentation[];
+}
+
+function flowByAlias(realm: RealmRepresentation, alias: unknown): FlowRepresentation {
+  const flow = flows(realm).find((candidate) => candidate.alias === alias);
+  if (flow === undefined) throw new Error(`Flux absent : ${String(alias)}`);
+  return flow;
+}
+
+/** Les étapes d'un flux, dans l'ordre : « exécution exigence » ou « flux:alias exigence ». */
+function steps(flow: FlowRepresentation): string[] {
+  const executions = [...flow.authenticationExecutions].sort(
+    (first, second) => first.priority - second.priority,
+  );
+  const descriptions: string[] = [];
+  for (const execution of executions) {
+    const target = execution.authenticatorFlow
+      ? `flux:${execution.flowAlias}`
+      : execution.authenticator;
+    descriptions.push(`${target} ${execution.requirement}`);
+  }
+  return descriptions;
+}
+
 function clients(realm: RealmRepresentation): ClientRepresentation[] {
   return realm['clients'] as ClientRepresentation[];
 }
@@ -97,14 +136,49 @@ describe('realm d’environnement dérivé du realm local (US-005 B2)', () => {
     expect(staging).toMatchObject({ registrationAllowed: false, sslRequired: 'external' });
   });
 
+  it('ferme la réinitialisation du mot de passe par e-mail, même si le realm local l’ouvre', () => {
+    // Le flux de réinitialisation de Keycloak ne demande l'OTP que s'il est déjà enrôlé.
+    const openLocalRealm = { ...localRealm, resetPasswordAllowed: true };
+
+    expect(buildEnvironmentRealm(openLocalRealm, STAGING)).toMatchObject({
+      resetPasswordAllowed: false,
+    });
+  });
+
   it('active la détection de force brute', () => {
     expect(staging).toMatchObject({ bruteForceProtected: true, permanentLockout: false });
     expect(staging['failureFactor']).toBeGreaterThan(0);
   });
 
-  it('impose l’enrôlement d’un TOTP à tout nouveau compte', () => {
+  it('connecte par navigateur avec le mot de passe puis le TOTP, sans condition', () => {
+    const browserFlow = flowByAlias(staging, staging['browserFlow']);
+    const formsAlias = browserFlow.authenticationExecutions.find(
+      (execution) => execution.authenticatorFlow,
+    )?.flowAlias;
+
+    expect(browserFlow.topLevel).toBe(true);
+    expect(steps(browserFlow)).toEqual([
+      'auth-cookie ALTERNATIVE',
+      `flux:${formsAlias} ALTERNATIVE`,
+    ]);
+    expect(steps(flowByAlias(staging, formsAlias))).toEqual([
+      'auth-username-password-form REQUIRED',
+      'auth-otp-form REQUIRED',
+    ]);
+  });
+
+  it('nomme ses flux sans reprendre un alias des flux que Keycloak crée par défaut', () => {
+    // Keycloak complète à l'import les flux par défaut absents : un alias commun les mélangerait.
+    expect(flows(staging).length).toBeGreaterThan(0);
+    for (const flow of flows(staging)) {
+      expect(flow.alias).toMatch(/^trame /);
+    }
+  });
+
+  it('garde actives les actions dont dépendent l’enrôlement du TOTP et le premier accès', () => {
+    // Sans CONFIGURE_TOTP active, l'OTP exigé échouerait au lieu de faire enrôler un nouveau TOTP.
     expect(staging['requiredActions']).toContainEqual(
-      expect.objectContaining({ alias: 'CONFIGURE_TOTP', enabled: true, defaultAction: true }),
+      expect.objectContaining({ alias: 'CONFIGURE_TOTP', enabled: true }),
     );
     // Un compte créé par l'administration reçoit un mot de passe temporaire, à changer.
     expect(staging['requiredActions']).toContainEqual(
