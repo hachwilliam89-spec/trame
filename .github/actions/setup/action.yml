@@ -5,6 +5,11 @@ inputs:
   python:
     description: Installer aussi uv et l'environnement Python du moteur.
     default: 'true'
+  cache:
+    description: >-
+      Restaurer le cache pnpm. Désactivé dans le workflow de publication : un job qui publie ne
+      réutilise aucun cache écrit par un autre workflow.
+    default: 'true'
 
 runs:
   using: composite
@@ -15,7 +20,7 @@ runs:
     - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
       with:
         node-version-file: .node-version
-        cache: pnpm
+        cache: ${{ inputs.cache == 'true' && 'pnpm' || '' }}
 
     - name: Dépendances Node
       shell: bash

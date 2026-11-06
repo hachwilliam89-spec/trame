@@ -83,5 +83,16 @@
       "groupName": "GitHub Actions",
       "matchManagers": ["github-actions"]
     }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Images de construction figées de la publication (infra/release/pins.env), suivies par version et digest.",
+      "managerFilePatterns": ["/(^|/)infra/release/pins\\.env$/"],
+      "matchStrings": [
+        "=(?<depName>[^:\\s]+):(?<currentValue>[^@\\s]+)@(?<currentDigest>sha256:[a-f0-9]{64})"
+      ],
+      "datasourceTemplate": "docker"
+    }
   ]
 }

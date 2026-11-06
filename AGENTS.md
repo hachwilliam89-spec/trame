@@ -34,6 +34,7 @@ libs/
   api/<context>/infrastructure/  adaptateurs : Prisma, AMQP, HTTP
 tools/
   dependency-graph/   soumission des dépendances au graphe de GitHub (ADR-0029)
+  release-images/     publication des images scannées et signées, vérification d'une version (US-005 B1)
 infra/
   compose/    dev.yml, staging.yml, prod.yml (US-004, US-005)
   keycloak/   export du realm (versionné, US-020)
@@ -74,6 +75,7 @@ pnpm nx run api-database:prisma-migrate --name <nom>   # nouvelle migration (bas
 pnpm nx format:check                               # Prettier (TypeScript, JSON, Markdown, YAML)
 pnpm knip                                          # code mort et dépendances inutilisées
 pnpm pr:merge <n>                                  # fusion en squash d'une PR, une fois ses checks requis réussis (tools/merge-pr)
+pnpm release-images verify <sha>                   # vérifie la version publiée d'un commit : manifeste signé et six images
 ```
 
 La CI (`.github/workflows/ci.yml`) lance ces contrôles sur chaque PR, ainsi que l'audit des workflows par zizmor. CodeQL tourne à part (`codeql.yml`), tout comme la soumission des dépendances au graphe de GitHub (`dependency-graph.yml`, ADR-0029). Pour fusionner sur `main`, la protection exige :

@@ -64,3 +64,52 @@ Les tests couvrent configuration, permissions, migrations sans dérive, connexio
 Les images locales portent un préfixe aléatoire propre au projet Compose de chaque exécution, pour que deux worktrees ne remplacent pas les images que l'autre teste. Leurs tags ne sont pas une stratégie de release : publication/signature, analyse Trivy, SBOM, digests de livraison et mesures sur le VPS arrivent dans US-005 B. Le test affiche la mémoire des conteneurs après le parcours ; cette mesure de fixture ne prouve pas le budget mémoire du futur solveur métier.
 
 Premier relevé du 5 novembre 2026 sur Docker Desktop arm64, images applicatives amd64 : environ 181 Mio pour l'API, 175 Mio pour le relais, 156 Mio pour le worker et 1,40 Gio pour les huit conteneurs actifs au total. Le relevé vient de `docker stats --no-stream` après le petit diagnostic. Ce n'est ni un pic de calcul, ni une mesure native du VPS ; le budget de 9,2 Gio du cadrage reste à revérifier avec les deux relais et les autres services lors de la préparation du staging.
+
+## Publication (US-005 B1)
+
+Le workflow `.github/workflows/publish-images.yml` publie les six images de la tête de `main` sur GHCR (`ghcr.io/hachwilliam89-spec/trame-<nom>`), étiquetées par le SHA du commit. Il ne déploie rien : le staging (B2) lit le manifeste de version signé. Le plan et ses scénarios sont dans l'issue #44.
+
+1. **Admissibilité** (`pnpm release-images gate`). Le commit publié est celui du push, qui est aussi le `sha` du jeton OIDC qui signera. Le gate attend au plus 60 minutes, puis vérifie, sur ce commit précis :
+   - « CI OK » et les trois « Analyse (…) » réussis ;
+   - une analyse CodeQL traitée par catégorie ;
+   - aucune alerte de code scanning haute ou critique ouverte sur `main`.
+
+   Il s'arrête sans publier si `main` a avancé (le commit suivant sera publié par son propre run), ou si la version est déjà publiée et vérifiée.
+
+2. **Construction et scan** (`infra/release/build-and-scan.sh`, un job par image, sans droit d'écriture) :
+   - buildx exporte un layout OCI, avec le SBOM et la provenance ;
+   - `release-images layout-digest` relève le digest de l'index de l'image ;
+   - `oras` le copie tel quel dans un registre local, où Trivy produit un rapport complet puis applique un contrôle bloquant (critiques et hautes qui ont un correctif) ;
+   - `imagetools` vérifie la présence du SBOM et de la provenance.
+3. **Publication** (`pnpm release-images publish`, seul job avec `packages: write` et `id-token: write`) :
+   - `main` est revérifiée ;
+   - les six layouts sont poussés sans reconstruction, avec un digest identique à celui du scan ;
+   - chaque digest est signé sans clé avec l'annotation `commit=<sha>`, vérifié, puis lu anonymement ;
+   - le manifeste de version `trame-release:<sha>` (`images.json`) n'est poussé, signé et vérifié qu'en dernier.
+
+Vérifier une version publiée, comme le fera B2 :
+
+```bash
+pnpm release-images verify <sha>
+```
+
+Le tag du manifeste de version est résolu une seule fois en digest. La signature est vérifiée sur ce digest, puis ce même digest est téléchargé. La politique de confiance est codée dans `tools/release-images/src/lib/policy.ts`, jamais lue dans le fichier vérifié : dépôt, six noms, identité du workflow, émetteur OIDC et commit attendu.
+
+Les versions des outils (oras, cosign, Trivy, registry) et leurs sommes SHA-256 sont dans `.github/actions/release-tools/action.yml`. BuildKit et le générateur SBOM sont figés par digest dans `infra/release/pins.env`.
+
+### Premier passage
+
+Un nouveau package GHCR est privé, même pour un dépôt public. Le premier passage se fait donc en deux temps.
+
+1. Le téléchargement anonyme échoue sur la première image : rendre publics les six packages `trame-api`, `trame-relay`, `trame-migrator`, `trame-web`, `trame-engine` et `trame-worker` (Paramètres du package, puis Visibilité), puis relancer le job « Publication » échoué. Il repousse les mêmes layouts, donc les mêmes digests.
+2. Le manifeste de version est créé, mais son téléchargement anonyme échoue : rendre `trame-release` public, puis relancer.
+
+La publication n'est terminée qu'après le téléchargement anonyme du manifeste de version.
+
+### Preuve sur les PR
+
+Le job « Images et parcours conteneurisé » de la CI rejoue, sur un registre local et sans GHCR, la construction et le scan d'une image par le même script, puis une signature avec une clé jetable :
+
+- vérification avec l'annotation du commit ;
+- refus d'un autre commit ;
+- lecture anonyme.

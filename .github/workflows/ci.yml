@@ -102,7 +102,7 @@ jobs:
   images:
     name: Images et parcours conteneurisé
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -117,6 +117,30 @@ jobs:
 
       - name: Construire et tester les images Linux amd64
         run: pnpm nx run infra:images-test
+
+      # Preuve de la publication (US-005 B1) sur un registre local, sans GHCR : le même script que
+      # le workflow de publication construit, copie, scanne et vérifie les attestations.
+      - uses: $/.github/actions/release-tools
+
+      - name: Builder BuildKit et générateur SBOM figés (infra/release/pins.env)
+        run: infra/release/prepare-builder.sh
+
+      - name: Registre local de la preuve
+        run: infra/release/scan-registry.sh
+
+      - name: Construire et scanner une image comme la publication
+        env:
+          BUILDER: trame-release
+          SCAN_REGISTRY: 127.0.0.1:5000
+          REVISION: ${{ github.sha }}
+        run: infra/release/build-and-scan.sh web infra/docker/node.Dockerfile web "$RUNNER_TEMP/proof"
+
+      - name: Signer, vérifier par commit et lire anonymement
+        env:
+          COMMIT: ${{ github.sha }}
+        run: |
+          digest="$(cat "$RUNNER_TEMP/proof/web.scanned-digest")"
+          infra/release/signature-proof.sh "127.0.0.1:5000/web@$digest" "$COMMIT"
 
   secrets:
     name: Secrets (gitleaks)
