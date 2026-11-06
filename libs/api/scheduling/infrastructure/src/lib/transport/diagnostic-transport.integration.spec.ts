@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import type { INestApplication } from '@nestjs/common';
+import type { GetMessage } from 'amqplib';
 import { Test } from '@nestjs/testing';
 import { DatabaseModule, PrismaService } from '@trame/api/database';
 import { type TestDatabase, startTestDatabase } from '@trame/api/database/testing';
@@ -342,10 +343,23 @@ describe('Aller-retour RabbitMQ ↔ vrai moteur Python', () => {
       .toBe('FAILED');
     const failed = await prisma.diagnosticRun.findUniqueOrThrow({ where: { id: run.id } });
     expect(failed.failure).toBe('RETRIES_EXHAUSTED');
-    const parked = await session.get(topology.parking.name);
-    expect(parked).not.toBe(false);
-    if (parked !== false) {
-      session.receiver.ack(parked);
+    // Le transport valide l'échec en base, puis publie le message en parking : la base peut être
+    // à jour avant que le message n'y soit. On l'attend donc lui aussi.
+    const parkedMessages: GetMessage[] = [];
+    await expect
+      .poll(
+        async () => {
+          const parked = await session.get(topology.parking.name);
+          if (parked !== false) {
+            parkedMessages.push(parked);
+          }
+          return parkedMessages.length;
+        },
+        { timeout: 10_000, interval: 100 },
+      )
+      .toBe(1);
+    for (const parkedMessage of parkedMessages) {
+      session.receiver.ack(parkedMessage);
     }
   });
 
