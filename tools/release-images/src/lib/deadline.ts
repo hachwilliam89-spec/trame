@@ -19,3 +19,6 @@ export class Deadline {
     return this.remainingMilliseconds() === 0;
   }
 }
+
+/** L'échéance est atteinte : la commande n'a pas été lancée, ou a été interrompue. */
+export class DeadlineExceededError extends Error {}

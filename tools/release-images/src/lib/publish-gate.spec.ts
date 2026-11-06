@@ -1,6 +1,6 @@
 import { FakeStopwatch } from '../testing/fake-stopwatch';
 import { InMemoryGitHub } from '../testing/in-memory-github';
-import { Deadline } from './deadline';
+import { Deadline, DeadlineExceededError } from './deadline';
 import { type RunContext, decidePublication, waitForPublicationDecision } from './publish-gate';
 
 const COMMIT_A = 'a'.repeat(40);
@@ -180,8 +180,11 @@ describe('decidePublication', () => {
 });
 
 describe('waitForPublicationDecision', () => {
-  function waitWith(gitHub: InMemoryGitHub, budgetMilliseconds: number) {
-    const stopwatch = new FakeStopwatch();
+  function waitWith(
+    gitHub: InMemoryGitHub,
+    budgetMilliseconds: number,
+    stopwatch = new FakeStopwatch(),
+  ) {
     const pauses: number[] = [];
     const result = waitForPublicationDecision(
       pushContext(),
@@ -238,5 +241,52 @@ describe('waitForPublicationDecision', () => {
         'Délai dépassé. Dernier état : Analyses CodeQL non traitées pour ce commit : /language:actions, /language:javascript-typescript, /language:python.',
     });
     expect(pauses).toEqual([30_000, 30_000, 10_000]);
+  });
+
+  it('n’autorise pas la publication quand une lecture a consommé tout le délai', async () => {
+    const stopwatch = new FakeStopwatch();
+    const gitHub = new InMemoryGitHub(COMMIT_A);
+    const runs = gitHub.runs;
+    gitHub.checkRuns = async () => {
+      stopwatch.advance(80_000);
+      return runs;
+    };
+
+    const { result } = waitWith(gitHub, 60_000, stopwatch);
+
+    await expect(result).resolves.toEqual({
+      publish: false,
+      retryable: false,
+      reason: 'Délai dépassé : le contrôle a atteint son échéance avant de conclure.',
+    });
+  });
+
+  it('ne lit rien quand l’échéance est déjà atteinte', async () => {
+    const gitHub = new InMemoryGitHub(COMMIT_A);
+    let readings = 0;
+    gitHub.mainHeadSha = async () => {
+      readings += 1;
+      return COMMIT_A;
+    };
+
+    const { result } = waitWith(gitHub, 0);
+
+    await expect(result).resolves.toMatchObject({ publish: false, retryable: false });
+    expect(readings).toBe(0);
+  });
+
+  it('s’arrête sans publier quand une commande est interrompue par l’échéance', async () => {
+    const gitHub = new InMemoryGitHub(COMMIT_A);
+    gitHub.openCodeScanningAlerts = async () => {
+      throw new DeadlineExceededError('gh api interrompu');
+    };
+
+    const { result } = waitWith(gitHub, 60_000);
+
+    await expect(result).resolves.toEqual({
+      publish: false,
+      retryable: false,
+      reason: 'Délai dépassé : gh api interrompu.',
+    });
   });
 });

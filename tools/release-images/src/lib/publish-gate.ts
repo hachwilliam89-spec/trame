@@ -1,4 +1,4 @@
-import type { Deadline } from './deadline';
+import { type Deadline, DeadlineExceededError } from './deadline';
 import type { CheckRun, GitHubReader } from './github';
 import {
   BLOCKING_ALERT_SEVERITIES,
@@ -172,27 +172,62 @@ export interface WaitOptions {
 
 /**
  * Le gate démarre au push, avant la fin de la CI et de CodeQL : il attend ces résultats, jusqu'à
- * une échéance mesurée. Une décision définitive (refus ou publication) est rendue sans attendre.
+ * une échéance mesurée. L'échéance est vérifiée avant chaque lecture et avant d'autoriser la
+ * publication : une lecture lente ne peut pas faire publier après le délai.
  */
 export async function waitForPublicationDecision(
   context: RunContext,
   dependencies: GateDependencies,
   options: WaitOptions,
 ): Promise<GateDecision> {
+  const { deadline } = options;
+  let lastReason: string | undefined;
   for (;;) {
-    const decision = await decidePublication(context, dependencies);
-    if (decision.publish || !decision.retryable) {
+    if (deadline.isExpired()) {
+      return expiredDecision(lastReason);
+    }
+    const decision = await decideBeforeDeadline(context, dependencies);
+    if (!decision.publish && !decision.retryable) {
       return decision;
     }
-    if (options.deadline.isExpired()) {
-      return {
-        publish: false,
-        retryable: false,
-        reason: `Délai dépassé. Dernier état : ${decision.reason}`,
-      };
+    if (deadline.isExpired()) {
+      return expiredDecision(decision.publish ? undefined : decision.reason);
     }
+    if (decision.publish) {
+      return decision;
+    }
+    lastReason = decision.reason;
     options.report(decision.reason);
-    const remaining = options.deadline.remainingMilliseconds();
-    await options.pause(Math.min(options.pauseMilliseconds, remaining));
+    await options.pause(Math.min(options.pauseMilliseconds, deadline.remainingMilliseconds()));
   }
+}
+
+/** Une commande arrêtée par l'échéance (non lancée ou interrompue) refuse la publication. */
+async function decideBeforeDeadline(
+  context: RunContext,
+  dependencies: GateDependencies,
+): Promise<GateDecision> {
+  try {
+    return await decidePublication(context, dependencies);
+  } catch (error) {
+    if (error instanceof DeadlineExceededError) {
+      return { publish: false, retryable: false, reason: `Délai dépassé : ${error.message}.` };
+    }
+    throw error;
+  }
+}
+
+function expiredDecision(lastReason: string | undefined): GateDecision {
+  if (lastReason === undefined) {
+    return {
+      publish: false,
+      retryable: false,
+      reason: 'Délai dépassé : le contrôle a atteint son échéance avant de conclure.',
+    };
+  }
+  return {
+    publish: false,
+    retryable: false,
+    reason: `Délai dépassé. Dernier état : ${lastReason}`,
+  };
 }

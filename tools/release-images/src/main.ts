@@ -11,7 +11,7 @@ import { appendFileSync, mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-import { createCommandRunner } from './lib/command-runner';
+import { createCommandRunner, createDeadlineRunner } from './lib/command-runner';
 import { createGitHubReader } from './lib/github';
 import { imageIndexDigest } from './lib/oci-layout';
 import { IMAGE_NAMES } from './lib/policy';
@@ -56,8 +56,10 @@ function writeSummary(text: string): void {
 }
 
 async function gate(): Promise<void> {
-  const run = createCommandRunner();
   const context = readRunContext(process.env);
+  // Une seule échéance pour l'attente, les pauses et chaque commande gh, oras ou cosign.
+  const deadline = new Deadline(createSystemStopwatch(), GATE_BUDGET_MILLISECONDS);
+  const run = createDeadlineRunner(createCommandRunner(), deadline);
   const dependencies = {
     gitHub: createGitHubReader(run),
     isAlreadyPublished: (commit: string) =>
@@ -68,7 +70,7 @@ async function gate(): Promise<void> {
       }),
   };
   const decision = await waitForPublicationDecision(context, dependencies, {
-    deadline: new Deadline(createSystemStopwatch(), GATE_BUDGET_MILLISECONDS),
+    deadline,
     pauseMilliseconds: GATE_PAUSE_MILLISECONDS,
     pause: (milliseconds) => sleep(milliseconds),
     report,
