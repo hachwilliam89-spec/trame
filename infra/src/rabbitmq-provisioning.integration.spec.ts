@@ -97,16 +97,21 @@ describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
     }
   }
 
-  /** Les utilisateurs ou les vhosts de Trame, lus par l'outil d'administration du serveur. */
+  /** Une liste de l'outil d'administration du serveur, au format JSON. */
+  async function rabbitmqctlList<Entry>(...command: string[]): Promise<Entry[]> {
+    const { stdout } = await promisify(execFile)(
+      'docker',
+      ['exec', broker.getId(), 'rabbitmqctl', '--silent', '--formatter', 'json', ...command],
+      { timeout: 30_000 },
+    );
+    return JSON.parse(stdout) as Entry[];
+  }
+
+  /** Les utilisateurs ou les vhosts de Trame. */
   async function trameEntries<Entry extends { name?: string; user?: string }>(
     command: 'list_users' | 'list_vhosts',
   ): Promise<Entry[]> {
-    const { stdout } = await promisify(execFile)(
-      'docker',
-      ['exec', broker.getId(), 'rabbitmqctl', '--silent', '--formatter', 'json', command],
-      { timeout: 30_000 },
-    );
-    const entries = JSON.parse(stdout) as Entry[];
+    const entries = await rabbitmqctlList<Entry>(command);
     return entries.filter((entry) => (entry.name ?? entry.user ?? '').startsWith('trame'));
   }
 
@@ -143,15 +148,29 @@ describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
     await channel.waitForConfirms();
   }
 
-  async function receive(channel: ConfirmChannel, queue: QueueTopology): Promise<string> {
-    for (let attempt = 0; attempt < 50; attempt++) {
-      const message = await channel.get(queue.name, { noAck: true });
-      if (message !== false) {
-        return message.content.toString();
-      }
-      await new Promise((resolve) => setTimeout(resolve, 100));
-    }
-    throw new Error(`Aucun message dans ${queue.name}.`);
+  /** Consomme un message, comme le relay et le worker : une file quorum à consommateur unique
+   * n'accepte pas de lecture ponctuelle (`basic.get`). */
+  function receive(channel: ConfirmChannel, queue: QueueTopology): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const timeout = setTimeout(
+        () => reject(new Error(`Aucun message dans ${queue.name}.`)),
+        10_000,
+      );
+      channel
+        .consume(queue.name, (message) => {
+          if (message === null) {
+            return;
+          }
+          clearTimeout(timeout);
+          channel.ack(message);
+          resolve(message.content.toString());
+          channel.cancel(message.fields.consumerTag).catch(() => undefined);
+        })
+        .catch((error: unknown) => {
+          clearTimeout(timeout);
+          reject(error instanceof Error ? error : new Error(String(error)));
+        });
+    });
   }
 
   async function managementStatus(credentials: {
@@ -235,10 +254,25 @@ describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
       { ...account('production', 'worker', production.worker), vhost: 'trame-staging' },
     ];
 
+    // amqplib ne transmet pas le motif du serveur : le refus se lit dans les permissions.
     for (const foreign of foreignVhosts) {
       await expect(open(foreign), `${foreign.user} sur ${foreign.vhost}`).rejects.toThrow(
-        /NOT.ALLOWED/,
+        /ConnectionClose/,
       );
+    }
+    const onlyDiagnosticResources = '^trame\\.diagnostic\\.';
+    for (const environment of ['staging', 'production']) {
+      for (const service of ['relay', 'worker']) {
+        const user = `trame_${environment}_${service}`;
+        expect(await rabbitmqctlList('list_user_permissions', user)).toEqual([
+          {
+            vhost: `trame-${environment}`,
+            configure: onlyDiagnosticResources,
+            write: onlyDiagnosticResources,
+            read: onlyDiagnosticResources,
+          },
+        ]);
+      }
     }
   });
 
