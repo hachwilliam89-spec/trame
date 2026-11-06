@@ -35,8 +35,15 @@ vhost="trame-$environment"
 # la crée : les deux reçoivent donc les mêmes droits, sur les seules ressources de diagnostic.
 diagnostic_resources='^trame\.diagnostic\.'
 
+# La liste est lue en entier avant d'être filtrée : `grep -q` s'arrêterait à la première ligne
+# trouvée, et `rabbitmqctl`, privé de sa sortie, journaliserait une erreur.
+is_listed() {
+  printf '%s\n' "$1" | grep -qx "$2"
+}
+
 ensure_vhost() {
-  if ! ctl list_vhosts name | grep -qx "$vhost"; then
+  vhosts="$(ctl list_vhosts name)"
+  if ! is_listed "$vhosts" "$vhost"; then
     ctl add_vhost "$vhost"
   fi
 }
@@ -46,7 +53,8 @@ ensure_vhost() {
 set_password() {
   user="$1"
   password="$2"
-  if ctl list_users | cut -f1 | grep -qx "$user"; then
+  users="$(ctl list_users | cut -f1)"
+  if is_listed "$users" "$user"; then
     printf '%s\n' "$password" | rabbitmqctl change_password "$user" >/dev/null
   else
     printf '%s\n' "$password" | rabbitmqctl add_user "$user" >/dev/null
