@@ -29,33 +29,41 @@ Priorité MoSCoW : **M** indispensable à la démo · **S** important, peut suiv
 | 13    | 020 | Connexion OIDC et rôles, PR B : connexion dans le front            | M        |
 | 14    | 009 | Front minimal : bouton, progression et résultat (B, partie locale) | M        |
 | 15    | 005 | Déploiement staging et prod (prod fermée au public)                | M        |
-| 16    | 008 | Sauvegardes                                                        | M        |
-| 17    | 007 | Observabilité de base et alertes                                   | S        |
-| 18    | 009 | Preuve de la chaîne complète déployée (B, avec Grafana)            | M        |
-| 19    | 030 | Module de référence `organization`, PR C : page Angular et E2E     | M        |
-| 20    | 006 | Site de documentation                                              | S        |
+| 16    | 008 | Sauvegardes, avec test de restauration                             | M        |
+| 17    | 009 | Preuve de la chaîne complète déployée (B, logs et sondes)          | M        |
+| 18    | 030 | Module de référence `organization`, PR C : page Angular et E2E     | M        |
+| 19    | 006 | Site de documentation                                              | S        |
 
 **Ordre validé le 5 novembre 2026** : terminer A3, préparer la maquette et le front minimal (connexion, bouton « Tester le moteur », progression et résultat), puis déployer la chaîne complète en staging avec sauvegardes et observabilité. Seules les parties d’US-012, US-010 et US-011 nécessaires à la connexion et au diagnostic précèdent ce front minimal ; les autres maquettes et composants seront réalisés avec leurs écrans. La grille de planning n’est pas nécessaire pour cette première démonstration.
+
+**Ordre révisé le 6 novembre 2026**, sur la recommandation de Claude et de Codex après la relecture de structure (AGENTS.md, « Mesure dans l'infrastructure ») :
+
+- terminer le staging (US-005), puis les sauvegardes avec un test de restauration (US-008) ;
+- faire la preuve déployée (US-009 B) avec les logs structurés et les sondes existants ;
+- passer ensuite au métier, sans attendre janvier.
+
+La stack Grafana complète (US-007) est reportée avant l'ouverture de la démo publique (US-092), et US-009 B n'en dépend plus.
 
 ### Phase 2 — pendant le stage (sessions courtes : une story = un déploiement)
 
 | Ordre | US  | Titre                                        | Priorité |
 | ----- | --- | -------------------------------------------- | -------- |
-| 21    | 031 | Employés                                     | M        |
-| 22    | 032 | Contrats                                     | M        |
-| 23    | 033 | Indisponibilités et absences                 | M        |
-| 24    | 040 | Catalogue des règles légales                 | M        |
-| 25    | 050 | Besoins de couverture                        | M        |
-| 26    | 064 | Spike CP-SAT                                 | M        |
-| 27    | 061 | Modèle CP-SAT v1                             | M        |
-| 28    | 060 | Lancer une génération                        | M        |
-| 29    | 062 | Score et explication de base                 | M        |
-| 30    | 070 | PE synchrone                                 | M        |
-| 31    | 071 | Grille de planning                           | M        |
-| 32    | 072 | Drag & drop avec PE                          | M        |
-| 33    | 080 | Publier un planning                          | M        |
-| 34    | 021 | Comptes démo (une organisation par visiteur) | M        |
-| 35    | 090 | Données de démo                              | M        |
+| 20    | 031 | Employés                                     | M        |
+| 21    | 032 | Contrats                                     | M        |
+| 22    | 033 | Indisponibilités et absences                 | M        |
+| 23    | 040 | Catalogue des règles légales                 | M        |
+| 24    | 050 | Besoins de couverture                        | M        |
+| 25    | 064 | Spike CP-SAT                                 | M        |
+| 26    | 061 | Modèle CP-SAT v1                             | M        |
+| 27    | 060 | Lancer une génération                        | M        |
+| 28    | 062 | Score et explication de base                 | M        |
+| 29    | 070 | PE synchrone                                 | M        |
+| 30    | 071 | Grille de planning                           | M        |
+| 31    | 072 | Drag & drop avec PE                          | M        |
+| 32    | 080 | Publier un planning                          | M        |
+| 33    | 021 | Comptes démo (une organisation par visiteur) | M        |
+| 34    | 090 | Données de démo                              | M        |
+| 35    | 007 | Observabilité de base et alertes             | S        |
 | 36    | 092 | Protection et ouverture de la démo publique  | M        |
 | 37    | 093 | Licence, sécurité et mentions légales        | M        |
 | 38    | 091 | README vitrine et vidéo                      | M        |
@@ -232,6 +240,8 @@ Inclus :
 
 ### US-007 — Observabilité de base et alertes (S)
 
+> **Reportée le 6 novembre 2026** avant l'ouverture de la démo publique (US-092) : le métier passe d'abord. Les logs structurés et les sondes existants suffisent au staging.
+
 - OpenTelemetry dans l'API et le moteur. Une trace relie la requête HTTP, le message RabbitMQ et la résolution.
 - Prometheus, Loki, Tempo et Grafana avec des rétentions bornées. Un dashboard « Santé » : latence, erreurs, durée des résolutions, files.
 - Objectifs de service : disponibilité de 99 % sur 30 jours, PE p95 < 200 ms, résolution hebdomadaire < 30 s. Alertes Grafana par e-mail.
@@ -255,7 +265,7 @@ Scénario: Restauration
 > **Découpage validé le 2026-11-04**, suivi dans [#29](https://github.com/hachwilliam89-spec/trame/issues/29).
 > US-020 A est livrée (#22 et #28). La chaîne back locale et CI (A) précède US-005 ;
 > le front minimal (B, partie locale) suit A3 et US-020 B (après les maquettes US-012),
-> puis la preuve déployée (B) suit US-005, US-008 et US-007.
+> puis la preuve déployée (B) suit US-005 et US-008 (ordre révisé le 6 novembre : US-007 est reportée).
 > US-009 reste ouverte jusqu'à la preuve B ci-dessous.
 
 - **A1 — Livrée, #30 et #31** : diagnostic authentifié, idempotence par organisation,
@@ -268,8 +278,9 @@ Scénario: Restauration
   conservation 1 h après fin, keepalive 20 s, jeton Bearer hors URL et fermeture à expiration,
   test d'acceptation réel et corrélation entre les composants.
 - **B — Partie locale livrée (#37 et #38), preuve déployée à faire** : bouton authentifié, progression et résultat dans Angular
-  en local après A3 et US-020 B ; puis chaîne complète déployée, sauvegardée et trace
-  consultable dans Grafana après US-005, US-008 et US-007.
+  en local après A3 et US-020 B ; puis chaîne complète déployée et sauvegardée, après US-005 et
+  US-008. La corrélation passe par les logs structurés et le `runId` ; la trace dans Grafana
+  arrivera avec US-007.
 
 ```gherkin
 Scénario: Aller-retour complet
@@ -279,7 +290,7 @@ Scénario: Aller-retour complet
   Et le moteur reçoit le job via RabbitMQ et résout un problème CP-SAT trivial
   Et l'API enregistre le résultat via l'inbox
   Et le front affiche la progression (SSE) puis le résultat
-  Et la trace complète est visible dans Grafana
+  Et les logs structurés de l'API, du relais et du moteur se relient par le même runId
 ```
 
 > **Décidé le 2026-11-03** : les routes métier répondent 401 tant qu'OIDC n'est pas branché. US-020 passe donc avant US-009, côté API (PR A, #21) : le parcours du walking skeleton se déclenche avec un vrai jeton, sur un endpoint protégé, sans contournement à retirer.
