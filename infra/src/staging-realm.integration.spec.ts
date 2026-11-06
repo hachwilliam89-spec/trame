@@ -101,6 +101,18 @@ describe('realm de staging sur un vrai Keycloak (US-005 B2)', () => {
     await page.locator('#kc-login').click();
   }
 
+  /** Attend le callback ; sinon, dit où la page s'est arrêtée et ce qu'elle affiche. */
+  async function waitForCallback(page: Page): Promise<void> {
+    try {
+      await page.waitForURL((url) => url.toString().startsWith(REDIRECT_URI), { timeout: 20_000 });
+    } catch (error) {
+      const text = (await page.locator('body').innerText()).slice(0, 800);
+      throw new Error(
+        `Callback non atteint. URL : ${page.url()}\nPage : ${text}\n${String(error)}`,
+      );
+    }
+  }
+
   function reachedCallback(page: Page): boolean {
     return page.url().startsWith(REDIRECT_URI);
   }
@@ -154,7 +166,7 @@ describe('realm de staging sur un vrai Keycloak (US-005 B2)', () => {
       await page.locator('#totp').fill(totpCode(enrolledSecret, currentSeconds()));
       await page.locator('#userLabel').fill('Test');
       await page.locator('#saveTOTPBtn').click();
-      await page.waitForURL((url) => url.toString().startsWith(REDIRECT_URI));
+      await waitForCallback(page);
 
       const claims = decodeJwt(await exchangeCode(page, request.verifier));
       expect(claims).toMatchObject({
@@ -186,7 +198,7 @@ describe('realm de staging sur un vrai Keycloak (US-005 B2)', () => {
       // fenêtre de tolérance de Keycloak.
       await page.locator('#otp').fill(totpCode(enrolledSecret, currentSeconds() + 30));
       await page.locator('#kc-login').click();
-      await page.waitForURL((url) => url.toString().startsWith(REDIRECT_URI));
+      await waitForCallback(page);
       expect(await exchangeCode(page, request.verifier)).not.toBe('');
     } finally {
       await context.close();
