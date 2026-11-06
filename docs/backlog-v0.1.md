@@ -99,10 +99,11 @@ une précision. Premier cas : le remplacement après absence, sur données ficti
 
 Améliorations d'infrastructure et d'outillage repérées, mais non exigées par une story en cours (AGENTS.md, « Mesure dans l'infrastructure »). Chacune attend un besoin qui la justifie, ou une décision de Kim.
 
-| Amélioration                                                                                             | Origine                                                | Déclencheur                                                  |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------------------------ |
-| Mettre en cache les paquets système de Playwright, ou utiliser son image, dans le job d'intégration      | Deux jobs annulés le 6 novembre par un miroir apt lent | Un troisième incident, ou un job qui approche ses 20 minutes |
-| Réexaminer la non-journalisation des mots de passe du provisionnement si `pg_stat_statements` est chargé | Revue de #49                                           | Chargement de l'extension                                    |
+| Amélioration                                                                                             | Origine      | Déclencheur               |
+| -------------------------------------------------------------------------------------------------------- | ------------ | ------------------------- |
+| Réexaminer la non-journalisation des mots de passe du provisionnement si `pg_stat_statements` est chargé | Revue de #49 | Chargement de l'extension |
+
+Réalisée : les navigateurs de la CI tournent dans l'image officielle de Playwright, épinglée par digest, sans installation apt (#55, après un troisième job annulé le 6 novembre).
 
 ## E0 — Socle et infrastructure
 
