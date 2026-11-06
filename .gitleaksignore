@@ -3,3 +3,7 @@
 # Phrase de passe vide d'une clé cosign jetable, créée et détruite par la preuve de signature de la
 # CI (infra/release/signature-proof.sh). Ce n'est pas un secret ; la ligne a été réécrite ensuite.
 425e9addfdc55c8cd1dbea7224f0bc15d3327797:infra/release/signature-proof.sh:generic-api-key:12
+#
+# Graine publique des vecteurs de test de la RFC 6238 (annexe B), dans le test du calcul TOTP.
+# Ce n'est pas un secret ; la constante a été renommée ensuite selon le terme de la RFC (« seed »).
+0825a4aba5a89da194b4ae3b68781b72c1822c34:infra/src/totp.spec.ts:generic-api-key:4

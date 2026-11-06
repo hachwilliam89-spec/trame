@@ -10,6 +10,7 @@
     "libs/shared/contracts/scripts/*.ts",
     "libs/api/shared/database/prisma.config.ts",
     "infra/docker/prisma.config.ts",
+    "infra/scripts/*.ts",
     "libs/platform/*/src/testing.ts",
     "libs/api/*/*/src/index.ts",
     "libs/api/*/*/src/testing.ts",

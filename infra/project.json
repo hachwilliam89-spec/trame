@@ -8,11 +8,18 @@
     "images-test": {
       "description": "Construit les images Linux amd64 et teste la chaîne réelle isolée.",
       "command": "vitest run --config vitest.images.config.mts",
-      "options": { "cwd": "{projectRoot}" },
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "cache": false
+    },
+    "realms-generate": {
+      "description": "Génère les realms déployés (staging, puis production) à partir du realm local.",
+      "command": "tsx infra/scripts/generate-realms.ts",
       "cache": false
     },
     "up": {
-      "description": "D\u00e9marre PostgreSQL, RabbitMQ et Keycloak, attend leur \u00e9tat sain, puis applique les migrations.",
+      "description": "Démarre PostgreSQL, RabbitMQ et Keycloak, attend leur état sain, puis applique les migrations.",
       "executor": "nx:run-commands",
       "options": {
         "commands": [
@@ -24,17 +31,17 @@
       "cache": false
     },
     "down": {
-      "description": "Arr\u00eate la stack. Garde les volumes PostgreSQL et RabbitMQ ; Keycloak est r\u00e9initialis\u00e9 \u00e0 la recr\u00e9ation.",
+      "description": "Arrête la stack. Garde les volumes PostgreSQL et RabbitMQ ; Keycloak est réinitialisé à la recréation.",
       "command": "docker compose --env-file .env -f infra/compose/dev.yml down",
       "cache": false
     },
     "reset": {
-      "description": "Supprime aussi les volumes : les donn\u00e9es sont perdues. Relancer ensuite infra:up.",
+      "description": "Supprime aussi les volumes : les données sont perdues. Relancer ensuite infra:up.",
       "command": "docker compose --env-file .env -f infra/compose/dev.yml down --volumes",
       "cache": false
     },
     "integration": {
-      "description": "D\u00e9marre r\u00e9ellement la stack, sur des ports et un nom de projet d\u00e9di\u00e9s.",
+      "description": "Démarre réellement la stack, sur des ports et un nom de projet dédiés.",
       "dependsOn": ["api:build", "api-database:prisma-generate", "web:build"],
       "command": "vitest run --config vitest.integration.config.mts",
       "options": {

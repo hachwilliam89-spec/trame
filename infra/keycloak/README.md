@@ -106,3 +106,26 @@ ni code d'autorisation n'est imprimé ou conservé comme artefact.
 - [Scopes et mapper du sujet](https://www.keycloak.org/docs/latest/server_admin/index.html#_pairwise-sub-mapper).
 - [Politique des attributs en 26.8.1](https://github.com/keycloak/keycloak/blob/26.8.1/core/src/main/java/org/keycloak/representations/userprofile/config/UPConfig.java).
 - [Traitement des attributs en 26.8.1](https://github.com/keycloak/keycloak/blob/26.8.1/server-spi-private/src/main/java/org/keycloak/userprofile/DefaultAttributes.java).
+
+## Realms déployés (US-005 B2)
+
+Les realms des environnements déployés ne s'écrivent pas à la main : `pnpm nx run infra:realms-generate` les dérive du realm local, dans `generated/` (un fichier par realm : `trame-staging-realm.json`, puis `trame-production-realm.json` avec US-005 C). Un test échoue si un fichier versionné ne correspond plus à ce que produit le générateur (`infra/src/environment-realm.spec.ts`).
+
+Par rapport au realm local, un realm déployé :
+
+- ne contient **aucun compte**, ni mot de passe, ni adresse locale ;
+- expose le client public `trame-web`, avec un callback et une origine HTTPS exacts (`https://staging.trame.wkhach.dev/oidc-callback`) ;
+- garde le code avec PKCE `S256` seul, sans flux implicite ni password grant, et `admin-cli` désactivé ;
+- exige TLS pour toute requête externe (`sslRequired: external`) ;
+- détecte la force brute : verrouillage temporaire et croissant après 5 échecs, jamais permanent ;
+- impose l'**enrôlement d'un TOTP** à tout nouveau compte, à sa première connexion ;
+- conserve les rôles, les mappers et la protection de l'attribut `organization_id`.
+
+`infra/src/staging-realm.integration.spec.ts` le vérifie sur un vrai Keycloak, avec la même image figée que `dev.yml` :
+
+- enrôlement TOTP obligatoire avant tout jeton ;
+- code TOTP faux refusé ;
+- verrouillage après des échecs répétés ;
+- password grant refusé.
+
+Les comptes réels (celui de Kim sur le staging) sont créés par l'administration, via un tunnel SSH, jamais par le fichier du realm.
