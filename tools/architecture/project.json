@@ -4,5 +4,9 @@
   "sourceRoot": "tools/architecture/src",
   "projectType": "library",
   "tags": ["scope:tooling"],
-  "targets": {}
+  "targets": {
+    "test": {
+      "cache": false
+    }
+  }
 }
