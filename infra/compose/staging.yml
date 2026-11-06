@@ -1,0 +1,150 @@
+# Stack du staging (US-005 B2a, #47) : les six images applicatives, désignées par digest uniquement.
+# Lancée par `deploy.sh` (étape 3b), qui fournit les digests de la version vérifiée. Elle suppose la
+# stack partagée démarrée et provisionnée (shared.yml, infra/provisioning).
+#
+# Variables : TRAME_SECRETS_DIR, dossier des secrets (modèles dans secrets.example/staging), et
+# TRAME_<SERVICE>_DIGEST pour chacune des six images.
+# Aucun port publié : seul le front rejoint `edge`, et relaie /api/ vers l'API (ADR-0016).
+name: trame-staging
+
+x-application: &application
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ['no-new-privileges:true']
+  tmpfs: ['/tmp:rw,noexec,nosuid,size=64m,mode=1777']
+  restart: unless-stopped
+  logging:
+    driver: json-file
+    options: { max-size: '10m', max-file: '3' }
+
+services:
+  migrator:
+    <<: *application
+    image: ghcr.io/hachwilliam89-spec/trame-migrator@${TRAME_MIGRATOR_DIGEST:?}
+    # Ponctuel : applique les migrations puis s'arrête. Redémarré, il masquerait un échec que le
+    # déploiement doit voir.
+    restart: 'no'
+    # DATABASE_URL, avec le rôle trame_staging_migrator.
+    env_file:
+      - path: ${TRAME_SECRETS_DIR:?}/migrator.env
+        required: true
+    networks: [data]
+    mem_limit: 256m
+
+  api:
+    <<: *application
+    image: ghcr.io/hachwilliam89-spec/trame-api@${TRAME_API_DIGEST:?}
+    environment:
+      NODE_ENV: production
+      HOST: 0.0.0.0
+      PORT: '3000'
+      LOG_LEVEL: info
+      # L'émetteur est l'adresse publique, égale à l'`iss` des jetons ; les clés se lisent en interne.
+      OIDC_ISSUER_URL: https://auth.trame.wkhach.dev/realms/trame-staging
+      OIDC_JWKS_URL: http://keycloak:8080/realms/trame-staging/protocol/openid-connect/certs
+      OIDC_AUDIENCE: trame-api
+    # DATABASE_URL, avec le rôle trame_staging_api.
+    env_file:
+      - path: ${TRAME_SECRETS_DIR:?}/api.env
+        required: true
+    depends_on:
+      migrator: { condition: service_completed_successfully }
+    networks: [staging, data, auth]
+    mem_limit: 384m
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/api/v1/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  relay:
+    <<: *application
+    image: ghcr.io/hachwilliam89-spec/trame-relay@${TRAME_RELAY_DIGEST:?}
+    # DATABASE_URL (rôle trame_staging_api) et AMQP_URL (trame_staging_relay, vhost trame-staging).
+    env_file:
+      - path: ${TRAME_SECRETS_DIR:?}/relay.env
+        required: true
+    depends_on:
+      migrator: { condition: service_completed_successfully }
+    networks: [staging, data]
+    mem_limit: 256m
+
+  engine:
+    <<: *application
+    image: ghcr.io/hachwilliam89-spec/trame-engine@${TRAME_ENGINE_DIGEST:?}
+    # Un seul worker CP-SAT et un CPU pour le staging (cadrage).
+    environment: { ENGINE_MAX_WORKERS: '1' }
+    networks: [staging]
+    cpus: 1
+    mem_limit: 512m
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'python',
+          '-c',
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2)",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  worker:
+    <<: *application
+    image: ghcr.io/hachwilliam89-spec/trame-worker@${TRAME_WORKER_DIGEST:?}
+    environment: { ENGINE_MAX_WORKERS: '1' }
+    # AMQP_URL (trame_staging_worker, vhost trame-staging).
+    env_file:
+      - path: ${TRAME_SECRETS_DIR:?}/worker.env
+        required: true
+    networks: [staging, data]
+    cpus: 1
+    mem_limit: 512m
+
+  web:
+    <<: *application
+    image: ghcr.io/hachwilliam89-spec/trame-web@${TRAME_WEB_DIGEST:?}
+    environment:
+      WEB_AUTH_SERVER_URL: https://auth.trame.wkhach.dev
+      WEB_AUTH_REALM: trame-staging
+      WEB_AUTH_CLIENT_ID: trame-web
+    depends_on:
+      api: { condition: service_healthy }
+    networks: [staging, edge]
+    mem_limit: 64m
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', 'http://127.0.0.1:8080/health']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=edge
+      - traefik.http.routers.trame-staging-web.rule=Host(`staging.trame.wkhach.dev`)
+      - traefik.http.routers.trame-staging-web.entrypoints=websecure
+      - traefik.http.routers.trame-staging-web.middlewares=trame-staging-ratelimit
+      # Valeurs techniques de départ, à ajuster après la mesure de l'étape 4.
+      - traefik.http.middlewares.trame-staging-ratelimit.ratelimit.average=20
+      - traefik.http.middlewares.trame-staging-ratelimit.ratelimit.burst=50
+      - traefik.http.services.trame-staging-web.loadbalancer.server.port=8080
+
+networks:
+  # Les services du staging entre eux, sans accès extérieur.
+  staging:
+    name: trame-staging
+    internal: true
+  data:
+    name: trame-data
+    external: true
+  auth:
+    name: trame-auth
+    external: true
+  edge:
+    name: edge
+    external: true

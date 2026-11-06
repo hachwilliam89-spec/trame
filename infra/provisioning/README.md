@@ -5,6 +5,7 @@ Scripts lancés **une fois avant le premier déploiement** d'un environnement, p
 | Script                     | Crée                                                                                                      | Variables                                                            |
 | -------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
 | `postgres-environment.sql` | base `trame_<env>`, rôles `trame_<env>_migrator` (propriétaire, DDL) et `trame_<env>_api` (DML seulement) | `TRAME_ENVIRONMENT`, `TRAME_MIGRATOR_PASSWORD`, `TRAME_API_PASSWORD` |
+| `postgres-cluster.sql`     | ferme les bases système `postgres` et `template1` à tout rôle autre que le superutilisateur               | aucune                                                               |
 | `postgres-keycloak.sql`    | base `keycloak` et rôle `keycloak`, partagés par les realms de staging et de production                   | `TRAME_KEYCLOAK_DATABASE_PASSWORD`                                   |
 | `rabbitmq-environment.sh`  | vhost `trame-<env>`, utilisateurs `trame_<env>_relay` et `trame_<env>_worker`                             | `TRAME_ENVIRONMENT`, `TRAME_RELAY_PASSWORD`, `TRAME_WORKER_PASSWORD` |
 

@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { type ScriptRun, runScriptInContainer } from './lib/container-script';
+import { COMPOSE_DIRECTORY } from './lib/deployed-stacks';
 
 /**
  * Démarrage réel de la stack partagée (US-005 B2a, #47), durcie comme sur le VPS. Le test de
@@ -13,7 +14,7 @@ import { type ScriptRun, runScriptInContainer } from './lib/container-script';
  */
 const run = promisify(execFile);
 const PROJECT = `trame-shared-test-${process.pid}`;
-const SHARED_FILE = join(__dirname, '../compose/shared.yml');
+const SHARED_FILE = join(COMPOSE_DIRECTORY, 'shared.yml');
 const PROVISIONING_DIRECTORY = join(__dirname, '../provisioning');
 const EDGE_NETWORK = 'edge';
 const STAGING_ISSUER = 'https://auth.trame.wkhach.dev/realms/trame-staging';

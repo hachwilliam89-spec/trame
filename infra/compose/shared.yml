@@ -68,11 +68,12 @@ services:
 
   keycloak:
     <<: *service
-    image: quay.io/keycloak/keycloak:26.8.1@sha256:3f3c5f8e03c614774b4bd9173b88391fefa4153bfc010d8012d59ad825377332
-    command: ['start', '--import-realm']
+    image: trame-keycloak:26.8.1
+    build:
+      context: ../docker
+      dockerfile: keycloak.Dockerfile
+    command: ['start', '--optimized', '--import-realm']
     environment:
-      KC_DB: postgres
-      KC_HEALTH_ENABLED: 'true'
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: keycloak
       # L'émetteur des jetons est toujours l'adresse publique, même pour une requête interne.
@@ -94,7 +95,7 @@ services:
         source: ../keycloak/generated
         target: /opt/keycloak/data/import
         read_only: true
-    networks: [auth, edge]
+    networks: [data, auth, edge]
     mem_limit: 1g
     healthcheck:
       # L'image n'a pas curl. Le port de gestion reste interne au conteneur.
