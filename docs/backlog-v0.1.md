@@ -4,6 +4,8 @@
 
 Chaque US devient une issue GitHub, à partir de ce fichier (label `epic:Ex`, milestone `v0.1`). Les comportements sont précisés avec Kim par des exemples métier (BDD), puis leurs scénarios Gherkin sont validés avec le plan et deviennent des tests d'acceptation. Les nouveaux comportements et corrections sont implémentés en TDD : test en échec, code qui passe, puis refactorisation pour la lisibilité. La portée, les vérifications adaptées, la Definition of Ready et la Definition of Done sont celles d'`AGENTS.md`.
 
+Certaines stories indiquent des **patterns envisagés** (règle « Design patterns : usage pertinent » d'`AGENTS.md`, décision du 2026-11-05). Ce sont des pistes liées à un besoin précis : le plan de la story les confirme ou les écarte. Une optimisation n'est retenue que mesurée, coût initial et gain compris.
+
 ## Priorisation
 
 Priorité MoSCoW : **M** indispensable à la démo · **S** important, peut suivre la démo · **C** si le temps le permet.
@@ -234,6 +236,7 @@ Inclus :
 - Prometheus, Loki, Tempo et Grafana avec des rétentions bornées. Un dashboard « Santé » : latence, erreurs, durée des résolutions, files.
 - Objectifs de service : disponibilité de 99 % sur 30 jours, PE p95 < 200 ms, résolution hebdomadaire < 30 s. Alertes Grafana par e-mail.
 - Uptime Kuma sur `status.`, en page publique.
+- Pattern envisagé : **Décorateur** autour des ports (traces OTel, puis réessais du publieur AMQP), pour ajouter ces préoccupations transverses sans modifier les adaptateurs.
 
 ### US-008 — Sauvegardes
 
@@ -414,6 +417,7 @@ Depuis US-020 A (#22 et #28), les routes métier utilisent le résolveur OIDC de
 ### US-031 — Employés
 
 - CRUD : compétences, habilitations avec date d'expiration (ex. CACES).
+- Pattern envisagé : **Monteur de données de test** (Test Data Builder), exposé par le point d'entrée `testing`. Les scénarios restent lisibles (« un cariste dont le CACES expire le 10 décembre ») sans fixtures longues. Il sert ensuite à `staff`, `demand` et `scheduling`, et son équivalent Python au moteur.
 
 ```gherkin
 Scénario: Habilitation expirée
@@ -446,6 +450,7 @@ Scénario: Habilitation expirée
   - un libellé ;
   - une référence légale.
 - Toute modification d'une valeur est tracée dans un journal d'audit (qui, quand, ancienne et nouvelle valeur).
+- Pattern envisagé, côté moteur : **Fabrique** sous forme de registre. L'identifiant et les paramètres reçus de l'API donnent l'instance de la règle, sans `if` par règle. Une règle inconnue est refusée explicitement.
 
 ### US-041 — Pondération des règles souples (S)
 
@@ -472,9 +477,13 @@ Prototype jetable, limité à une session, avant US-061. Il mesure :
 - le temps de résolution d'une semaine de 40 employés sur le VPS, avec 1 et 4 workers ;
 - l'effet réel des hints sur le temps et sur la stabilité ;
 - la mémoire et le CPU consommés pendant une résolution, avec KCD et Équilibre actifs, pour valider le budget du cadrage ;
-- le mode déterministe (1 worker) pour les tests.
+- le mode déterministe (1 worker) pour les tests ;
+- le gain d'un **poids mouche** sur les créneaux types : partager leur partie figée (heures locales, poste, compétences, minutes de nuit d'un jour normal, compatibilité de repos entre deux créneaux types), la date et le fuseau restant propres à chaque shift. Mesures :
+  - temps de construction du modèle et pic mémoire (`tracemalloc`), avec et sans partage, sur 40 employés × 1 semaine puis 200 × 4 semaines ;
+  - latence d'une évaluation de la PE avec les compatibilités calculées à l'avance ;
+  - conditions si le partage est retenu : une nuit de changement d'heure est recalculée à partir des instants réels ; la réserve d'objets partagés vit le temps d'une résolution ou d'une évaluation (moteur sans état), sans rien partager entre organisations.
 
-Livrable : une note technique et une ADR qui fixe les paramètres de résolution.
+Livrable : une note technique et une ADR qui fixe les paramètres de résolution, et retient ou écarte le poids mouche d'après ces mesures.
 
 ### US-060 — Lancer une génération
 
@@ -513,6 +522,8 @@ Scénario: Aucun planning légal
 ```
 
 - SSE avec message de maintien toutes les 20 s et reprise par `Last-Event-ID`. Événements numérotés, conservés 1 h après la fin du job.
+- Pattern envisagé : **Observateur**. Le callback de solution de CP-SAT signale chaque meilleure solution à un observateur, qui publie la progression. Le solveur ignore le transport.
+- Cycle de vie du job : une table des transitions autorisées dans le domaine suffit, sans pattern État (une classe par état n'apporterait rien ici).
 
 ### US-061 — Modèle CP-SAT v1
 
@@ -540,6 +551,10 @@ Scénario: Seuil annuel atteint
 ```
 
 - Chaque règle est une classe avec `add_to_model()` et `evaluate()` (ADR-0020).
+- Patterns envisagés :
+  - **Stratégie** : chaque règle (déjà imposé par ADR-0020), et le traitement de la couverture (objectif pénalisé en mode standard, contrainte en mode strict) ;
+  - **Composite** : un jeu de règles expose la même interface qu'une règle, et regroupe les règles par famille (légales, contractuelles, souples). Le solveur et la PE parcourent un seul objet, et les familles servent au diagnostic d'US-062 ;
+  - **Poids mouche** sur les créneaux types, seulement si US-064 l'a retenu.
 - Issue explicite de chaque résolution : `OPTIMAL`, `FEASIBLE`, `INFEASIBLE`, `UNKNOWN`, `CANCELLED`.
 - Paramètres : limite de temps, nombre de workers (4 maximum), graine. Le planning publié est fourni en hints, sans garantie d'effet.
 - Tests :
@@ -552,7 +567,7 @@ Scénario: Seuil annuel atteint
 ### US-062 — Score et explication de base
 
 - Pour chaque planning : sous-effectif chiffré par créneau et par compétence (« 3 caristes CACES requis samedi matin, 2 affectés »), pénalités par règle souple, répartition des heures par employé.
-- Pour un job `INFEASIBLE` : les familles de règles en conflit, à la granularité fixée par le spike US-064.
+- Pour un job `INFEASIBLE` : les familles de règles en conflit, à la granularité fixée par le spike US-064. Elles sont lues dans le Composite de règles d'US-061.
 - Affichage lisible côté manager : « Pourquoi ce planning ? ».
 
 ---
@@ -586,6 +601,7 @@ Scénario: Délai de prévenance
 
 - Vue semaine, par employé ou par poste. Couverture visible par créneau (manque ou excès).
 - État géré par NgRx SignalStore (annuler, rétablir, mises à jour optimistes).
+- Pattern envisagé : **Commande**. Chaque modification (affecter, retirer, déplacer un shift) est un objet qui porte son inverse : la pile d'annulation, la mise à jour optimiste et son retour arrière en cas d'erreur reposent sur le même objet, traduit en requête d'évaluation pour la PE en US-072.
 - Conforme aux maquettes d'US-012 et performante avec 40 employés × 7 jours.
 
 ### US-072 — Drag & drop avec PE
@@ -598,7 +614,7 @@ Scénario: Retour instantané
   Et un dépôt UNCERTAIN demande une confirmation
 ```
 
-- Navigation au clavier possible (accessibilité). Annuler et rétablir.
+- Navigation au clavier possible (accessibilité). Annuler et rétablir, avec les Commandes d'US-071.
 
 ---
 
