@@ -356,13 +356,18 @@ save_failure_logs() {
   fi
 }
 
+# Le script ne peut pas rétablir seul un état sûr : le marqueur de bascule reste en place, et le
+# déploiement suivant le signale.
+intervention_required() {
+  echo "$1 Intervention requise (infra/staging/README.md)." >&2
+  exit 4
+}
+
 # Premier déploiement : il n'y a rien à restaurer. Seuls les services du staging sont arrêtés,
 # avec leurs conteneurs gardés pour le diagnostic ; volumes et stack partagée ne sont pas touchés.
 stop_first_version() {
   if ! compose_version "$1" stop; then
-    echo 'Arrêt des services du staging en échec. Intervention requise (infra/staging/README.md).' \
-      >&2
-    exit 4
+    intervention_required 'Arrêt des services du staging en échec.'
   fi
   clear_switch_marker
   fail "Premier déploiement en échec : services du staging arrêtés. Volumes, données et stack \
@@ -370,7 +375,8 @@ partagée intacts."
 }
 
 # Retire la version en échec : retour à la version en service au début de la tentative, et non à
-# la précédente (si A est en service, B avant elle, et que C échoue, c'est A qui revient).
+# la précédente (si A est en service, B avant elle, et que C échoue, c'est A qui revient). Elle a
+# déjà été contrôlée, mais l'est de nouveau : on ne la déclare en service que si elle répond.
 withdraw_version() {
   local failed="$1"
   local restore_point="$2"
@@ -380,9 +386,12 @@ withdraw_version() {
   fi
   step "Retour à $restore_point"
   if ! start_services "$restore_point"; then
-    echo "Retour à $restore_point en échec : $(describe_failing_services "$restore_point")." \
-      'Intervention requise (infra/staging/README.md).' >&2
-    exit 4
+    intervention_required \
+      "Retour à $restore_point en échec : $(describe_failing_services "$restore_point")."
+  fi
+  if ! wait_for_public_address; then
+    intervention_required "Retour à $restore_point : adresse publique toujours en échec pendant \
+$((PUBLIC_CHECK_MILLISECONDS / 1000)) secondes : $failed_check"
   fi
   clear_switch_marker
   fail "Version $failed retirée : $restore_point de nouveau en service."

@@ -270,6 +270,42 @@ describe('déploiement du staging (deploy.sh)', () => {
       expect(host.recordedVersion('previous')).toBe(older);
     });
 
+    it('contrôle l’adresse publique de la version restaurée', () => {
+      host.apiNeverHealthyIn(next);
+
+      const run = host.deploy(next);
+
+      expect(run.stderr).toContain(`Version ${next} retirée : ${inService} de nouveau en service.`);
+      expect(host.calls('curl').map((call) => call.at(-1))).toEqual([
+        `${PUBLIC_URL}/health`,
+        `${PUBLIC_URL}/api/v1/health/ready`,
+        `${PUBLIC_URL}/api/v1/sites`,
+        OPENID_CONFIGURATION,
+      ]);
+    });
+
+    it('demande une intervention quand la version restaurée reste injoignable', () => {
+      host.publicAddressResponds(`${PUBLIC_URL}/health`, {
+        status: 502,
+        contentType: 'text/plain',
+      });
+
+      const run = host.deploy(next);
+
+      expect(run.exitCode).toBe(4);
+      expect(run.stderr).toContain(
+        `Retour à ${inService} : adresse publique toujours en échec pendant 60 secondes : ${PUBLIC_URL}/health répond 502, 200 attendu.`,
+      );
+      expect(run.stderr).toContain('Intervention requise');
+      expect(run.stderr).not.toContain('de nouveau en service');
+      expect(host.recordedVersion('current')).toBe(inService);
+
+      const nextRun = host.deploy(host.publishedVersion('D'));
+      expect(nextRun.stderr).toContain(
+        `Une bascule précédente s'est interrompue (point de restauration : ${inService})`,
+      );
+    });
+
     it('nomme le service en échec et garde ses journaux, que le retour efface', () => {
       host.apiNeverHealthyIn(next);
 
@@ -285,7 +321,7 @@ describe('déploiement du staging (deploy.sh)', () => {
     });
 
     it('redéploie la version en service quand l’adresse publique ne répond pas', () => {
-      host.publicAddressResponds(`${PUBLIC_URL}/health`, {
+      host.publicAddressRespondsWhileServing(next, `${PUBLIC_URL}/health`, {
         status: 502,
         contentType: 'text/plain',
       });
@@ -387,7 +423,7 @@ describe('déploiement du staging (deploy.sh)', () => {
         reason: `Émetteur annoncé : absent, ${EXPECTED_ISSUER} attendu.`,
       },
     ])('nomme le contrôle externe en échec : $failure', ({ url, response, reason }) => {
-      host.publicAddressResponds(url, response);
+      host.publicAddressRespondsWhileServing(next, url, response);
 
       const run = host.deploy(next);
 
