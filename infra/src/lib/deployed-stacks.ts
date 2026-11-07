@@ -29,6 +29,7 @@ export interface DeployedService {
   command?: string[];
   tmpfs?: string[];
   volumes?: ServiceVolume[];
+  depends_on?: Record<string, { condition: string; restart?: boolean; required?: boolean }>;
 }
 
 export interface DeployedNetwork {
@@ -44,7 +45,7 @@ export interface DeployedStackConfig {
 
 export const COMPOSE_DIRECTORY = join(__dirname, '../../compose');
 
-/** Les six images applicatives, désignées par les digests que `deploy.sh` lira dans la version. */
+/** Les six images applicatives, désignées par les digests que `deploy.sh` lit dans la version. */
 export const APPLICATION_SERVICES = ['migrator', 'api', 'relay', 'engine', 'worker', 'web'];
 
 /** Digests fictifs, de la forme de ceux d'une version vérifiée. */

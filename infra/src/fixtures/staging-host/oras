@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# Faux oras du banc de déploiement. Sert les manifestes de version déposés par le test dans
+# $FAKE_STATE/releases/<commit>.json. Le digest d'un manifeste est son commit, complété de zéros.
+set -eu
+{
+  printf '%s\t' "$(basename "$0")" "$@"
+  printf '\n'
+} >>"$FAKE_STATE/calls"
+readonly padding='000000000000000000000000'
+
+case "$1" in
+  resolve)
+    commit="${2##*:}"
+    if [ ! -f "$FAKE_STATE/releases/$commit.json" ]; then
+      echo "Error: $2: not found" >&2
+      exit 1
+    fi
+    echo "sha256:$commit$padding"
+    ;;
+  pull)
+    digest="${2##*@sha256:}"
+    commit="${digest%"$padding"}"
+    cp "$FAKE_STATE/releases/$commit.json" "$4/images.json"
+    ;;
+  *)
+    echo "appel inattendu : oras $*" >&2
+    exit 64
+    ;;
+esac

@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# Faux curl du banc de déploiement. Les réponses d'une adresse sont des fichiers numérotés dans
+# $FAKE_STATE/curl/<version servie>/<adresse>/, ou à défaut dans $FAKE_STATE/curl/default/<adresse>/ :
+# le n-ième appel lit le fichier n, ou le dernier s'il n'y en a pas autant. Une adresse sans
+# réponse est injoignable.
+#
+# Format d'une réponse : sa durée en millisecondes, puis « <statut> <type de contenu> » ou
+# « erreur <message> », puis le corps. La durée avance l'horloge simulée ; si elle dépasse
+# --max-time, la requête expire à ce délai, comme le vrai curl.
+set -eu
+{
+  printf '%s\t' "$(basename "$0")" "$@"
+  printf '\n'
+} >>"$FAKE_STATE/calls"
+# shellcheck source=infra/src/fixtures/staging-host/clock.sh
+source "$(dirname "$0")/clock.sh"
+
+output=''
+url=''
+max_time=''
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --output)
+      output="$2"
+      shift 2
+      ;;
+    --max-time)
+      max_time="$2"
+      shift 2
+      ;;
+    --proto | --write-out)
+      shift 2
+      ;;
+    -*)
+      shift
+      ;;
+    *)
+      url="$1"
+      shift
+      ;;
+  esac
+done
+
+url_key="$(printf '%s' "$url" | tr -c 'A-Za-z0-9' '_')"
+serving="$(cat "$FAKE_STATE/serving" 2>/dev/null || true)"
+responses="$FAKE_STATE/curl/$serving/$url_key"
+if [ -z "$serving" ] || [ ! -d "$responses" ]; then
+  responses="$FAKE_STATE/curl/default/$url_key"
+fi
+if [ ! -d "$responses" ]; then
+  echo "curl: (7) Failed to connect to $url" >&2
+  exit 7
+fi
+call_number=$(($(cat "$responses/calls" 2>/dev/null || echo 0) + 1))
+echo "$call_number" >"$responses/calls"
+response="$responses/$call_number"
+if [ ! -f "$response" ]; then
+  response="$responses/$(cat "$responses/count")"
+fi
+
+duration="$(sed -n 1p "$response")"
+max_milliseconds="$(milliseconds_of "$max_time")"
+if [ "$duration" -gt "$max_milliseconds" ]; then
+  advance_clock_by_milliseconds "$max_milliseconds"
+  echo "curl: (28) Operation timed out after $max_milliseconds milliseconds" >&2
+  exit 28
+fi
+advance_clock_by_milliseconds "$duration"
+
+status_line="$(sed -n 2p "$response")"
+if [ "${status_line%% *}" = 'erreur' ]; then
+  echo "curl: (35) ${status_line#erreur }" >&2
+  exit 35
+fi
+tail -n +3 "$response" >"$output"
+printf '%s' "$status_line"

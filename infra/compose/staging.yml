@@ -1,5 +1,5 @@
 # Stack du staging (US-005 B2a, #47) : les six images applicatives, désignées par digest uniquement.
-# Lancée par `deploy.sh` (étape 3b), qui fournit les digests de la version vérifiée. Elle suppose la
+# Lancée par infra/staging/deploy.sh, qui fournit les digests de la version vérifiée. Elle suppose la
 # stack partagée démarrée et provisionnée (shared.yml, infra/provisioning).
 #
 # Variables : TRAME_SECRETS_DIR, dossier des secrets (modèles dans secrets.example/staging), et
@@ -114,8 +114,10 @@ services:
       WEB_AUTH_SERVER_URL: https://auth.trame.wkhach.dev
       WEB_AUTH_REALM: trame-staging
       WEB_AUTH_CLIENT_ID: trame-web
+    # nginx résout `api` une seule fois, au démarrage. Recréée par un déploiement, l'API peut changer
+    # d'adresse : Compose redémarre alors le front, même quand son image n'a pas changé.
     depends_on:
-      api: { condition: service_healthy }
+      api: { condition: service_healthy, restart: true }
     networks: [staging, edge]
     mem_limit: 64m
     healthcheck:

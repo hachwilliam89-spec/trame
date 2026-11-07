@@ -219,6 +219,17 @@ describe('stacks des environnements déployés (US-005 B2a)', () => {
     }
   });
 
+  it('redémarre le front quand l’API est recréée, pour qu’il relaie vers la nouvelle', () => {
+    // nginx résout `api` une seule fois, au démarrage. Recréée, l'API peut changer d'adresse, et
+    // échanger la sienne avec un autre service recréé en même temps : le front relaierait /api/
+    // vers un conteneur qui n'est plus l'API.
+    expect(service('staging', 'web').depends_on?.['api']).toEqual({
+      condition: 'service_healthy',
+      restart: true,
+      required: true,
+    });
+  });
+
   it('limite le moteur et le worker du staging à 1 CPU, 512 Mio et un seul worker CP-SAT', () => {
     for (const name of ['engine', 'worker']) {
       const definition = service('staging', name);

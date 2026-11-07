@@ -95,7 +95,7 @@ pnpm release-images verify <sha>
 
 Le tag du manifeste de version est résolu une seule fois en digest. La signature est vérifiée sur ce digest, puis ce même digest est téléchargé. La politique de confiance est codée dans `tools/release-images/src/lib/policy.ts`, jamais lue dans le fichier vérifié : dépôt, six noms, identité du workflow, émetteur OIDC et commit attendu.
 
-**Sur le VPS, sans Node** (US-005 B2a, étape 3b) : `tools/release-images/verify-release.sh <sha> <fichier>` applique la même politique en shell, avec `oras`, `cosign` et `python3`. Il écrit les six `TRAME_<IMAGE>_DIGEST=sha256:…` que lit `infra/compose/staging.yml`, et seulement si tout est vérifié. Codes de sortie : 0 vérifiée, 1 refusée, 2 usage, 3 outil absent.
+**Sur le VPS, sans Node** (US-005 B2a, étape 3b) : `tools/release-images/verify-release.sh <sha> <fichier>` applique la même politique en shell, avec `oras`, `cosign` et `python3`. Il écrit les six `TRAME_<IMAGE>_DIGEST=sha256:…` que lit `infra/compose/staging.yml`, et seulement si tout est vérifié. Codes de sortie : 0 vérifiée, 1 refusée, 2 usage, 3 outil absent. `infra/staging/deploy.sh` l'appelle avant tout déploiement ([infra/staging/README.md](../staging/README.md)).
 
 Le portage ne doit pas diverger : `src/lib/shell-verifier.spec.ts` le soumet aux mêmes manifestes que le vérificateur TypeScript, et compare les messages de refus. Il vérifie aussi que les arguments exacts passés à `cosign` sont ceux de `signerArguments()`, pour le manifeste puis pour chaque image. Garder les bonnes constantes sans les appliquer ferait donc échouer ces tests.
 

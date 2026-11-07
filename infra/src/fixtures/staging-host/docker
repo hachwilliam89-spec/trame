@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+# Faux docker du banc de déploiement (infra/src/lib/fake-staging-host.ts), placé devant le vrai
+# dans le PATH. Il note chaque appel, et pour Docker Compose les digests qu'il interpolerait. Il
+# simule les pannes que le test a déposées dans $FAKE_STATE/docker : préchargement, sauvegarde ou
+# migration en échec, API jamais saine.
+set -eu
+{
+  printf '%s\t' "$(basename "$0")" "$@"
+  printf '\n'
+} >>"$FAKE_STATE/calls"
+readonly state="$FAKE_STATE/docker"
+
+fail_if_requested() {
+  if [ -f "$state/$1" ]; then
+    cat "$state/$1" >&2
+    exit 1
+  fi
+}
+
+case "$1" in
+  ps)
+    # Le conteneur PostgreSQL de trame-shared, cherché par ses étiquettes Compose.
+    if [ ! -f "$state/no-postgres" ]; then
+      echo 'trame-shared-postgres'
+    fi
+    exit 0
+    ;;
+  exec)
+    fail_if_requested dump-error
+    echo 'sauvegarde de trame_staging'
+    exit 0
+    ;;
+  compose)
+    shift
+    ;;
+  *)
+    echo "appel inattendu : docker $*" >&2
+    exit 64
+    ;;
+esac
+
+env_file=''
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --env-file)
+      env_file="$2"
+      shift 2
+      ;;
+    --project-name | --file)
+      shift 2
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+# La valeur qu'interpolerait Docker Compose : celle de l'environnement l'emporte sur --env-file.
+interpolated() {
+  if printenv "$1"; then
+    return
+  fi
+  sed -n "s/^$1=//p" "$env_file"
+}
+
+{
+  printf '%s' "$1"
+  for variable in TRAME_API_DIGEST TRAME_RELAY_DIGEST TRAME_MIGRATOR_DIGEST TRAME_WEB_DIGEST \
+    TRAME_ENGINE_DIGEST TRAME_WORKER_DIGEST; do
+    printf '\t%s=%s' "$variable" "$(interpolated "$variable")"
+  done
+  printf '\n'
+} >>"$FAKE_STATE/compose-digests"
+
+# La version démarrée se reconnaît au digest de son API.
+api_digest="$(interpolated TRAME_API_DIGEST)"
+api_never_healthy() {
+  [ -f "$state/unhealthy-api-digests" ] && grep -qxF "$api_digest" "$state/unhealthy-api-digests"
+}
+
+case "$1" in
+  pull)
+    fail_if_requested pull-error
+    ;;
+  run)
+    fail_if_requested migration-error
+    ;;
+  up)
+    if api_never_healthy; then
+      printf 'api\trunning\tunhealthy\nengine\trunning\t\nrelay\trunning\t\nweb\tcreated\t\nworker\trunning\t\n' >"$state/ps"
+      echo 'dependency failed to start: container trame-staging-api-1 is unhealthy' >&2
+      exit 1
+    fi
+    printf 'api\trunning\thealthy\nengine\trunning\thealthy\nrelay\trunning\t\nweb\trunning\thealthy\nworker\trunning\t\n' >"$state/ps"
+    # La version que sert désormais l'adresse publique (faux curl).
+    echo "$api_digest" >"$FAKE_STATE/serving"
+    ;;
+  ps)
+    cat "$state/ps"
+    ;;
+  logs)
+    echo 'journaux des services du staging'
+    ;;
+  stop) ;;
+  *)
+    echo "appel inattendu : docker compose $*" >&2
+    exit 64
+    ;;
+esac
