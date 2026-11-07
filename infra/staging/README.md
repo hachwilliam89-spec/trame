@@ -7,7 +7,13 @@ sudo /opt/trame/source/infra/staging/deploy.sh <commit>    # commit complet, 40 
 sudo /opt/trame/source/infra/staging/deploy.sh --rollback
 ```
 
-Il suppose la stack `trame-shared` démarrée et provisionnée (`infra/compose/shared.yml`, `infra/provisioning`), ainsi que `docker`, `git`, `tar`, `curl`, `python3`, `oras` et `cosign` installés. Le runbook de l'étape 4 donne l'installation et l'ordre complet.
+Il suppose la stack `trame-shared` démarrée et provisionnée (`infra/compose/shared.yml`, `infra/provisioning`), ainsi que `docker`, `git`, `tar`, `curl`, `python3`, `oras` et `cosign` installés. `oras` et `cosign` s'installent par `install-release-tools.sh`, aux versions et sommes de contrôle de la CI qui signe les versions :
+
+```bash
+sudo /opt/trame/source/infra/staging/install-release-tools.sh    # dans /usr/local/bin
+```
+
+Le runbook de l'étape 4 donne l'installation et l'ordre complet.
 
 ## Fichiers sur le VPS
 
@@ -85,7 +91,24 @@ Après un code 4 : `docker compose --project-name trame-staging ps --all` et `lo
 
 - `relay` et `worker` n'ont pas de sonde : `--wait` ne détecte pas leur échec. Le critère de réussite de B2b (un diagnostic lancé depuis le front aboutit) couvre cette chaîne.
 - Sauvegardes et dossiers de versions ne sont pas purgés. La rotation viendra avec la sauvegarde hors du VPS (US-008).
-- Les adresses publiques sont fixes. La répétition de l'étape 4 déterminera comment les viser sans DNS ni TLS.
+- Les adresses publiques sont fixes. La répétition les fait pointer vers le runner par `/etc/hosts`, avec une autorité de test (voir « Répétition »).
+
+## Répétition
+
+`.github/workflows/rehearsal.yml` répète ce déploiement sur un runner jetable (`infra/src/staging.rehearsal.spec.ts`).
+
+- **Quand** :
+  - sur chaque PR qui touche `infra/`, `tools/release-images/` ou ce workflow : régression du script contre les deux dernières versions publiées de `main` ;
+  - **à la demande, avant B2b**, sur le commit exact à mettre en service : `gh workflow run rehearsal.yml -f version=<commit>` (et `-f previous=<commit>` pour imposer la version d'avant).
+- **Réel** : `deploy.sh` tel quel, les versions publiées et signées avec leur vraie vérification, `oras` et `cosign` installés par `install-release-tools.sh`, la stack partagée provisionnée par `infra/provisioning`, et Traefik à l'image et à la configuration de `vps-edge` (`infra/compose/rehearsal-edge.yml`, `infra/rehearsal`).
+- **Remplacé** : le DNS public, par `/etc/hosts` du runner ; Let's Encrypt, par une autorité de test que curl reconnaît par `CURL_CA_BUNDLE`, sans désactiver la vérification ; le proxy du socket Docker de `vps-edge`, qui ne fait que restreindre cet accès.
+- **Parcours** : version précédente, version visée, `--rollback`, puis de nouveau la version visée. Ensuite :
+  - aucun port publié par les conteneurs de Trame ;
+  - d'un client extérieur, seuls 80 et 443 répondent ;
+  - la console de Keycloak ne s'ouvre que par le tunnel, et `/admin/` comme `/realms/master/` répondent 404 par Traefik ;
+  - mémoire relevée toutes les 2 secondes, et aucun conteneur tué ni redémarré.
+- **Preuve** : l'artefact `repetition-staging` et le résumé du job donnent le SHA du script, ceux des deux versions, leurs digests vérifiés, les versions d'`oras` et de `cosign`, et le maximum de mémoire de chaque conteneur.
+- **Limite** : le retour sur un schéma migré n'est prouvé que si une migration sépare les deux versions. La première version qui ajoute une migration est répétée à la demande avec la précédente avant sa mise en service.
 
 ## Tests
 

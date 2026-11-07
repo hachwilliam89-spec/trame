@@ -67,6 +67,7 @@ jobs:
           REPORT: ${{ runner.temp }}/repetition/repetition.md
         run: |
           if [ -f "$REPORT" ]; then
+            cat "$REPORT"
             cat "$REPORT" >> "$GITHUB_STEP_SUMMARY"
           fi
 
