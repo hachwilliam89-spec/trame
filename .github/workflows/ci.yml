@@ -240,22 +240,80 @@ jobs:
           advanced-security: false
           annotations: true
 
+  # Les PR qui touchent l'infrastructure de déploiement passent aussi par la répétition du staging.
+  infrastructure-changes:
+    name: Changements de l'infrastructure de déploiement
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      rehearse: ${{ steps.changes.outputs.rehearse }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - id: changes
+        name: Chercher des changements de deploy.sh, de l'infrastructure ou de la vérification
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          rehearse=false
+          if [ "$EVENT" = pull_request ]; then
+            # Liste capturée avant le filtre : dans un tube, grep -q couperait git diff, et
+            # pipefail ferait échouer la condition.
+            changed="$(git diff --name-only "$BASE" HEAD)"
+            if grep -qE '^(infra/|tools/release-images/|\.github/workflows/rehearsal\.yml$)' <<<"$changed"; then
+              rehearse=true
+            fi
+          fi
+          echo "rehearse=$rehearse" >> "$GITHUB_OUTPUT"
+
+  rehearsal:
+    name: Répétition
+    needs: [infrastructure-changes]
+    if: needs.infrastructure-changes.outputs.rehearse == 'true'
+    permissions:
+      contents: read
+    uses: $/.github/workflows/rehearsal.yml
+
   # Seul check exigé par la protection de main : il agrège tous les autres.
   ci-ok:
     name: CI OK
     if: always()
-    needs: [verify, contracts, integration, images, secrets, audit, workflows]
+    needs:
+      [
+        verify,
+        contracts,
+        integration,
+        images,
+        secrets,
+        audit,
+        workflows,
+        infrastructure-changes,
+        rehearsal,
+      ]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Tous les jobs ont réussi
         env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
+          NEEDS: ${{ toJSON(needs) }}
+          REHEARSE: ${{ needs.infrastructure-changes.outputs.rehearse }}
         run: |
-          echo "Résultats : $RESULTS"
-          for result in $RESULTS; do
-            if [ "$result" != "success" ]; then
-              echo "Au moins un job n'a pas réussi."
-              exit 1
+          failed=false
+          while read -r job result; do
+            echo "$job : $result"
+            # La répétition n'est ignorée que si aucun changement ne la demande.
+            if [ "$job" = rehearsal ] && [ "$result" = skipped ] && [ "$REHEARSE" != true ]; then
+              continue
             fi
-          done
+            if [ "$result" != success ]; then
+              failed=true
+            fi
+          done < <(jq -r 'to_entries[] | "\(.key) \(.value.result)"' <<<"$NEEDS")
+          if [ "$failed" = true ]; then
+            echo "Au moins un job n'a pas réussi."
+            exit 1
+          fi
