@@ -19,6 +19,7 @@ export class ContainerEventWatch {
   private stream: ChildProcessWithoutNullStreams | undefined;
   private pendingText = '';
   private unreadableEvents = 0;
+  private observedEvents = 0;
   private endMarkerSeen: (() => void) | undefined;
 
   /** Commence à l'heure du démon Docker : aucun événement ne tombe entre deux horloges. */
@@ -47,7 +48,7 @@ export class ContainerEventWatch {
    * Lance un conteneur marqueur, attend son événement, puis arrête le flux : le flux est ordonné,
    * donc tous les événements antérieurs ont été lus. Rend les incidents du parcours.
    */
-  async stop(markerImage: string): Promise<string[]> {
+  async stop(markerImage: string): Promise<{ incidents: string[]; observedEvents: number }> {
     const markerReceived = new Promise<void>((resolve) => {
       this.endMarkerSeen = resolve;
     });
@@ -72,7 +73,7 @@ export class ContainerEventWatch {
     if (this.unreadableEvents > 0) {
       incidents.push(`${String(this.unreadableEvents)} événement(s) Docker illisible(s)`);
     }
-    return incidents;
+    return { incidents, observedEvents: this.observedEvents };
   }
 
   private read(text: string): void {
@@ -99,6 +100,7 @@ export class ContainerEventWatch {
       return;
     }
     if (REHEARSED_PROJECTS.includes(event.project)) {
+      this.observedEvents += 1;
       this.detector.observe(event);
     }
   }

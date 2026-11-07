@@ -57,6 +57,7 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
     steps: [],
     memoryPeaks: {},
     failedMemorySamples: 0,
+    observedContainerEvents: 0,
     incidents: [],
   };
   let versions: RehearsedVersions;
@@ -188,7 +189,9 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
       return;
     }
     eventsStopped = true;
-    report.incidents.push(...(await containerEvents.stop(KEYCLOAK_IMAGE)));
+    const { incidents, observedEvents } = await containerEvents.stop(KEYCLOAK_IMAGE);
+    report.incidents.push(...incidents);
+    report.observedContainerEvents = observedEvents;
   }
 
   async function containerOfStagingService(service: string): Promise<string> {
@@ -304,6 +307,8 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
     await stopSampler();
 
     expect(report.incidents).toEqual([]);
+    // Quatre déploiements démarrent chacun au moins les cinq services : le flux n'était pas vide.
+    expect(report.observedContainerEvents).toBeGreaterThanOrEqual(20);
     for (const service of ['postgres', 'rabbitmq', 'keycloak']) {
       expect(Object.keys(report.memoryPeaks)).toContain(`trame-shared-${service}-1`);
     }

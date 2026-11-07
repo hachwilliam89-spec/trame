@@ -17,6 +17,8 @@ export interface RehearsalReport {
   steps: { name: string; outcome: string }[];
   memoryPeaks: Record<string, MemoryPeak>;
   failedMemorySamples: number;
+  /** Événements Docker des stacks de Trame lus pendant le parcours : zéro trahirait un flux vide. */
+  observedContainerEvents: number;
   incidents: string[];
 }
 
@@ -53,6 +55,10 @@ function markdownOf(report: RehearsalReport): string {
     );
   }
   const incidents = report.incidents.length === 0 ? ['aucun'] : report.incidents;
-  lines.push('', `Incidents : ${incidents.join(' ; ')}.`, '');
+  lines.push(
+    '',
+    `Incidents : ${incidents.join(' ; ')} (${String(report.observedContainerEvents)} événements Docker lus).`,
+    '',
+  );
   return lines.join('\n');
 }
