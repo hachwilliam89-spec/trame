@@ -1,5 +1,5 @@
 # Stack du staging (US-005 B2a, #47) : les six images applicatives, désignées par digest uniquement.
-# Lancée par `deploy.sh` (étape 3b), qui fournit les digests de la version vérifiée. Elle suppose la
+# Lancée par infra/staging/deploy.sh, qui fournit les digests de la version vérifiée. Elle suppose la
 # stack partagée démarrée et provisionnée (shared.yml, infra/provisioning).
 #
 # Variables : TRAME_SECRETS_DIR, dossier des secrets (modèles dans secrets.example/staging), et

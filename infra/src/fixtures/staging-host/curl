@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Faux curl du banc de déploiement. Les réponses d'une adresse sont des fichiers numérotés dans
+# $FAKE_STATE/curl/<adresse>/ : le n-ième appel lit le fichier n, ou le dernier s'il n'y en a pas
+# autant. Première ligne : « <statut> <type de contenu> », ou « erreur <message> » ; puis le corps.
+# Une adresse sans réponse est injoignable.
+set -eu
+{
+  printf '%s\t' "$(basename "$0")" "$@"
+  printf '\n'
+} >>"$FAKE_STATE/calls"
+
+output=''
+url=''
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --output)
+      output="$2"
+      shift 2
+      ;;
+    --proto | --max-time | --write-out)
+      shift 2
+      ;;
+    -*)
+      shift
+      ;;
+    *)
+      url="$1"
+      shift
+      ;;
+  esac
+done
+
+responses="$FAKE_STATE/curl/$(printf '%s' "$url" | tr -c 'A-Za-z0-9' '_')"
+if [ ! -d "$responses" ]; then
+  echo "curl: (7) Failed to connect to $url" >&2
+  exit 7
+fi
+call_number=$(($(cat "$responses/calls" 2>/dev/null || echo 0) + 1))
+echo "$call_number" >"$responses/calls"
+response="$responses/$call_number"
+if [ ! -f "$response" ]; then
+  response="$responses/$(cat "$responses/count")"
+fi
+
+first_line="$(head -n 1 "$response")"
+if [ "${first_line%% *}" = 'erreur' ]; then
+  echo "curl: (35) ${first_line#erreur }" >&2
+  exit 35
+fi
+tail -n +2 "$response" >"$output"
+printf '%s' "$first_line"
