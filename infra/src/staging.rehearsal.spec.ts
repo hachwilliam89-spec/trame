@@ -13,6 +13,7 @@ import {
   reachableFromOutside,
   removeOutsideNetwork,
 } from './lib/rehearsal/exposure';
+import { GitMainHistory } from './lib/rehearsal/git-main-history';
 import { generatePlatformSecrets, writeSecretFiles } from './lib/rehearsal/platform-secrets';
 import { type RehearsalReport, writeRehearsalReport } from './lib/rehearsal/rehearsal-report';
 import {
@@ -39,6 +40,8 @@ const PUBLIC_NAMES = ['staging.trame.wkhach.dev', 'auth.trame.wkhach.dev'];
 const AUTH_URL = 'https://auth.trame.wkhach.dev';
 const KEYCLOAK_IMAGE = 'trame-keycloak:26.8.1';
 const ADMIN_TUNNEL_PORT = 18080;
+/** Commits de main parcourus pour le choix par défaut ; une version demandée n'a pas de limite. */
+const RECENT_MAIN_COMMITS = 60;
 
 describe('répétition du staging (US-005 B2a, étape 4)', () => {
   const workDirectory = mkdtempSync(join(tmpdir(), 'trame-repetition-'));
@@ -110,18 +113,8 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
   }
 
   async function chooseVersions(): Promise<RehearsedVersions> {
-    const history = await runCommand('git', [
-      '-C',
-      join(root, 'source'),
-      'log',
-      '--first-parent',
-      '--format=%H',
-      '-n',
-      '60',
-      'origin/main',
-    ]);
     return chooseRehearsedVersions({
-      history: history.split('\n').filter((commit) => commit !== ''),
+      main: new GitMainHistory(join(root, 'source'), RECENT_MAIN_COMMITS),
       requestedTarget: nonEmpty(process.env['TRAME_REHEARSAL_VERSION']),
       requestedPrevious: nonEmpty(process.env['TRAME_REHEARSAL_PREVIOUS']),
       isPublished: (commit) =>
