@@ -13,7 +13,16 @@ import {
  */
 const RUNNING_SERVICES = ['api', 'relay', 'engine', 'worker', 'web'];
 
-describe('déploiement du staging (deploy.sh)', () => {
+/**
+ * Chaque scénario lance le vrai script, qui démarre jusqu'à quelques centaines de processus (bash,
+ * git, python3, faux outils) quand les contrôles externes échouent pendant les 60 secondes
+ * simulées. Leur durée réelle dépasse alors les 5 secondes par défaut de Vitest sur un runner
+ * chargé. Elle n'a rien à voir avec le temps simulé du déploiement, que les tests vérifient par
+ * l'horloge du banc.
+ */
+const SCENARIO_TIMEOUT_MILLISECONDS = 30_000;
+
+describe('déploiement du staging (deploy.sh)', { timeout: SCENARIO_TIMEOUT_MILLISECONDS }, () => {
   let host: FakeStagingHost;
 
   beforeEach(() => {
