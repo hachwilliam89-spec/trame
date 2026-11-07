@@ -15,8 +15,10 @@ readonly PROJECT='trame-staging'
 readonly PUBLIC_URL='https://staging.trame.wkhach.dev'
 readonly EXPECTED_ISSUER='https://auth.trame.wkhach.dev/realms/trame-staging'
 readonly WAIT_SECONDS=60
-readonly EXTERNAL_CHECK_ATTEMPTS=30
-readonly EXTERNAL_CHECK_INTERVAL=2
+# Contrôles de l'adresse publique : 60 secondes en tout, requêtes et pauses comprises.
+readonly PUBLIC_CHECK_MILLISECONDS=60000
+readonly PUBLIC_CHECK_INTERVAL_MILLISECONDS=2000
+readonly REQUEST_TIMEOUT_MILLISECONDS=10000
 readonly SWITCH_MARKER='attempt-restore-point'
 DIGEST_VARIABLES=(TRAME_API_DIGEST TRAME_RELAY_DIGEST TRAME_MIGRATOR_DIGEST TRAME_WEB_DIGEST
   TRAME_ENGINE_DIGEST TRAME_WORKER_DIGEST)
@@ -70,7 +72,8 @@ work_directory="$(mktemp -d)"
 readonly work_directory
 trap 'rm -rf "$work_directory"' EXIT
 
-# Le motif du dernier contrôle externe en échec.
+# L'échéance des contrôles externes en cours, et le motif du dernier en échec.
+check_deadline=0
 failed_check=''
 
 # Le motif d'échec d'un outil : sa dernière ligne d'erreur.
@@ -236,14 +239,41 @@ describe_failing_services() {
   printf '%s' "${description:-aucun service en échec identifié}"
 }
 
+# L'horloge monotone du système, en millisecondes : un réglage de l'heure ne raccourcit ni
+# n'allonge l'attente. CLOCK_MONOTONIC est commune à tous les processus (POSIX), alors que
+# time.monotonic() n'a d'origine garantie qu'au sein d'un même processus.
+monotonic_milliseconds() {
+  python3 -I -c 'import time; print(int(time.clock_gettime(time.CLOCK_MONOTONIC) * 1000))'
+}
+
+milliseconds_left() {
+  local now
+  now="$(monotonic_milliseconds)"
+  echo $((check_deadline - now))
+}
+
+# 6000 devient 6.000 : curl et sleep acceptent des secondes décimales.
+as_seconds() {
+  printf '%d.%03d' $(($1 / 1000)) $(($1 % 1000))
+}
+
 # Code de sortie 0 si la réponse a le statut et le type de contenu attendus ; sinon, le motif
-# est dans failed_check.
+# est dans failed_check. La requête ne dépasse pas l'échéance des contrôles.
 expect_response() {
   local url="$1"
   local expected_status="$2"
   local expected_type="${3:-}"
+  local timeout
+  timeout="$(milliseconds_left)"
+  if [ "$timeout" -le 0 ]; then
+    failed_check="$url non contrôlée : délai écoulé."
+    return 1
+  fi
+  if [ "$timeout" -gt "$REQUEST_TIMEOUT_MILLISECONDS" ]; then
+    timeout="$REQUEST_TIMEOUT_MILLISECONDS"
+  fi
   local outcome
-  if ! outcome="$(curl --silent --show-error --proto '=https' --max-time 10 \
+  if ! outcome="$(curl --silent --show-error --proto '=https' --max-time "$(as_seconds "$timeout")" \
     --output "$work_directory/body" --write-out '%{http_code} %{content_type}' "$url" \
     2>"$work_directory/error")"; then
     failed_check="$url injoignable : $(last_error_line)"
@@ -281,16 +311,18 @@ check_public_address() {
 }
 
 # Traefik doit découvrir les conteneurs recréés et, au premier déploiement, obtenir les
-# certificats : l'adresse publique peut mettre quelques secondes à répondre.
+# certificats : l'adresse publique peut mettre quelques secondes à répondre. Une pause n'a lieu
+# que s'il reste ensuite du temps pour un nouvel essai.
 wait_for_public_address() {
   step "Contrôle de $PUBLIC_URL"
-  local attempt=1
+  local now
+  now="$(monotonic_milliseconds)"
+  check_deadline=$((now + PUBLIC_CHECK_MILLISECONDS))
   while ! check_public_address; do
-    if [ "$attempt" -ge "$EXTERNAL_CHECK_ATTEMPTS" ]; then
+    if [ "$(milliseconds_left)" -le "$PUBLIC_CHECK_INTERVAL_MILLISECONDS" ]; then
       return 1
     fi
-    attempt=$((attempt + 1))
-    sleep "$EXTERNAL_CHECK_INTERVAL"
+    sleep "$(as_seconds "$PUBLIC_CHECK_INTERVAL_MILLISECONDS")"
   done
 }
 
@@ -366,8 +398,8 @@ switch_to() {
     withdraw_version "$version" "$restore_point"
   fi
   if ! wait_for_public_address; then
-    echo "Contrôle de l'adresse publique en échec après $EXTERNAL_CHECK_ATTEMPTS essais :" \
-      "$failed_check" >&2
+    echo "Contrôle de l'adresse publique en échec pendant $((PUBLIC_CHECK_MILLISECONDS / 1000))" \
+      "secondes : $failed_check" >&2
     withdraw_version "$version" "$restore_point"
   fi
 }

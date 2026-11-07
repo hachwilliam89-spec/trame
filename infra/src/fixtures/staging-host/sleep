@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Faux sleep du banc de déploiement : note l'attente sans la faire.
+# Faux sleep du banc de déploiement : note l'attente, et avance l'horloge simulée sans attendre.
 set -eu
 {
   printf '%s\t' "$(basename "$0")" "$@"
   printf '\n'
 } >>"$FAKE_STATE/calls"
+# shellcheck source=infra/src/fixtures/staging-host/clock.sh
+source "$(dirname "$0")/clock.sh"
+advance_clock_by_milliseconds "$(milliseconds_of "$1")"

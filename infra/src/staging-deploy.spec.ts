@@ -298,8 +298,8 @@ describe('déploiement du staging (deploy.sh)', () => {
       expect(host.recordedVersion('current')).toBe(inService);
     });
 
-    it('répète les contrôles externes pendant 60 secondes avant de conclure', () => {
-      host.publicAddressResponds(`${PUBLIC_URL}/health`, {
+    it('répète les contrôles externes toutes les 2 secondes, pendant 60 secondes', () => {
+      host.publicAddressRespondsWhileServing(next, `${PUBLIC_URL}/health`, {
         status: 502,
         contentType: 'text/plain',
       });
@@ -309,8 +309,30 @@ describe('déploiement du staging (deploy.sh)', () => {
       const healthChecks = host
         .calls('curl')
         .filter((call) => call.at(-1) === `${PUBLIC_URL}/health`);
-      expect(healthChecks).toHaveLength(30);
-      expect(host.calls('sleep')).toEqual(Array.from({ length: 29 }, () => ['sleep', '2']));
+      expect(healthChecks.length).toBeGreaterThanOrEqual(30);
+      expect(host.calls('sleep')).toHaveLength(29);
+      expect(host.elapsedSeconds()).toBe(58);
+    });
+
+    it('borne l’attente à 60 secondes, temps des requêtes compris', () => {
+      host.publicAddressRespondsWhileServing(next, `${PUBLIC_URL}/health`, {
+        status: 502,
+        contentType: 'text/plain',
+        seconds: 7,
+      });
+
+      const run = host.deploy(next);
+
+      expect(run.exitCode).toBe(1);
+      expect(run.stderr).toContain('en échec pendant 60 secondes');
+      // Six essais de 7 secondes, chacun suivi de 2 secondes de pause, puis un dernier essai borné
+      // aux 6 secondes restantes.
+      const maxTimes = host
+        .calls('curl')
+        .filter((call) => call.at(-1) === `${PUBLIC_URL}/health`)
+        .map((call) => call[call.indexOf('--max-time') + 1]);
+      expect(maxTimes.slice(0, 7)).toEqual([...Array<string>(6).fill('10.000'), '6.000']);
+      expect(host.elapsedSeconds()).toBe(60);
     });
 
     it('déploie quand l’adresse publique répond après un délai, le temps du certificat', () => {

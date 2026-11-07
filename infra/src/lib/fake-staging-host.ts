@@ -17,13 +17,20 @@ import { delimiter, dirname, join } from 'node:path';
 const DEPLOY_SCRIPT = join(__dirname, '../../staging/deploy.sh');
 const FAKE_TOOLS = join(__dirname, '../fixtures/staging-host');
 const IMAGE_NAMES = ['api', 'relay', 'migrator', 'web', 'engine', 'worker'];
+/** Instant de départ de l'horloge simulée, en millisecondes. */
+const CLOCK_START = 1_000_000;
+const REAL_PYTHON3 = execFileSync('python3', ['-I', '-c', 'import sys; print(sys.executable)'], {
+  encoding: 'utf8',
+}).trim();
 
 export const PUBLIC_URL = 'https://staging.trame.wkhach.dev';
 export const EXPECTED_ISSUER = 'https://auth.trame.wkhach.dev/realms/trame-staging';
 export const OPENID_CONFIGURATION = `${EXPECTED_ISSUER}/.well-known/openid-configuration`;
 
+/** Une réponse de l'adresse publique, et le temps qu'elle prend (instantanée par défaut). */
 export type PublicResponse =
-  { status: number; contentType: string; body?: string } | { connectionError: string };
+  | { status: number; contentType: string; body?: string; seconds?: number }
+  | { connectionError: string; seconds?: number };
 
 export interface DeployRun {
   exitCode: number | null;
@@ -49,7 +56,9 @@ export interface ComposeCall {
 /**
  * Le VPS vu par `infra/staging/deploy.sh`, dans un dossier temporaire : un clone git réel d'une
  * origine locale, et de faux `docker`, `oras`, `cosign`, `curl` et `sleep` placés devant les vrais
- * dans le PATH (infra/src/fixtures/staging-host). Les faux outils notent chaque appel.
+ * dans le PATH (infra/src/fixtures/staging-host). Les faux outils notent chaque appel. Le temps des
+ * contrôles externes est simulé : faux curl et faux sleep avancent une horloge que le faux python3
+ * donne au script pour son horloge monotone.
  */
 export class FakeStagingHost {
   private readonly directory = mkdtempSync(join(tmpdir(), 'staging-host-'));
@@ -67,6 +76,7 @@ export class FakeStagingHost {
     mkdirSync(join(this.state, 'docker'), { recursive: true });
     mkdirSync(join(this.state, 'releases'));
     mkdirSync(this.home);
+    writeFileSync(join(this.state, 'clock'), String(CLOCK_START));
     mkdirSync(this.fakeTools);
     for (const tool of readdirSync(FAKE_TOOLS)) {
       symlinkSync(join(FAKE_TOOLS, tool), join(this.fakeTools, tool));
@@ -166,14 +176,22 @@ export class FakeStagingHost {
 
   /** Les réponses successives d'une adresse publique ; la dernière se répète. */
   publicAddressResponds(url: string, ...responses: PublicResponse[]): this {
-    const directory = join(this.state, 'curl', url.replace(/[^A-Za-z0-9]/g, '_'));
-    rmSync(directory, { recursive: true, force: true });
-    mkdirSync(directory, { recursive: true });
-    for (const [index, response] of responses.entries()) {
-      writeFileSync(join(directory, String(index + 1)), responseText(response));
-    }
-    writeFileSync(join(directory, 'count'), String(responses.length));
-    return this;
+    return this.writeResponses('default', url, responses);
+  }
+
+  /** Les réponses d'une adresse publique tant que cette version est en service. */
+  publicAddressRespondsWhileServing(
+    commit: string,
+    url: string,
+    ...responses: PublicResponse[]
+  ): this {
+    return this.writeResponses(this.imageDigest(commit, 'api'), url, responses);
+  }
+
+  /** Le temps simulé écoulé depuis la création du banc, en secondes. */
+  elapsedSeconds(): number {
+    const clock = Number(readFileSync(join(this.state, 'clock'), 'utf8'));
+    return (clock - CLOCK_START) / 1000;
   }
 
   /** Des variables du shell qui lance le script, comme un `export` oublié par l'administrateur. */
@@ -315,6 +333,18 @@ export class FakeStagingHost {
     });
   }
 
+  private writeResponses(servedVersion: string, url: string, responses: PublicResponse[]): this {
+    const urlKey = url.replace(/[^A-Za-z0-9]/g, '_');
+    const directory = join(this.state, 'curl', servedVersion, urlKey);
+    rmSync(directory, { recursive: true, force: true });
+    mkdirSync(directory, { recursive: true });
+    for (const [index, response] of responses.entries()) {
+      writeFileSync(join(directory, String(index + 1)), responseText(response));
+    }
+    writeFileSync(join(directory, 'count'), String(responses.length));
+    return this;
+  }
+
   private dockerFails(failure: string, message: string): this {
     writeFileSync(join(this.state, 'docker', failure), `${message}\n`);
     return this;
@@ -324,6 +354,7 @@ export class FakeStagingHost {
     return {
       PATH: this.searchPath(),
       FAKE_STATE: this.state,
+      FAKE_REAL_PYTHON3: REAL_PYTHON3,
       TRAME_ROOT: this.root,
       HOME: this.home,
       GIT_CONFIG_GLOBAL: '/dev/null',
@@ -361,10 +392,11 @@ export function composeFileContent(label: string): string {
 }
 
 function responseText(response: PublicResponse): string {
+  const duration = `${Math.round((response.seconds ?? 0) * 1000)}\n`;
   if ('connectionError' in response) {
-    return `erreur ${response.connectionError}\n`;
+    return `${duration}erreur ${response.connectionError}\n`;
   }
-  return `${response.status} ${response.contentType}\n${response.body ?? ''}`;
+  return `${duration}${response.status} ${response.contentType}\n${response.body ?? ''}`;
 }
 
 const COMPOSE_OPTIONS_WITH_VALUE = ['--project-name', '--env-file', '--file'];
