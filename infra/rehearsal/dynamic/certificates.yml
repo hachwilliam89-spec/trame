@@ -1,0 +1,8 @@
+# Certificat par défaut de la répétition, signé par l'autorité de test pour
+# staging.trame.wkhach.dev et auth.trame.wkhach.dev (infra/src/lib/rehearsal/test-authority.ts).
+tls:
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /etc/traefik/certificates/server.pem
+        keyFile: /etc/traefik/certificates/server-key.pem

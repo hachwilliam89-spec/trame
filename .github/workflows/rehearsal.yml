@@ -1,0 +1,80 @@
+name: Répétition du staging
+
+# Répète le déploiement du staging sur un runner jetable (US-005 B2a, étape 4, #47) : deploy.sh
+# tel quel, vraies versions publiées et signées, stack partagée provisionnée et Traefik de
+# vps-edge. Seuls le DNS public et Let's Encrypt sont remplacés (/etc/hosts, autorité de test).
+# - Appelée par la CI sur les PR qui touchent l'infrastructure : régression du script contre les
+#   deux dernières versions publiées de main.
+# - Lancée à la demande avant B2b, sur le commit exact à mettre en service : la preuve que le
+#   runbook exige, avec les SHA joués en artefact.
+
+on:
+  workflow_call:
+    inputs:
+      version:
+        type: string
+        default: ''
+      previous:
+        type: string
+        default: ''
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Commit de main à mettre en service (vide pour la dernière version publiée)
+        type: string
+        default: ''
+      previous:
+        description: Version en service avant elle (vide pour la version publiée qui la précède)
+        type: string
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  rehearsal:
+    name: Répétition du staging
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: $/.github/actions/setup
+        with:
+          python: 'false'
+
+      # Le même script que sur le VPS, aux versions et sommes de la CI qui signe.
+      - name: Installer oras et cosign comme sur le VPS
+        run: |
+          infra/staging/install-release-tools.sh "$RUNNER_TEMP/release-tools"
+          echo "$RUNNER_TEMP/release-tools" >> "$GITHUB_PATH"
+
+      - name: Diriger les noms publics du staging vers ce runner
+        run: echo '127.0.0.1 staging.trame.wkhach.dev auth.trame.wkhach.dev' | sudo tee -a /etc/hosts
+
+      - name: Répéter le déploiement
+        env:
+          TRAME_REHEARSAL_VERSION: ${{ inputs.version }}
+          TRAME_REHEARSAL_PREVIOUS: ${{ inputs.previous }}
+          TRAME_REHEARSAL_REPORT: ${{ runner.temp }}/repetition
+        run: pnpm nx run infra:rehearsal
+
+      - name: Résumer la répétition
+        if: ${{ !cancelled() }}
+        env:
+          REPORT: ${{ runner.temp }}/repetition/repetition.md
+        run: |
+          if [ -f "$REPORT" ]; then
+            cat "$REPORT" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Garder la preuve de la répétition
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: repetition-staging
+          path: ${{ runner.temp }}/repetition
+          retention-days: 90
+          if-no-files-found: warn

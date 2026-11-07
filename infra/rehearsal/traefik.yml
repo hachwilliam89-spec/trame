@@ -1,0 +1,48 @@
+# Traefik de la répétition du staging (US-005 B2a, étape 4) : la configuration statique de
+# vps-edge (commit 6e99b89), à trois différences près, toutes propres à une machine jetable.
+#   - Les certificats viennent d'une autorité de test (dynamic/certificates.yml), pas de
+#     Let's Encrypt : la répétition n'a ni DNS public ni port 80 joignable depuis Internet.
+#   - Traefik lit le socket Docker monté en lecture seule, sans le proxy de vps-edge, qui ne fait
+#     que restreindre cet accès.
+#   - Pas de journal d'accès : la CI n'a pas à garder les URL des requêtes.
+
+global:
+  checkNewVersion: false
+  sendAnonymousUsage: false
+
+log:
+  level: INFO
+  format: json
+
+ping: {}
+
+api:
+  dashboard: false
+
+entryPoints:
+  web:
+    address: ':80'
+    http:
+      redirections:
+        entryPoint:
+          to: websecure
+          scheme: https
+          permanent: true
+  websecure:
+    address: ':443'
+    http3: {}
+    http:
+      tls: {}
+      # Appliqués à toutes les routes HTTPS, comme sur le VPS.
+      middlewares:
+        - securite@file
+        - compression@file
+
+providers:
+  docker:
+    endpoint: 'unix:///var/run/docker.sock'
+    exposedByDefault: false
+    network: edge
+  file:
+    directory: /etc/traefik/dynamic
+    watch: false

@@ -13,6 +13,14 @@
       },
       "cache": false
     },
+    "rehearsal": {
+      "description": "Répète le déploiement du staging : vraies images publiées et signées, Traefik et stack partagée, sur une machine jetable (US-005 B2a, étape 4).",
+      "command": "vitest run --config vitest.rehearsal.config.mts",
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "cache": false
+    },
     "realms-generate": {
       "description": "Génère les realms déployés (staging, puis production) à partir du realm local.",
       "command": "tsx infra/scripts/generate-realms.ts",
