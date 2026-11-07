@@ -29,6 +29,7 @@ export interface DeployedService {
   command?: string[];
   tmpfs?: string[];
   volumes?: ServiceVolume[];
+  depends_on?: Record<string, { condition: string; restart?: boolean; required?: boolean }>;
 }
 
 export interface DeployedNetwork {
