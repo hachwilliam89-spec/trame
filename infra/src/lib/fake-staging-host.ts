@@ -13,6 +13,13 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { delimiter, dirname, join } from 'node:path';
+import {
+  type ComposeCall,
+  type InterpolatedDigests,
+  readComposeCalls,
+  readInterpolatedDigests,
+  readToolCalls,
+} from './fake-tool-records';
 
 const DEPLOY_SCRIPT = join(__dirname, '../../staging/deploy.sh');
 const FAKE_TOOLS = join(__dirname, '../fixtures/staging-host');
@@ -36,21 +43,6 @@ export interface DeployRun {
   exitCode: number | null;
   stdout: string;
   stderr: string;
-}
-
-/** Les digests qu'un appel à Docker Compose interpolerait, par variable. */
-export interface InterpolatedDigests {
-  subcommand: string;
-  digests: Record<string, string>;
-}
-
-/** Un appel à `docker compose`, découpé en options globales, sous-commande et arguments. */
-export interface ComposeCall {
-  project: string;
-  envFile: string | undefined;
-  file: string | undefined;
-  subcommand: string;
-  arguments: string[];
 }
 
 /**
@@ -261,49 +253,15 @@ export class FakeStagingHost {
 
   /** Les appels reçus par les faux outils, chacun sous la forme [outil, ...arguments]. */
   calls(tool?: string): string[][] {
-    const callsFile = join(this.state, 'calls');
-    if (!existsSync(callsFile)) {
-      return [];
-    }
-    const lines = readFileSync(callsFile, 'utf8')
-      .split('\n')
-      .filter((line) => line !== '');
-    const calls = lines.map((line) => line.replace(/\t$/, '').split('\t'));
-    if (tool === undefined) {
-      return calls;
-    }
-    return calls.filter((call) => call[0] === tool);
+    return readToolCalls(this.state, tool);
   }
 
   composeCalls(): ComposeCall[] {
-    const composeCalls: ComposeCall[] = [];
-    for (const call of this.calls('docker')) {
-      if (call[1] === 'compose') {
-        composeCalls.push(parseComposeCall(call.slice(2)));
-      }
-    }
-    return composeCalls;
+    return readComposeCalls(this.state);
   }
 
   interpolatedDigests(): InterpolatedDigests[] {
-    const file = join(this.state, 'compose-digests');
-    if (!existsSync(file)) {
-      return [];
-    }
-    const interpolations: InterpolatedDigests[] = [];
-    for (const line of readFileSync(file, 'utf8').split('\n')) {
-      if (line === '') {
-        continue;
-      }
-      const [subcommand = '', ...assignments] = line.split('\t');
-      const digests: Record<string, string> = {};
-      for (const assignment of assignments) {
-        const [variable = '', value = ''] = assignment.split('=');
-        digests[variable] = value;
-      }
-      interpolations.push({ subcommand, digests });
-    }
-    return interpolations;
+    return readInterpolatedDigests(this.state);
   }
 
   /** Oublie les appels déjà notés, par exemple ceux des déploiements qui préparent un test. */
@@ -397,22 +355,4 @@ function responseText(response: PublicResponse): string {
     return `${duration}erreur ${response.connectionError}\n`;
   }
   return `${duration}${response.status} ${response.contentType}\n${response.body ?? ''}`;
-}
-
-const COMPOSE_OPTIONS_WITH_VALUE = ['--project-name', '--env-file', '--file'];
-
-function parseComposeCall(args: string[]): ComposeCall {
-  const options: Record<string, string> = {};
-  let index = 0;
-  while (index < args.length && COMPOSE_OPTIONS_WITH_VALUE.includes(args[index] ?? '')) {
-    options[args[index] ?? ''] = args[index + 1] ?? '';
-    index += 2;
-  }
-  return {
-    project: options['--project-name'] ?? '',
-    envFile: options['--env-file'],
-    file: options['--file'],
-    subcommand: args[index] ?? '',
-    arguments: args.slice(index + 1),
-  };
 }
