@@ -239,9 +239,8 @@ describe_failing_services() {
   printf '%s' "${description:-aucun service en échec identifié}"
 }
 
-# L'horloge monotone du système, en millisecondes : un réglage de l'heure ne raccourcit ni
-# n'allonge l'attente. CLOCK_MONOTONIC est commune à tous les processus (POSIX), alors que
-# time.monotonic() n'a d'origine garantie qu'au sein d'un même processus.
+# L'horloge monotone du système (CLOCK_MONOTONIC), en millisecondes : un réglage de l'heure ne
+# raccourcit ni n'allonge l'attente. Bash n'en a pas : chaque lecture passe par python3.
 monotonic_milliseconds() {
   python3 -I -c 'import time; print(int(time.clock_gettime(time.CLOCK_MONOTONIC) * 1000))'
 }
