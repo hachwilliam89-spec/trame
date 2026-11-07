@@ -72,27 +72,3 @@ export async function rehearsedContainers(): Promise<string[]> {
   }
   return containers;
 }
-
-/**
- * Les conteneurs tués faute de mémoire, ou redémarrés par Docker. Relevé après chaque étape : un
- * déploiement recrée les conteneurs, et l'historique des anciens disparaît avec eux.
- */
-export async function containerIncidents(): Promise<string[]> {
-  const incidents: string[] = [];
-  for (const container of await rehearsedContainers()) {
-    const state = await runCommand('docker', [
-      'inspect',
-      '--format',
-      '{{.Name}} {{.State.OOMKilled}} {{.RestartCount}}',
-      container,
-    ]);
-    const [name = container, oomKilled, restartCount] = state.trim().split(' ');
-    if (oomKilled === 'true') {
-      incidents.push(`${name} tué faute de mémoire`);
-    }
-    if (restartCount !== '0') {
-      incidents.push(`${name} redémarré ${restartCount ?? '?'} fois`);
-    }
-  }
-  return incidents;
-}

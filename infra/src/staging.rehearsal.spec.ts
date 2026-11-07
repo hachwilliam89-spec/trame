@@ -4,7 +4,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { COMPOSE_DIRECTORY } from './lib/deployed-stacks';
 import { type CommandRun, runCommand, runVisibleCommand } from './lib/rehearsal/command';
-import { MemorySampler, containerIncidents } from './lib/rehearsal/container-watch';
+import { ContainerEventWatch } from './lib/rehearsal/container-events';
+import { MemorySampler } from './lib/rehearsal/container-watch';
 import {
   type ProbeTarget,
   containerAddresses,
@@ -49,6 +50,7 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
   const secrets = generatePlatformSecrets();
   const sharedStack = new SharedStack(join(root, 'shared', 'secrets'));
   const sampler = new MemorySampler();
+  const containerEvents = new ContainerEventWatch();
   const report: RehearsalReport = {
     scriptCommit: '',
     tools: {},
@@ -61,6 +63,7 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
   let authority: TestAuthority;
   let adminTunnel: Server | undefined;
   let samplerStopped = false;
+  let eventsStopped = false;
 
   beforeAll(async () => {
     requirePublicNamesOnThisHost();
@@ -74,6 +77,7 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
     authority = await createTestAuthority(join(workDirectory, 'autorite'), PUBLIC_NAMES);
     await writeSecretFiles(root, secrets);
     await runCommand('docker', ['network', 'create', 'edge']);
+    await containerEvents.start();
     sampler.start();
     await edge('up', '--detach', '--wait', '--wait-timeout', '120');
     await sharedStack.start(secrets);
@@ -82,6 +86,9 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
   afterAll(async () => {
     adminTunnel?.close();
     await stopSampler();
+    await stopContainerEvents().catch((error: unknown) => {
+      report.incidents.push(`Flux des événements Docker : ${String(error)}`);
+    });
     await writeRehearsalReport(reportDirectory(), report);
     await runCommand('docker', ['compose', '--project-name', 'trame-staging', 'down']).catch(
       () => '',
@@ -161,7 +168,6 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
 
   async function expectDeployed(name: string, run: CommandRun, current: string): Promise<void> {
     report.steps.push({ name, outcome: `code ${String(run.exitCode)}` });
-    report.incidents.push(...(await containerIncidents()));
     expect(run.exitCode, run.output).toBe(0);
     expect(recorded('current')).toBe(current);
   }
@@ -174,6 +180,15 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
     const { peaks, failedSamples } = await sampler.stop();
     report.memoryPeaks = peaks;
     report.failedMemorySamples = failedSamples;
+  }
+
+  /** Les incidents de tout le parcours, lus une seule fois dans le flux des événements. */
+  async function stopContainerEvents(): Promise<void> {
+    if (eventsStopped) {
+      return;
+    }
+    eventsStopped = true;
+    report.incidents.push(...(await containerEvents.stop(KEYCLOAK_IMAGE)));
   }
 
   async function containerOfStagingService(service: string): Promise<string> {
@@ -285,7 +300,7 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
   });
 
   it('ne tue ni ne redémarre aucun conteneur, et relève la mémoire de chacun', async () => {
-    report.incidents.push(...(await containerIncidents()));
+    await stopContainerEvents();
     await stopSampler();
 
     expect(report.incidents).toEqual([]);
