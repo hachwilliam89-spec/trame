@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync, rmSync, statSync } from 'node:fs';
 import {
   EXPECTED_ISSUER,
   FakeStagingHost,
@@ -412,6 +412,66 @@ describe('déploiement du staging (deploy.sh)', () => {
     });
   });
 
+  describe('Digests vérifiés prioritaires sur ceux du shell', () => {
+    let older: string;
+    let inService: string;
+    let next: string;
+
+    beforeEach(() => {
+      older = host.publishedVersion('A');
+      host.deploy(older);
+      inService = host.publishedVersion('B');
+      host.deploy(inService);
+      next = host.publishedVersion('C');
+      host.forgetCalls();
+      // D'anciens digests exportés dans le shell : Compose les préférerait à ceux de --env-file.
+      host.inShell(host.digestVariables(older));
+    });
+
+    function interpolatedBy(subcommand: string) {
+      return host
+        .interpolatedDigests()
+        .filter((interpolation) => interpolation.subcommand === subcommand)
+        .map((interpolation) => interpolation.digests);
+    }
+
+    it('interpole les digests vérifiés à chaque appel Compose', () => {
+      const run = host.deploy(next);
+
+      expect(run.exitCode).toBe(0);
+      expect(host.interpolatedDigests().map((call) => call.subcommand)).toEqual([
+        'pull',
+        'run',
+        'up',
+      ]);
+      for (const interpolation of host.interpolatedDigests()) {
+        expect(interpolation.digests).toEqual(host.digestVariables(next));
+      }
+    });
+
+    it('interpole ceux de la version en service au retour', () => {
+      host.apiNeverHealthyIn(next);
+
+      host.deploy(next);
+
+      expect(interpolatedBy('up')).toEqual([
+        host.digestVariables(next),
+        host.digestVariables(inService),
+      ]);
+      for (const subcommand of ['ps', 'logs']) {
+        expect(interpolatedBy(subcommand)).toEqual([host.digestVariables(next)]);
+      }
+    });
+
+    it('interpole ceux de la version précédente au retour arrière volontaire', () => {
+      host.inShell(host.digestVariables(next));
+
+      host.deploy('--rollback');
+
+      expect(interpolatedBy('up')).toEqual([host.digestVariables(older)]);
+    });
+  });
+
   describe('Retour arrière volontaire (--rollback)', () => {
     let previous: string;
     let inService: string;
@@ -501,6 +561,20 @@ describe('déploiement du staging (deploy.sh)', () => {
       const inService = host.publishedVersion('A');
       host.deploy(inService);
       rmSync(host.releasesPath(`${inService}.env`));
+      host.forgetCalls();
+
+      const run = host.deploy(host.publishedVersion('B'));
+
+      expect(run.exitCode).toBe(3);
+      expect(run.stderr).toContain(`point de restauration ${inService} incomplet`);
+      expect(host.calls()).toEqual([]);
+    });
+
+    it('ne commence pas quand les digests de la version en service sont ambigus', () => {
+      const inService = host.publishedVersion('A');
+      host.deploy(inService);
+      const otherApiDigest = `TRAME_API_DIGEST=sha256:${'e'.repeat(64)}\n`;
+      appendFileSync(host.releasesPath(`${inService}.env`), otherApiDigest);
       host.forgetCalls();
 
       const run = host.deploy(host.publishedVersion('B'));

@@ -18,6 +18,9 @@ readonly WAIT_SECONDS=60
 readonly EXTERNAL_CHECK_ATTEMPTS=30
 readonly EXTERNAL_CHECK_INTERVAL=2
 readonly SWITCH_MARKER='attempt-restore-point'
+DIGEST_VARIABLES=(TRAME_API_DIGEST TRAME_RELAY_DIGEST TRAME_MIGRATOR_DIGEST TRAME_WEB_DIGEST
+  TRAME_ENGINE_DIGEST TRAME_WORKER_DIGEST)
+readonly DIGEST_VARIABLES
 # Le migrator ne tourne qu'à l'étape de migration : seuls ces services sont basculés.
 RUNNING_SERVICES=(api relay engine worker web)
 readonly RUNNING_SERVICES
@@ -87,11 +90,37 @@ write_state() {
   mv "$releases/$1.partial" "$releases/$1"
 }
 
-# Docker Compose sur une version : ses digests vérifiés et son propre fichier Compose.
+# Les six digests vérifiés d'une version, une affectation par ligne. Échoue si l'un manque, est
+# mal formé ou figure deux fois.
+verified_digest_assignments() {
+  local variable
+  local digest
+  for variable in "${DIGEST_VARIABLES[@]}"; do
+    digest="$(sed -n "s/^$variable=//p" "$releases/$1.env" 2>/dev/null)" || return 1
+    if ! [[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+      return 1
+    fi
+    printf '%s=%s\n' "$variable" "$digest"
+  done
+}
+
+# Docker Compose sur une version : ses digests vérifiés et son propre fichier Compose. Les digests
+# passent dans l'environnement de la commande : une variable du même nom exportée dans le shell
+# l'emporterait sinon sur --env-file, qui n'empêche plus que la lecture d'un .env voisin.
 compose_version() {
   local version="$1"
   shift
-  TRAME_SECRETS_DIR="$secrets" docker compose --project-name "$PROJECT" \
+  local assignments
+  if ! assignments="$(verified_digest_assignments "$version")"; then
+    echo "Digests vérifiés de $version illisibles dans $releases/$version.env." >&2
+    return 1
+  fi
+  local environment=()
+  local assignment
+  while IFS= read -r assignment; do
+    environment+=("$assignment")
+  done <<<"$assignments"
+  env "${environment[@]}" TRAME_SECRETS_DIR="$secrets" docker compose --project-name "$PROJECT" \
     --env-file "$releases/$version.env" \
     --file "$releases/$version/infra/compose/staging.yml" "$@"
 }
@@ -384,7 +413,8 @@ check_restorable() {
   if [ -z "$1" ]; then
     return
   fi
-  if [ ! -f "$releases/$1.env" ] || [ ! -f "$releases/$1/infra/compose/staging.yml" ]; then
+  if ! verified_digest_assignments "$1" >/dev/null ||
+    [ ! -f "$releases/$1/infra/compose/staging.yml" ]; then
     unavailable "point de restauration $1 incomplet dans $releases."
   fi
 }

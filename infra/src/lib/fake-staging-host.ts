@@ -31,6 +31,12 @@ export interface DeployRun {
   stderr: string;
 }
 
+/** Les digests qu'un appel à Docker Compose interpolerait, par variable. */
+export interface InterpolatedDigests {
+  subcommand: string;
+  digests: Record<string, string>;
+}
+
 /** Un appel à `docker compose`, découpé en options globales, sous-commande et arguments. */
 export interface ComposeCall {
   project: string;
@@ -54,6 +60,7 @@ export class FakeStagingHost {
   private readonly home = join(this.directory, 'home');
   private readonly fakeTools = join(this.directory, 'bin');
   private readonly missingTools: string[] = [];
+  private shellVariables: Record<string, string> = {};
 
   constructor() {
     mkdirSync(join(this.root, 'staging', 'secrets'), { recursive: true });
@@ -169,10 +176,25 @@ export class FakeStagingHost {
     return this;
   }
 
+  /** Des variables du shell qui lance le script, comme un `export` oublié par l'administrateur. */
+  inShell(variables: Record<string, string>): this {
+    this.shellVariables = variables;
+    return this;
+  }
+
+  /** Les six variables TRAME_<IMAGE>_DIGEST d'une version publiée. */
+  digestVariables(commit: string): Record<string, string> {
+    const variables: Record<string, string> = {};
+    for (const name of IMAGE_NAMES) {
+      variables[`TRAME_${name.toUpperCase()}_DIGEST`] = this.imageDigest(commit, name);
+    }
+    return variables;
+  }
+
   deploy(...args: string[]): DeployRun {
     const result = spawnSync('bash', [DEPLOY_SCRIPT, ...args], {
       encoding: 'utf8',
-      env: this.scriptEnvironment(),
+      env: { ...this.shellVariables, ...this.scriptEnvironment() },
       timeout: 60_000,
     });
     return { exitCode: result.status, stdout: result.stdout, stderr: result.stderr };
@@ -245,9 +267,31 @@ export class FakeStagingHost {
     return composeCalls;
   }
 
+  interpolatedDigests(): InterpolatedDigests[] {
+    const file = join(this.state, 'compose-digests');
+    if (!existsSync(file)) {
+      return [];
+    }
+    const interpolations: InterpolatedDigests[] = [];
+    for (const line of readFileSync(file, 'utf8').split('\n')) {
+      if (line === '') {
+        continue;
+      }
+      const [subcommand = '', ...assignments] = line.split('\t');
+      const digests: Record<string, string> = {};
+      for (const assignment of assignments) {
+        const [variable = '', value = ''] = assignment.split('=');
+        digests[variable] = value;
+      }
+      interpolations.push({ subcommand, digests });
+    }
+    return interpolations;
+  }
+
   /** Oublie les appels déjà notés, par exemple ceux des déploiements qui préparent un test. */
   forgetCalls(): void {
     rmSync(join(this.state, 'calls'), { force: true });
+    rmSync(join(this.state, 'compose-digests'), { force: true });
   }
 
   dispose(): void {
