@@ -1,0 +1,19 @@
+# Middlewares communs de vps-edge (dynamic/middlewares.yml, commit 6e99b89), recopiés tels quels :
+# ils s'appliquent à toutes les routes HTTPS, celles de Trame comprises.
+http:
+  middlewares:
+    securite:
+      headers:
+        stsSeconds: 31536000
+        contentTypeNosniff: true
+        frameDeny: true
+        referrerPolicy: strict-origin-when-cross-origin
+        permissionsPolicy: 'camera=(), microphone=(), geolocation=()'
+
+    # gzip / brotli / zstd selon le client. Exclut le streaming (SSE) et les fichiers déjà compressés.
+    compression:
+      compress:
+        excludedContentTypes:
+          - text/event-stream
+          - application/vnd.android.package-archive
+          - application/zip
