@@ -101,12 +101,12 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
   }
 
   async function releaseToolVersions(): Promise<Record<string, string>> {
-    const oras = (await runCommand('oras', ['version'])).split('\n')[0] ?? '';
+    const oras = /Version:\s*(\S+)/.exec(await runCommand('oras', ['version']))?.[1] ?? '';
     const cosign = JSON.parse(await runCommand('cosign', ['version', '--json'])) as {
       gitVersion?: string;
       GitVersion?: string;
     };
-    return { oras: oras.trim(), cosign: cosign.gitVersion ?? cosign.GitVersion ?? '' };
+    return { oras, cosign: cosign.gitVersion ?? cosign.GitVersion ?? '' };
   }
 
   async function chooseVersions(): Promise<RehearsedVersions> {
