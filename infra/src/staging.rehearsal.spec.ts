@@ -7,7 +7,7 @@ import { type Browser, type BrowserContext, type Page, chromium } from 'playwrig
 import { COMPOSE_DIRECTORY } from './lib/deployed-stacks';
 import { resolveOnThisHost, trustAuthorityInBrowser } from './lib/rehearsal/browser-trust';
 import { type CommandRun, runCommand, runVisibleCommand } from './lib/rehearsal/command';
-import { ContainerEventWatch } from './lib/rehearsal/container-events';
+import { ContainerEventWatch, dockerDaemonTime } from './lib/rehearsal/container-events';
 import { MemorySampler } from './lib/rehearsal/container-watch';
 import {
   type ProbeTarget,
@@ -17,6 +17,7 @@ import {
   reachableFromOutside,
   removeOutsideNetwork,
 } from './lib/rehearsal/exposure';
+import { parseEdgeAccessLog } from './lib/rehearsal/edge-access-log';
 import { GitMainHistory } from './lib/rehearsal/git-main-history';
 import { KeycloakAdminApi } from './lib/rehearsal/keycloak-admin';
 import {
@@ -25,7 +26,7 @@ import {
   writeSecretFiles,
 } from './lib/rehearsal/platform-secrets';
 import { type RehearsalReport, writeRehearsalReport } from './lib/rehearsal/rehearsal-report';
-import type { RequestTally } from './lib/rehearsal/request-tally';
+import { RequestTally } from './lib/rehearsal/request-tally';
 import {
   type RehearsedVersions,
   chooseRehearsedVersions,
@@ -68,6 +69,15 @@ const ADMIN_TUNNEL_PORT = 18080;
 /** Commits de main parcourus pour le choix par défaut ; une version demandée n'a pas de limite. */
 const RECENT_MAIN_COMMITS = 60;
 
+/** La connexion et le diagnostic d'un utilisateur, dans un même onglet. */
+interface Journey {
+  page: Page;
+  /** Les réponses reçues par le navigateur. */
+  requests: RequestTally;
+  /** L'heure du démon Docker au début du parcours, pour relire le journal de Traefik. */
+  startedAt: string;
+}
+
 describe('répétition du staging (US-005 B2a, étape 4)', () => {
   const workDirectory = mkdtempSync(join(tmpdir(), 'trame-repetition-'));
   const root = join(workDirectory, 'trame');
@@ -94,7 +104,7 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
   let authority: TestAuthority;
   let adminTunnel: Server | undefined;
   let browser: Browser | undefined;
-  let journey: { page: Page; requests: RequestTally } | undefined;
+  let journey: Journey | undefined;
   let samplerStopped = false;
   let eventsStopped = false;
 
@@ -118,7 +128,6 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
   });
 
   afterAll(async () => {
-    report.publicRequests = journey?.requests.byHost() ?? {};
     await browser?.close().catch(() => undefined);
     adminTunnel?.close();
     await stopSampler();
@@ -205,11 +214,21 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
     }
   }
 
-  function requireJourney(): { page: Page; requests: RequestTally } {
+  function requireJourney(): Journey {
     if (journey === undefined) {
       throw new Error('La connexion depuis le front n’a pas abouti : parcours indisponible.');
     }
     return journey;
+  }
+
+  /** Les requêtes que Traefik a reçues depuis cet instant, d'après son journal d'accès. */
+  async function requestsSeenByEdgeSince(daemonTime: string): Promise<RequestTally> {
+    const accessLog = await edge('logs', '--no-color', '--no-log-prefix', '--since', daemonTime);
+    const tally = new RequestTally();
+    for (const request of parseEdgeAccessLog(accessLog)) {
+      tally.record(request);
+    }
+    return tally;
   }
 
   function reportDirectory(): string {
@@ -381,7 +400,7 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
     const context = await newBrowserContext();
     const page = await context.newPage();
 
-    const response = await page.goto(`${STAGING_URL}/health`);
+    const response = await page.goto(STAGING_URL);
 
     expect(response?.status()).toBe(200);
     // Le certificat ne couvre que les deux noms publics : la vérification TLS est restée active.
@@ -419,6 +438,7 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
       organizationId: ORGANIZATION_ID,
       realmRole: 'manager',
     });
+    const startedAt = await dockerDaemonTime();
     const context = await newBrowserContext();
     const requests = tallyRequests(context);
     const page = await context.newPage();
@@ -427,7 +447,7 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
       signInForTheFirstTime(page, STAGING_URL, account),
     );
 
-    journey = { page, requests };
+    journey = { page, requests, startedAt };
     report.steps.push({
       name: 'Première connexion depuis le front',
       outcome: 'TOTP enrôlé, mot de passe changé',
@@ -442,17 +462,18 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
     report.steps.push({ name: 'Diagnostic depuis le front', outcome: 'trois tâches affectées' });
   });
 
-  it('ne joint que les deux noms publics, sans requête refusée par la limite de débit', () => {
-    const { requests } = requireJourney();
+  it('ne joint que les deux noms publics, sans requête refusée par la limite de débit', async () => {
+    const { requests, startedAt } = requireJourney();
+    const publicHosts = [new URL(AUTH_URL).host, new URL(STAGING_URL).host];
 
-    expect(Object.keys(requests.byHost())).toEqual([
-      new URL(AUTH_URL).host,
-      new URL(STAGING_URL).host,
-    ]);
-    expect(requests.byHost()).toMatchObject({
-      [new URL(AUTH_URL).host]: { throttled: 0 },
-      [new URL(STAGING_URL).host]: { throttled: 0 },
-    });
+    // Ce que Traefik a reçu : le navigateur sert une partie des pages depuis son cache.
+    const edgeRequests = await requestsSeenByEdgeSince(startedAt);
+    report.publicRequests = edgeRequests.byHost();
+
+    expect(Object.keys(requests.byHost())).toEqual(publicHosts);
+    expect(requests.throttledRequests()).toBe(0);
+    expect(Object.keys(edgeRequests.byHost())).toEqual(publicHosts);
+    expect(edgeRequests.throttledRequests()).toBe(0);
   });
 
   it('ne tue ni ne redémarre aucun conteneur, et relève la mémoire de chacun', async () => {

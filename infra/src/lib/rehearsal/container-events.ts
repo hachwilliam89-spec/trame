@@ -9,6 +9,13 @@ const WATCHED_EVENTS = ['start', 'die', 'kill', 'oom', 'health_status'];
 const END_MARKER_LABEL = 'trame.repetition.fin';
 const END_MARKER_TIMEOUT_MILLISECONDS = 60_000;
 
+/** L'heure du démon Docker, à passer à `--since` : ses journaux et ses événements la suivent. */
+export async function dockerDaemonTime(): Promise<string> {
+  return JSON.parse(
+    await runCommand('docker', ['system', 'info', '--format', '{{json .SystemTime}}']),
+  ) as string;
+}
+
 /**
  * Le flux des événements Docker des stacks de Trame, du début à la fin du parcours. Un conteneur
  * remplacé par un déploiement emporte son compteur de redémarrages, mais pas les événements de
@@ -24,9 +31,7 @@ export class ContainerEventWatch {
 
   /** Commence à l'heure du démon Docker : aucun événement ne tombe entre deux horloges. */
   async start(): Promise<void> {
-    const daemonTime = JSON.parse(
-      await runCommand('docker', ['system', 'info', '--format', '{{json .SystemTime}}']),
-    ) as string;
+    const daemonTime = await dockerDaemonTime();
     // Pas de filtre d'étiquette : Docker exige alors toutes les étiquettes à la fois, et le flux
     // resterait vide. Le projet de chaque événement est vérifié ici.
     const filters = ['--filter', 'type=container'];

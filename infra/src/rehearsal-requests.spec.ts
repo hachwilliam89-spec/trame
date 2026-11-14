@@ -1,3 +1,4 @@
+import { parseEdgeAccessLog } from './lib/rehearsal/edge-access-log';
 import { RequestTally } from './lib/rehearsal/request-tally';
 
 /**
@@ -60,5 +61,32 @@ describe('mesure des requêtes d’un parcours', () => {
 
     expect(tally.byHost()[AUTH]).toEqual({ requests: 3, peakPerSecond: 3, throttled: 2 });
     expect(tally.throttledRequests()).toBe(2);
+  });
+});
+
+describe('requêtes vues par Traefik', () => {
+  it('lit l’hôte, le statut et l’instant de chaque ligne du journal d’accès', () => {
+    const log = [
+      '{"DownstreamStatus":200,"RequestHost":"auth.trame.wkhach.dev","StartUTC":"2026-11-14T17:03:21.250Z","level":"info","msg":"","time":"2026-11-14T17:03:21Z"}',
+      '{"DownstreamStatus":429,"RequestHost":"staging.trame.wkhach.dev","StartUTC":"2026-11-14T17:03:22.123456789Z","level":"info","msg":"","time":"2026-11-14T17:03:22Z"}',
+    ].join('\n');
+
+    expect(parseEdgeAccessLog(log)).toEqual([
+      { host: AUTH, status: 200, atMilliseconds: Date.parse('2026-11-14T17:03:21.250Z') },
+      { host: STAGING, status: 429, atMilliseconds: Date.parse('2026-11-14T17:03:22.123Z') },
+    ]);
+  });
+
+  it('écarte les autres lignes de Traefik : son propre journal, du texte, des lignes vides', () => {
+    const log = [
+      '{"level":"info","msg":"Configuration loaded from file: /etc/traefik/traefik.yml","time":"2026-11-14T17:00:00Z"}',
+      'Traefik version 3.7 built on 2026-10-01',
+      '',
+      '{"DownstreamStatus":404,"RequestHost":"auth.trame.wkhach.dev","StartUTC":"2026-11-14T17:03:21Z","level":"info"}',
+    ].join('\n');
+
+    expect(parseEdgeAccessLog(log)).toEqual([
+      { host: AUTH, status: 404, atMilliseconds: Date.parse('2026-11-14T17:03:21Z') },
+    ]);
   });
 });

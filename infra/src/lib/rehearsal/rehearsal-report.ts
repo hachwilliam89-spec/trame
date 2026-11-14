@@ -21,7 +21,10 @@ export interface RehearsalReport {
   /** Événements Docker des stacks de Trame lus pendant le parcours : zéro trahirait un flux vide. */
   observedContainerEvents: number;
   incidents: string[];
-  /** Requêtes de la connexion et du diagnostic, par hôte public : la mesure des limites de débit. */
+  /**
+   * Requêtes que Traefik a reçues pendant la connexion et le diagnostic, par hôte public : ce que
+   * compte sa limite de débit.
+   */
   publicRequests: Record<string, HostRequests>;
 }
 
@@ -59,7 +62,7 @@ function markdownOf(report: RehearsalReport): string {
   }
   lines.push(
     '',
-    '| Hôte (connexion et diagnostic) | Requêtes | Maximum par seconde | Refusées (429) |',
+    '| Reçues par Traefik (connexion et diagnostic) | Requêtes | Maximum par seconde | Refusées (429) |',
     '| --- | --- | --- | --- |',
   );
   for (const [host, requests] of Object.entries(report.publicRequests)) {

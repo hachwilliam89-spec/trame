@@ -1,0 +1,22 @@
+# ADR-0034 — Realm `master` de Keycloak à l'adresse du tunnel d'administration
+
+- **Statut** : Proposé (2026-11-14). Précise ADR-0016.
+- **Contexte** :
+  - Traefik ne route de Keycloak que `/realms/trame-staging/` et `/resources/` : ni `/admin/` ni `/realms/master/` ne sont publics (US-005 B2a, #47). La console d'administration s'ouvre par un tunnel SSH, à l'adresse `KC_HOSTNAME_ADMIN` (`http://127.0.0.1:18080`).
+  - La répétition du staging a ouvert cette console dans un navigateur (étape 4a-2). La console se charge bien par le tunnel, mais elle authentifie l'administrateur à l'adresse du realm `master`, qui est par défaut l'adresse publique (`KC_HOSTNAME`). Le navigateur y est renvoyé, le realm `master` y répond 404, et la console reste sur une erreur. Keycloak se comporte ainsi par conception quand `hostname` et `hostname-admin` diffèrent.
+- **Décision** :
+  - Le realm `master` reçoit pour adresse celle du tunnel (réglage « Frontend URL », attribut `frontendUrl`). Sa page de connexion, l'émetteur de ses jetons et la console n'existent alors que par le tunnel.
+  - Ce réglage est posé une fois par `infra/provisioning/keycloak-master-realm.sh`, après le premier démarrage de Keycloak, avec `kcadm` et le compte d'administration temporaire.
+  - Le realm de staging garde l'adresse publique : son émetteur ne change pas.
+- **Conséquences** :
+  - (+) Aucune route publique n'est ajoutée : le realm `master` reste injoignable depuis Internet.
+  - (+) Un navigateur le vérifie à chaque répétition du staging, console ouverte et connectée par le tunnel seul.
+  - (−) L'adresse du tunnel figure à deux endroits : `KEYCLOAK_ADMIN_URL` et l'attribut du realm. En changer demande de modifier le réglage dans la console avant de déplacer le tunnel, ou de rejouer le script.
+  - (−) Le script a besoin d'un compte que `kcadm` peut utiliser : il passe avant la suppression du compte temporaire.
+- **Alternatives écartées** :
+  - router `/realms/master/` publiquement : la page de connexion des administrateurs serait exposée à Internet ;
+  - adresse dynamique (`hostname-strict=false`) : l'émetteur dépendrait de l'hôte de chaque requête, et l'on perdrait la garantie d'un émetteur toujours égal à l'adresse publique ;
+  - administrer sans console, par `kcadm` seul : l'administrateur permanent doit enrôler son TOTP sur une page de connexion.
+- **Références** :
+  - [Keycloak, configuration du nom d'hôte](https://www.keycloak.org/server/hostname) : `hostname` et `hostname-admin` ;
+  - `infra/provisioning/README.md` ; `infra/src/staging.rehearsal.spec.ts`.

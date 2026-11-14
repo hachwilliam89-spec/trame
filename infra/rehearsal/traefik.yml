@@ -4,7 +4,8 @@
 #     Let's Encrypt : la répétition n'a ni DNS public ni port 80 joignable depuis Internet.
 #   - Traefik lit le socket Docker monté en lecture seule, sans le proxy de vps-edge, qui ne fait
 #     que restreindre cet accès.
-#   - Pas de journal d'accès : la CI n'a pas à garder les URL des requêtes.
+#   - Le journal d'accès ne garde que l'hôte, le statut et l'instant de chaque requête : de quoi
+#     mesurer ce que compte la limite de débit, sans URL ni en-tête dans les journaux de la CI.
 
 global:
   checkNewVersion: false
@@ -13,6 +14,17 @@ global:
 log:
   level: INFO
   format: json
+
+accessLog:
+  format: json
+  fields:
+    defaultMode: drop
+    names:
+      StartUTC: keep
+      RequestHost: keep
+      DownstreamStatus: keep
+    headers:
+      defaultMode: drop
 
 ping: {}
 
