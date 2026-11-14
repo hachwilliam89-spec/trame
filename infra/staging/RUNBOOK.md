@@ -211,7 +211,7 @@ Retour arrière : voir « Retirer le staging ».
 Tous doivent être remplis. Sinon, on retire le staging.
 
 1. **Surface.** `docker ps --format '{{.Names}}\t{{.Ports}}' | grep -F '->'` ne montre que Traefik. Sur le poste, `scripts/check-externe.sh` de `vps-edge` réussit toujours.
-2. **Compte de Kim (non répété dans la console).** Par le tunnel, realm `trame-staging`, Users, Add user : nom, adresse, attribut `organization_id` (un UUID, par exemple `python3 -c 'import uuid; print(uuid.uuid7())'`, à garder pour les données à venir). Credentials : mot de passe **temporaire**. Role mapping : `manager`. La répétition crée ce même compte par l'API d'administration.
+2. **Compte de Kim (non répété dans la console).** Par le tunnel, realm `trame-staging`, Users, Add user : nom, adresse, attribut `organization_id` (un UUID, par exemple `python3 -c 'import uuid; print(uuid.uuid4())'`, à garder pour les données à venir). Credentials : mot de passe **temporaire**. Role mapping : `manager`. La répétition crée ce même compte par l'API d'administration.
 3. **Connexion réelle.** Sur `https://staging.trame.wkhach.dev`, « Se connecter » : Keycloak impose l'enrôlement du TOTP et le changement du mot de passe, puis la page du diagnostic s'affiche.
 4. **Diagnostic.** « Tester le moteur » affiche « Les trois tâches ont été affectées. » : l'API, le relais, RabbitMQ, le worker et le moteur fonctionnent ensemble.
 5. **Mémoire**, au repos, KCD et Équilibre actifs : `free -m` donne au moins 2,5 Gio dans `available`, et le swap utilisé n'a pas grossi depuis l'étape 1. Sinon, retour arrière (critère de #47).
