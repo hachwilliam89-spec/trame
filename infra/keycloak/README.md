@@ -4,6 +4,13 @@ Le realm `trame` permet de tester la même vérification OIDC que l'API utiliser
 fournisseur configuré. Il est importé par `infra/compose/dev.yml`, avec une image
 Keycloak **26.8.2 figée par digest**.
 
+Depuis la 26.8.2, l'API d'administration de Keycloak n'accepte qu'un jeton émis pour elle : il
+doit porter le scope `kc-admin-api` et l'audience de cette API
+([notes de migration](https://www.keycloak.org/docs/26.8.2/upgrading/)). Les clients de
+l'application ne reçoivent pas ce scope : un jeton applicatif y est refusé en 401, quel que soit
+le rôle de l'utilisateur. Un futur client qui devrait appeler cette API aurait à le recevoir
+explicitement, et le test de politique des realms (`keycloak-realm.spec.ts`) à le dire.
+
 ## Démarrer et se connecter
 
 `pnpm nx run infra:up` démarre Keycloak avec PostgreSQL et RabbitMQ, attend leur état

@@ -21,6 +21,11 @@ import {
 
 const ORGANIZATION_ID = '019a4ac0-0000-7000-8000-000000000001';
 const OTHER_ORGANIZATION_ID = '019a4ac0-0000-7000-8000-000000000002';
+// Depuis Keycloak 26.8.2, l'API d'administration n'accepte qu'un jeton émis pour elle : scope
+// kc-admin-api et audience de cette API. Un jeton de l'application est refusé dès
+// l'authentification, avant tout contrôle de droits. Aucun client applicatif ne porte ce scope,
+// ce que vérifie keycloak-realm.spec.ts.
+const NOT_AN_ADMIN_API_TOKEN = 401;
 
 describe('Keycloak et API construite, avec de vrais jetons (US-020 A2)', () => {
   let options: ComposeOptions;
@@ -156,7 +161,7 @@ describe('Keycloak et API construite, avec de vrais jetons (US-020 A2)', () => {
     const response = await fetch(base + '/admin/realms/trame/users', {
       headers: { authorization: 'Bearer ' + accessToken('admin') },
     });
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(NOT_AN_ADMIN_API_TOKEN);
   });
 
   it('refuse que l’employé s’attribue un rôle du realm', async () => {
@@ -173,7 +178,7 @@ describe('Keycloak et API construite, avec de vrais jetons (US-020 A2)', () => {
         body: JSON.stringify([{ name: 'admin' }]),
       },
     );
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(NOT_AN_ADMIN_API_TOKEN);
   });
 
   it.each(['trame-dev', 'admin-cli'])(
