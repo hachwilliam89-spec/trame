@@ -33,8 +33,8 @@ export function tallyRequests(context: BrowserContext): RequestTally {
 }
 
 /**
- * Ouvre la console d'administration, s'y connecte, puis passe au realm demandé. Réussit quand la
- * console connectée lit ce realm par l'API d'administration.
+ * Ouvre la console d'administration sur les utilisateurs d'un realm, et s'y connecte. Réussit
+ * quand la console connectée lit ce realm par l'API d'administration.
  */
 export async function openAdminConsole(
   page: Page,
@@ -42,30 +42,32 @@ export async function openAdminConsole(
   credentials: { username: string; password: string },
   realm: string,
 ): Promise<void> {
-  const consoleUrl = `${adminUrl}/admin/master/console/`;
-  await page.goto(consoleUrl);
-  await page.locator('#username').fill(credentials.username);
-  await page.locator('#password').fill(credentials.password);
-  await answeredByAdminApi(page, '/admin/realms', () => page.locator('#kc-login').click());
-  await answeredByAdminApi(page, `/admin/realms/${realm}`, async () => {
-    await page.goto(`${consoleUrl}#/${realm}`);
+  const adminApiAnswers: string[] = [];
+  page.on('response', (response) => {
+    const path = new URL(response.url()).pathname;
+    if (path.startsWith('/admin/realms')) {
+      adminApiAnswers.push(`${String(response.status())} ${path}`);
+    }
   });
-}
-
-/** Attend que l'API d'administration réponde 200 sous ce chemin à une requête de la console. */
-async function answeredByAdminApi(
-  page: Page,
-  pathPrefix: string,
-  action: () => Promise<void>,
-): Promise<void> {
-  const answer = page.waitForResponse(
+  const realmRead = page.waitForResponse(
     (response) =>
-      response.status() === 200 && new URL(response.url()).pathname.startsWith(pathPrefix),
+      response.status() === 200 &&
+      new URL(response.url()).pathname.startsWith(`/admin/realms/${realm}`),
   );
-  // Si l'action échoue, c'est son erreur qui est rapportée, pas l'attente restée sans réponse.
-  answer.catch(() => undefined);
-  await action();
-  await answer;
+  // Si la connexion échoue, c'est son erreur qui est rapportée, pas cette attente sans réponse.
+  realmRead.catch(() => undefined);
+  try {
+    await page.goto(`${adminUrl}/admin/master/console/#/${realm}/users`);
+    await page.locator('#username').fill(credentials.username);
+    await page.locator('#password').fill(credentials.password);
+    await page.locator('#kc-login').click();
+    await realmRead;
+  } catch (error) {
+    const answers = adminApiAnswers.join(', ');
+    throw new Error(`${String(error)}\nRéponses de l’API d’administration : ${answers}`, {
+      cause: error,
+    });
+  }
 }
 
 /**
