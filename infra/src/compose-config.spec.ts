@@ -5,7 +5,7 @@ import {
   resolvedComposeConfig,
 } from './lib/compose';
 
-// Une image figée porte une version mineure au moins (PostgreSQL : 18.6, RabbitMQ : 4.3.7) et le
+// Une image figée porte une version mineure au moins (PostgreSQL : 18.7, RabbitMQ : 4.3.7) et le
 // digest de son index multi-architecture : le tag seul peut être republié, le digest non.
 const PINNED_IMAGE = /^[a-z0-9./-]+:\d+\.\d+(\.\d+)?[a-z0-9.-]*@sha256:[a-f0-9]{64}$/;
 

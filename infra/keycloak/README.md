@@ -2,7 +2,14 @@
 
 Le realm `trame` permet de tester la même vérification OIDC que l'API utilisera avec un
 fournisseur configuré. Il est importé par `infra/compose/dev.yml`, avec une image
-Keycloak **26.8.1 figée par digest**.
+Keycloak **26.8.2 figée par digest**.
+
+Depuis la 26.8.2, l'API d'administration de Keycloak n'accepte qu'un jeton émis pour elle : il
+doit porter le scope `kc-admin-api` et l'audience de cette API
+([notes de migration](https://www.keycloak.org/docs/26.8.2/upgrading/)). Les clients de
+l'application ne reçoivent pas ce scope : un jeton applicatif y est refusé en 401, quel que soit
+le rôle de l'utilisateur. Un futur client qui devrait appeler cette API aurait à le recevoir
+explicitement, et le test de politique des realms (`keycloak-realm.spec.ts`) à le dire.
 
 ## Démarrer et se connecter
 
@@ -64,7 +71,7 @@ d'import Keycloak l'exige.
 - `organization_id` est lisible et modifiable uniquement dans le contexte administratif
   du profil. Le mot `admin` dans ces permissions désigne ce contexte, pas le rôle
   applicatif portant le même nom.
-- Les attributs non déclarés sont désactivés. En **26.8.1**, cette politique vaut
+- Les attributs non déclarés sont désactivés. En **26.8.2**, cette politique vaut
   `null` : l'enum `DISABLED` montré dans la documentation courante fait échouer l'import.
 - Le champ standard `email` reste déclaré, sans être obligatoire pour ces comptes.
 - Une modification d'organisation par l'API du compte est refusée ; un jeton renouvelé
@@ -104,8 +111,8 @@ ni code d'autorisation n'est imprimé ou conservé comme artefact.
 - [Import au démarrage](https://www.keycloak.org/server/importExport).
 - [Healthchecks et absence de curl dans l'image](https://www.keycloak.org/observability/health).
 - [Scopes et mapper du sujet](https://www.keycloak.org/docs/latest/server_admin/index.html#_pairwise-sub-mapper).
-- [Politique des attributs en 26.8.1](https://github.com/keycloak/keycloak/blob/26.8.1/core/src/main/java/org/keycloak/representations/userprofile/config/UPConfig.java).
-- [Traitement des attributs en 26.8.1](https://github.com/keycloak/keycloak/blob/26.8.1/server-spi-private/src/main/java/org/keycloak/userprofile/DefaultAttributes.java).
+- [Politique des attributs en 26.8.2](https://github.com/keycloak/keycloak/blob/26.8.2/core/src/main/java/org/keycloak/representations/userprofile/config/UPConfig.java).
+- [Traitement des attributs en 26.8.2](https://github.com/keycloak/keycloak/blob/26.8.2/server-spi-private/src/main/java/org/keycloak/userprofile/DefaultAttributes.java).
 
 ## Realms déployés (US-005 B2)
 

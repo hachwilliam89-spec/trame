@@ -53,7 +53,7 @@ describe('realm de développement Keycloak (US-020 A2)', () => {
     const configuration = components?.['org.keycloak.userprofile.UserProfileProvider']?.[0]?.config;
     const profile = JSON.parse(configuration?.['kc.user.profile.config']?.[0] ?? '{}');
 
-    // Keycloak 26.8.1 représente la désactivation par null, pas par l’enum DISABLED.
+    // Keycloak 26.8.2 représente la désactivation par null, pas par l’enum DISABLED.
     expect(profile).toMatchObject({ unmanagedAttributePolicy: null });
     expect(profile.attributes).toContainEqual(
       expect.objectContaining({
@@ -61,5 +61,47 @@ describe('realm de développement Keycloak (US-020 A2)', () => {
         permissions: { view: ['admin'], edit: ['admin'] },
       }),
     );
+  });
+});
+
+/**
+ * Depuis Keycloak 26.8.2, l'API d'administration n'accepte qu'un jeton qui porte le scope
+ * kc-admin-api. Aucun client de l'application ne doit le recevoir : son jeton reste alors refusé
+ * par cette API, quel que soit le rôle applicatif de l'utilisateur, `admin` compris.
+ */
+const ADMIN_API_SCOPE = 'kc-admin-api';
+/** Client d'administration fourni par Keycloak, sans connexion par mot de passe dans nos realms. */
+const KEYCLOAK_ADMIN_CLIENT = 'admin-cli';
+
+interface ClientScopes {
+  clientId: string;
+  defaultClientScopes?: string[];
+  optionalClientScopes?: string[];
+}
+
+describe.each([
+  ['de développement', '../keycloak/trame-realm.json'],
+  ['du staging', '../keycloak/generated/trame-staging-realm.json'],
+])('clients applicatifs du realm %s', (_environment, realmFile) => {
+  let applicationClients: ClientScopes[];
+
+  beforeAll(async () => {
+    const realm = JSON.parse(await readFile(join(__dirname, realmFile), 'utf8')) as {
+      clients: ClientScopes[];
+    };
+    applicationClients = realm.clients.filter(
+      (client) => client.clientId !== KEYCLOAK_ADMIN_CLIENT,
+    );
+  });
+
+  it('ne reçoivent pas le scope de l’API d’administration, ni par défaut ni en option', () => {
+    expect(applicationClients.length).toBeGreaterThan(0);
+    for (const client of applicationClients) {
+      // Des listes explicites : absentes, Keycloak donnerait au client les scopes par défaut du realm.
+      expect(client.defaultClientScopes).toBeDefined();
+      expect(client.optionalClientScopes).toBeDefined();
+      expect(client.defaultClientScopes).not.toContain(ADMIN_API_SCOPE);
+      expect(client.optionalClientScopes).not.toContain(ADMIN_API_SCOPE);
+    }
   });
 });
