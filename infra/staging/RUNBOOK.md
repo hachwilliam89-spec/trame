@@ -18,7 +18,7 @@ Mise en service du staging sur le VPS, pas à pas : chaque commande, ce qu'elle 
 | Durcissement de l'hôte appliqué (US-013) | `scripts/check.sh` du dépôt `vps-edge`, puis `scripts/check-externe.sh` sur le poste | Les deux réussissent                                                                              |
 | Outils présents                          | `command -v docker git tar curl python3 openssl tmux`                                | Sept chemins. `tmux` absent : l'installer, ou accepter le risque d'une coupure SSH                |
 | Réseau de Traefik                        | `docker network inspect edge --format '{{.Name}}'`                                   | `edge`                                                                                            |
-| Seul Traefik publie des ports            | `docker ps --format '{{.Names}}\t{{.Ports}}' \| grep -F '->'`                        | Une seule ligne, celle de Traefik                                                                 |
+| Seul Traefik publie des ports            | `docker ps --format '{{.Names}}\t{{.Ports}}' \| grep -F -e '->'`                     | Une seule ligne, celle de Traefik                                                                 |
 | Tunnel SSH permis                        | `sshd -T \| grep -i allowtcpforwarding`                                              | `yes` ou `local`. Sinon, la console d'administration est injoignable : décider avant de continuer |
 | Mémoire avant                            | `free -m`                                                                            | Noter `available` et le swap utilisé : la référence de l'étape 10                                 |
 
@@ -210,7 +210,7 @@ Retour arrière : voir « Retirer le staging ».
 
 Tous doivent être remplis. Sinon, on retire le staging.
 
-1. **Surface.** `docker ps --format '{{.Names}}\t{{.Ports}}' | grep -F '->'` ne montre que Traefik. Sur le poste, `scripts/check-externe.sh` de `vps-edge` réussit toujours.
+1. **Surface.** `docker ps --format '{{.Names}}\t{{.Ports}}' | grep -F -e '->'` ne montre que Traefik. Sur le poste, `scripts/check-externe.sh` de `vps-edge` réussit toujours.
 2. **Compte de Kim (non répété dans la console).** Par le tunnel, realm `trame-staging`, Users, Add user : nom, adresse, attribut `organization_id` (un UUID, par exemple `python3 -c 'import uuid; print(uuid.uuid4())'`, à garder pour les données à venir). Credentials : mot de passe **temporaire**. Role mapping : `manager`. La répétition crée ce même compte par l'API d'administration.
 3. **Connexion réelle.** Sur `https://staging.trame.wkhach.dev`, « Se connecter » : Keycloak impose l'enrôlement du TOTP et le changement du mot de passe, puis la page du diagnostic s'affiche.
 4. **Diagnostic.** « Tester le moteur » affiche « Les trois tâches ont été affectées. » : l'API, le relais, RabbitMQ, le worker et le moteur fonctionnent ensemble.
