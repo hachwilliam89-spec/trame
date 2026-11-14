@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import type { MemoryPeak } from './memory-peaks';
+import type { HostRequests } from './request-tally';
 
 export interface RehearsedVersion {
   commit: string;
@@ -20,6 +21,8 @@ export interface RehearsalReport {
   /** Événements Docker des stacks de Trame lus pendant le parcours : zéro trahirait un flux vide. */
   observedContainerEvents: number;
   incidents: string[];
+  /** Requêtes de la connexion et du diagnostic, par hôte public : la mesure des limites de débit. */
+  publicRequests: Record<string, HostRequests>;
 }
 
 const MIB = 1024 * 1024;
@@ -52,6 +55,16 @@ function markdownOf(report: RehearsalReport): string {
   for (const [container, peak] of Object.entries(report.memoryPeaks)) {
     lines.push(
       `| ${container} | ${(peak.peakBytes / MIB).toFixed(0)} Mio | ${(peak.limitBytes / MIB).toFixed(0)} Mio |`,
+    );
+  }
+  lines.push(
+    '',
+    '| Hôte (connexion et diagnostic) | Requêtes | Maximum par seconde | Refusées (429) |',
+    '| --- | --- | --- | --- |',
+  );
+  for (const [host, requests] of Object.entries(report.publicRequests)) {
+    lines.push(
+      `| ${host} | ${String(requests.requests)} | ${String(requests.peakPerSecond)} | ${String(requests.throttled)} |`,
     );
   }
   const incidents = report.incidents.length === 0 ? ['aucun'] : report.incidents;
