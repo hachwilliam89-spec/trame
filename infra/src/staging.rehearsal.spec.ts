@@ -65,7 +65,7 @@ const AUTH_URL = 'https://auth.trame.wkhach.dev';
 const STAGING_REALM = 'trame-staging';
 /** Organisation du compte de la répétition : le diagnostic lui est rattaché par ce claim. */
 const ORGANIZATION_ID = '019a4ac0-0000-7000-8000-0000000000c4';
-const KEYCLOAK_IMAGE = 'trame-keycloak:26.8.1';
+const KEYCLOAK_IMAGE = 'trame-keycloak:26.8.2';
 const ADMIN_TUNNEL_PORT = 18080;
 /** Commits de main parcourus pour le choix par défaut ; une version demandée n'a pas de limite. */
 const RECENT_MAIN_COMMITS = 60;

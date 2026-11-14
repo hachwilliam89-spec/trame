@@ -53,7 +53,7 @@ describe('realm de développement Keycloak (US-020 A2)', () => {
     const configuration = components?.['org.keycloak.userprofile.UserProfileProvider']?.[0]?.config;
     const profile = JSON.parse(configuration?.['kc.user.profile.config']?.[0] ?? '{}');
 
-    // Keycloak 26.8.1 représente la désactivation par null, pas par l’enum DISABLED.
+    // Keycloak 26.8.2 représente la désactivation par null, pas par l’enum DISABLED.
     expect(profile).toMatchObject({ unmanagedAttributePolicy: null });
     expect(profile.attributes).toContainEqual(
       expect.objectContaining({
