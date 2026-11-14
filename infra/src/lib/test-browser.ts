@@ -6,7 +6,7 @@ export interface TestBrowserOptions {
 
 /**
  * Le navigateur d'un test. Sur un poste, Playwright le lance localement. En CI, `PLAYWRIGHT_SERVER`
- * désigne le serveur Playwright de l'image officielle, épinglée par digest (.github/workflows) : ses
+ * désigne le serveur Playwright de l'image officielle, épinglée par digest (.github/actions) : ses
  * navigateurs et leurs dépendances système y sont déjà installés, sans installation apt à chaque
  * passage. Il partage le réseau de l'hôte, et joint donc les mêmes adresses 127.0.0.1 que le test.
  */

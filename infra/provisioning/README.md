@@ -1,6 +1,6 @@
 # Provisionnement des environnements déployés
 
-Scripts lancés **une fois avant le premier déploiement** d'un environnement, puis à chaque changement de mot de passe (US-005 B2a, #47). Ils s'exécutent dans les conteneurs PostgreSQL et RabbitMQ de la stack `trame-shared`, sur l'entrée standard. Leurs paramètres et leurs secrets passent par l'environnement (`-e NOM`, sans valeur), jamais en argument : un argument apparaît dans `ps`.
+Scripts lancés **une fois avant le premier déploiement** d'un environnement, puis à chaque changement de mot de passe (US-005 B2a, #47). Ils s'exécutent dans les conteneurs PostgreSQL, RabbitMQ et Keycloak de la stack `trame-shared`, sur l'entrée standard. Leurs paramètres et leurs secrets passent par l'environnement (`-e NOM`, sans valeur), jamais en argument : un argument apparaît dans `ps`.
 
 | Script                     | Crée                                                                                                      | Variables                                                            |
 | -------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
@@ -8,6 +8,7 @@ Scripts lancés **une fois avant le premier déploiement** d'un environnement, p
 | `postgres-cluster.sql`     | ferme les bases système `postgres` et `template1` à tout rôle autre que le superutilisateur               | aucune                                                               |
 | `postgres-keycloak.sql`    | base `keycloak` et rôle `keycloak`, partagés par les realms de staging et de production                   | `TRAME_KEYCLOAK_DATABASE_PASSWORD`                                   |
 | `rabbitmq-environment.sh`  | vhost `trame-<env>`, utilisateurs `trame_<env>_relay` et `trame_<env>_worker`                             | `TRAME_ENVIRONMENT`, `TRAME_RELAY_PASSWORD`, `TRAME_WORKER_PASSWORD` |
+| `keycloak-master-realm.sh` | donne au realm `master` l'adresse du tunnel d'administration, après le premier démarrage de Keycloak      | aucune : il lit l'environnement du conteneur                         |
 
 `<env>` vaut `staging` ou `production`. L'invocation exacte figure en tête de chaque script ; le runbook (étape 4) donne l'ordre complet, avec la provenance des secrets.
 
@@ -24,8 +25,9 @@ Scripts lancés **une fois avant le premier déploiement** d'un environnement, p
 - **Journal du serveur sans secret.** Avant toute requête qui contient un mot de passe, la session coupe chaque mode qui journalise le texte d'une requête : toutes les requêtes, celles qui durent, un échantillon de requêtes ou de transactions, celles en erreur, et les options de débogage qui journalisent l'arbre d'une requête. Elle le fait quel que soit le réglage du serveur. Un scénario le vérifie sur un serveur qui journalise tout.
 - **Échecs de `rabbitmqctl` jamais masqués.** Chaque liste est capturée seule avant d'être filtrée. Dans un tube, l'échec de `rabbitmqctl` serait masqué par la commande suivante, et le script pourrait réussir en gardant un droit sur un autre vhost.
 - **Mots de passe RabbitMQ sur l'entrée standard.** `rabbitmqctl add_user` et `change_password` ne la lisent que s'ils reçoivent exactement deux arguments : ces deux commandes s'appellent donc sans aucune option.
+- **Realm master à l'adresse du tunnel** (ADR-0034). La console d'administration s'ouvre par le tunnel SSH, mais elle authentifie son utilisateur à l'adresse du realm `master` : par défaut l'adresse publique, où Traefik ne route pas ce realm. Le script lui donne l'adresse du tunnel (`KC_HOSTNAME_ADMIN`), avec `kcadm` et le compte d'administration temporaire du conteneur. Il se lance donc avant la suppression de ce compte.
 - **Mêmes permissions pour le relay et le worker** : `^trame\.diagnostic\.` en configuration, écriture et lecture, sans rôle de gestion. Chacun déclare toute la topologie de diagnostic, et RabbitMQ exige le droit de lecture sur une file créée avec une file de rebut. Comme le premier démarré crée les files, une lecture restreinte par rôle ferait échouer le démarrage selon l'ordre.
 
 ## Tests
 
-`pnpm nx run infra:integration` joue les scénarios de #47 sur de vrais serveurs, aux images figées de `dev.yml`, en lançant les scripts comme sur le VPS (`postgres-provisioning.integration.spec.ts`, `rabbitmq-provisioning.integration.spec.ts`).
+`pnpm nx run infra:integration` joue les scénarios de #47 sur de vrais serveurs, aux images figées de `dev.yml`, en lançant les scripts comme sur le VPS (`postgres-provisioning.integration.spec.ts`, `rabbitmq-provisioning.integration.spec.ts`). `keycloak-master-realm.sh` est joué par la répétition du staging, où un navigateur ouvre la console par le tunnel (`staging.rehearsal.spec.ts`).

@@ -1,10 +1,13 @@
+import { randomBytes } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import type { Server } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { type Browser, type BrowserContext, type Page, chromium } from 'playwright';
 import { COMPOSE_DIRECTORY } from './lib/deployed-stacks';
+import { resolveOnThisHost, trustAuthorityInBrowser } from './lib/rehearsal/browser-trust';
 import { type CommandRun, runCommand, runVisibleCommand } from './lib/rehearsal/command';
-import { ContainerEventWatch } from './lib/rehearsal/container-events';
+import { ContainerEventWatch, dockerDaemonTime } from './lib/rehearsal/container-events';
 import { MemorySampler } from './lib/rehearsal/container-watch';
 import {
   type ProbeTarget,
@@ -14,23 +17,42 @@ import {
   reachableFromOutside,
   removeOutsideNetwork,
 } from './lib/rehearsal/exposure';
+import { parseEdgeAccessLog } from './lib/rehearsal/edge-access-log';
 import { GitMainHistory } from './lib/rehearsal/git-main-history';
-import { generatePlatformSecrets, writeSecretFiles } from './lib/rehearsal/platform-secrets';
+import { KeycloakAdminApi } from './lib/rehearsal/keycloak-admin';
+import {
+  KEYCLOAK_TEMPORARY_ADMIN,
+  generatePlatformSecrets,
+  writeSecretFiles,
+} from './lib/rehearsal/platform-secrets';
 import { type RehearsalReport, writeRehearsalReport } from './lib/rehearsal/rehearsal-report';
+import { RequestTally } from './lib/rehearsal/request-tally';
 import {
   type RehearsedVersions,
   chooseRehearsedVersions,
 } from './lib/rehearsal/rehearsed-versions';
 import { KEYCLOAK_ADMIN_URL, SharedStack } from './lib/rehearsal/shared-stack';
+import {
+  type AccountCredentials,
+  type RequiredAction,
+  describePage,
+  openAdminConsole,
+  runDiagnostic,
+  signInForTheFirstTime,
+  tallyRequests,
+} from './lib/rehearsal/staging-journey';
 import { type TestAuthority, createTestAuthority } from './lib/rehearsal/test-authority';
+import { launchTestBrowser } from './lib/test-browser';
 
 /**
  * Répétition du staging (US-005 B2a, étape 4, #47) : `deploy.sh` joué tel quel, avec les vraies
  * versions publiées et signées, la stack partagée provisionnée comme le runbook, et le Traefik de
  * vps-edge. Seuls le DNS public et Let's Encrypt manquent : /etc/hosts du runner et une autorité
- * de test les remplacent, sans désactiver la vérification TLS.
+ * de test les remplacent, sans désactiver la vérification TLS. Un navigateur joue ensuite les
+ * parcours réels : console d'administration par le tunnel, première connexion et diagnostic.
  *
  * Versions : TRAME_REHEARSAL_VERSION et TRAME_REHEARSAL_PREVIOUS, ou les deux dernières publiées.
+ * Navigateur : TRAME_REHEARSAL_BROWSER_TRUST, la base de certificats que lit Chromium.
  * Preuve : repetition.json et repetition.md dans TRAME_REHEARSAL_REPORT.
  */
 const REPOSITORY_URL = 'https://github.com/hachwilliam89-spec/trame.git';
@@ -38,11 +60,24 @@ const RELEASE_REPOSITORY = 'ghcr.io/hachwilliam89-spec/trame-release';
 const DEPLOY_SCRIPT = join(__dirname, '../staging/deploy.sh');
 const EDGE_FILE = join(COMPOSE_DIRECTORY, 'rehearsal-edge.yml');
 const PUBLIC_NAMES = ['staging.trame.wkhach.dev', 'auth.trame.wkhach.dev'];
+const STAGING_URL = 'https://staging.trame.wkhach.dev';
 const AUTH_URL = 'https://auth.trame.wkhach.dev';
+const STAGING_REALM = 'trame-staging';
+/** Organisation du compte de la répétition : le diagnostic lui est rattaché par ce claim. */
+const ORGANIZATION_ID = '019a4ac0-0000-7000-8000-0000000000c4';
 const KEYCLOAK_IMAGE = 'trame-keycloak:26.8.1';
 const ADMIN_TUNNEL_PORT = 18080;
 /** Commits de main parcourus pour le choix par défaut ; une version demandée n'a pas de limite. */
 const RECENT_MAIN_COMMITS = 60;
+
+/** La connexion et le diagnostic d'un utilisateur, dans un même onglet. */
+interface Journey {
+  page: Page;
+  /** Les réponses reçues par le navigateur. */
+  requests: RequestTally;
+  /** L'heure du démon Docker au début du parcours, pour relire le journal de Traefik. */
+  startedAt: string;
+}
 
 describe('répétition du staging (US-005 B2a, étape 4)', () => {
   const workDirectory = mkdtempSync(join(tmpdir(), 'trame-repetition-'));
@@ -59,10 +94,18 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
     failedMemorySamples: 0,
     observedContainerEvents: 0,
     incidents: [],
+    publicRequests: {},
+  };
+  const account: AccountCredentials = {
+    username: 'repetition-manager',
+    temporaryPassword: randomBytes(18).toString('base64url'),
+    newPassword: randomBytes(18).toString('base64url'),
   };
   let versions: RehearsedVersions;
   let authority: TestAuthority;
   let adminTunnel: Server | undefined;
+  let browser: Browser | undefined;
+  let journey: Journey | undefined;
   let samplerStopped = false;
   let eventsStopped = false;
 
@@ -76,6 +119,7 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
     report.previous = { commit: versions.previous, digests: '' };
 
     authority = await createTestAuthority(join(workDirectory, 'autorite'), PUBLIC_NAMES);
+    await trustAuthorityInBrowser(browserTrustDirectory(), authority.certificatePath);
     await writeSecretFiles(root, secrets);
     await runCommand('docker', ['network', 'create', 'edge']);
     await containerEvents.start();
@@ -85,6 +129,7 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
   });
 
   afterAll(async () => {
+    await browser?.close().catch(() => undefined);
     adminTunnel?.close();
     await stopSampler();
     await stopContainerEvents().catch((error: unknown) => {
@@ -135,6 +180,56 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
 
   function nonEmpty(value: string | undefined): string | undefined {
     return value === undefined || value.trim() === '' ? undefined : value.trim();
+  }
+
+  function browserTrustDirectory(): string {
+    const directory = nonEmpty(process.env['TRAME_REHEARSAL_BROWSER_TRUST']);
+    if (directory === undefined) {
+      throw new Error(
+        'TRAME_REHEARSAL_BROWSER_TRUST doit désigner la base de certificats du navigateur (rehearsal.yml).',
+      );
+    }
+    return directory;
+  }
+
+  /** Chromium, qui joint les noms publics sur cette machine et reconnaît l'autorité de test. */
+  async function newBrowserContext(): Promise<BrowserContext> {
+    browser ??= await launchTestBrowser(chromium, { args: [resolveOnThisHost(PUBLIC_NAMES)] });
+    return browser.newContext();
+  }
+
+  /** Ajoute à l'échec d'un parcours la page où il s'est arrêté et les hôtes qu'il a joints. */
+  async function reportingWhereItStopped(
+    page: Page,
+    requests: RequestTally,
+    journeyStep: () => Promise<void>,
+  ): Promise<void> {
+    try {
+      await journeyStep();
+    } catch (error) {
+      const hosts = Object.keys(requests.byHost()).join(', ');
+      throw new Error(
+        `${String(error)}\nPage : ${await describePage(page)}\nHôtes joints : ${hosts}`,
+        { cause: error },
+      );
+    }
+  }
+
+  function requireJourney(): Journey {
+    if (journey === undefined) {
+      throw new Error('La connexion depuis le front n’a pas abouti : parcours indisponible.');
+    }
+    return journey;
+  }
+
+  /** Les requêtes que Traefik a reçues depuis cet instant, d'après son journal d'accès. */
+  async function requestsSeenByEdgeSince(daemonTime: string): Promise<RequestTally> {
+    const accessLog = await edge('logs', '--no-color', '--no-log-prefix', '--since', daemonTime);
+    const tally = new RequestTally();
+    for (const request of parseEdgeAccessLog(accessLog)) {
+      tally.record(request);
+    }
+    return tally;
   }
 
   function reportDirectory(): string {
@@ -300,6 +395,99 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
     expect(
       await publicStatus(`${AUTH_URL}/realms/trame-staging/.well-known/openid-configuration`),
     ).toBe('200');
+  });
+
+  it('reconnaît l’autorité de test dans le navigateur, et y refuse un certificat d’un autre nom', async () => {
+    const context = await newBrowserContext();
+    const page = await context.newPage();
+
+    const response = await page.goto(STAGING_URL);
+
+    expect(response?.status()).toBe(200);
+    // Le certificat ne couvre que les deux noms publics : la vérification TLS est restée active.
+    await expect(page.goto('https://127.0.0.1/health')).rejects.toThrow(
+      'ERR_CERT_COMMON_NAME_INVALID',
+    );
+    await context.close();
+  });
+
+  it('ouvre la console d’administration dans un navigateur, par le seul tunnel', async () => {
+    const context = await newBrowserContext();
+    const requests = tallyRequests(context);
+    const page = await context.newPage();
+    const administrator = { username: KEYCLOAK_TEMPORARY_ADMIN, password: secrets.keycloakAdmin };
+
+    await reportingWhereItStopped(page, requests, () =>
+      openAdminConsole(page, KEYCLOAK_ADMIN_URL, administrator, STAGING_REALM),
+    );
+
+    // Rien ne passe par l'adresse publique, où ni /admin/ ni le realm master ne sont routés.
+    expect(Object.keys(requests.byHost())).toEqual([new URL(KEYCLOAK_ADMIN_URL).host]);
+    report.steps.push({ name: 'Console d’administration par le tunnel', outcome: 'ouverte' });
+    await context.close();
+  });
+
+  it('connecte depuis le front un compte créé par l’administration : TOTP imposé, mot de passe à changer', async () => {
+    const administration = new KeycloakAdminApi(KEYCLOAK_ADMIN_URL, {
+      username: KEYCLOAK_TEMPORARY_ADMIN,
+      password: secrets.keycloakAdmin,
+    });
+    await administration.createAccount(STAGING_REALM, {
+      username: account.username,
+      email: 'repetition-manager@example.invalid',
+      temporaryPassword: account.temporaryPassword,
+      organizationId: ORGANIZATION_ID,
+      realmRole: 'manager',
+    });
+    const startedAt = await dockerDaemonTime();
+    const context = await newBrowserContext();
+    const requests = tallyRequests(context);
+    const page = await context.newPage();
+
+    let actionsDone: RequiredAction[] = [];
+    await reportingWhereItStopped(page, requests, async () => {
+      actionsDone = await signInForTheFirstTime(page, STAGING_URL, account);
+    });
+
+    // Keycloak a imposé les deux, dans l'ordre de son choix, avant de rendre la main au front.
+    expect([...actionsDone].sort()).toEqual(['password-update', 'totp-enrolment']);
+    journey = { page, requests, startedAt };
+    report.steps.push({
+      name: 'Première connexion depuis le front',
+      outcome: 'TOTP enrôlé, mot de passe changé',
+    });
+  });
+
+  it('mène un diagnostic à son terme depuis le front, par le relais et le worker', async () => {
+    const { page, requests } = requireJourney();
+
+    await reportingWhereItStopped(page, requests, () => runDiagnostic(page));
+
+    report.steps.push({ name: 'Diagnostic depuis le front', outcome: 'trois tâches affectées' });
+  });
+
+  it('ne joint que les deux noms publics, sans requête refusée par la limite de débit', async () => {
+    const { requests, startedAt } = requireJourney();
+    const publicHosts = [new URL(AUTH_URL).host, new URL(STAGING_URL).host];
+
+    // Ce que Traefik a reçu : le navigateur sert une partie des pages depuis son cache.
+    const edgeRequests = await requestsSeenByEdgeSince(startedAt);
+    report.publicRequests = edgeRequests.byHost();
+
+    expect(Object.keys(requests.byHost())).toEqual(publicHosts);
+    expect(requests.throttledRequests()).toBe(0);
+    expect(Object.keys(edgeRequests.byHost())).toEqual(publicHosts);
+    expect(edgeRequests.throttledRequests()).toBe(0);
+  });
+
+  it('rejoue sans erreur le réglage du realm master, dont l’émetteur reste l’adresse du tunnel', async () => {
+    await sharedStack.provisionMasterRealm();
+
+    const discovery = await fetch(
+      `${KEYCLOAK_ADMIN_URL}/realms/master/.well-known/openid-configuration`,
+    );
+    const configuration = (await discovery.json()) as { issuer: string };
+    expect(configuration.issuer).toBe(`${KEYCLOAK_ADMIN_URL}/realms/master`);
   });
 
   it('ne tue ni ne redémarre aucun conteneur, et relève la mémoire de chacun', async () => {

@@ -6,9 +6,13 @@ description: >-
   connectent par PLAYWRIGHT_SERVER (infra/src/lib/test-browser.ts).
 
 inputs:
-  image:
-    description: Image officielle de Playwright, à la version de package.json, épinglée par digest.
-    required: true
+  certificate-database:
+    description: >-
+      Dossier d'une base de certificats NSS, que Chromium lit à chaque lancement. Un test y ajoute
+      une autorité de test (infra/src/lib/rehearsal/browser-trust.ts) pour que Chromium la
+      reconnaisse, sans désactiver la vérification TLS. Vide : aucune base montée.
+    required: false
+    default: ''
 
 runs:
   using: composite
@@ -16,12 +20,21 @@ runs:
     - name: Démarrer le serveur Playwright
       shell: bash
       env:
-        PLAYWRIGHT_IMAGE: ${{ inputs.image }}
+        # Image officielle de Playwright, à la version de package.json, épinglée par digest : la
+        # seule du dépôt, vérifiée par infra/src/ci-playwright-image.spec.ts.
+        PLAYWRIGHT_IMAGE: mcr.microsoft.com/playwright:v1.64.1-noble@sha256:2f05f8a734509a7b3f26a912639488ee08f58a7b292d14d62271bcff9038768f
+        CERTIFICATE_DATABASE: ${{ inputs.certificate-database }}
       # Le paquet playwright du dépôt (lockfile) pilote les navigateurs de l'image, de même version.
       # Le dépôt est monté au même chemin, pour que les liens de pnpm restent valides.
       run: |
-        docker run --detach --name playwright-server --init --network host \
-          --volume "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE:ro" \
+        mounts=(--volume "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE:ro")
+        if [ -n "$CERTIFICATE_DATABASE" ]; then
+          # Créé ici : absent, Docker le créerait pour root, et le test ne pourrait pas y écrire.
+          mkdir -p "$CERTIFICATE_DATABASE"
+          # Chromium cherche sa base sous $HOME/.pki/nssdb ; le serveur tourne en root.
+          mounts+=(--env HOME=/root --volume "$CERTIFICATE_DATABASE:/root/.pki/nssdb")
+        fi
+        docker run --detach --name playwright-server --init --network host "${mounts[@]}" \
           "$PLAYWRIGHT_IMAGE" \
           node "$GITHUB_WORKSPACE/node_modules/playwright/cli.js" run-server --host 127.0.0.1 --port 3333
         for attempt in $(seq 1 60); do

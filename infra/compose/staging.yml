@@ -131,7 +131,9 @@ services:
       - traefik.http.routers.trame-staging-web.rule=Host(`staging.trame.wkhach.dev`)
       - traefik.http.routers.trame-staging-web.entrypoints=websecure
       - traefik.http.routers.trame-staging-web.middlewares=trame-staging-ratelimit
-      # Valeurs techniques de départ, à ajuster après la mesure de l'étape 4.
+      # Mesuré par la répétition (étape 4) : la connexion et un diagnostic envoient 14 requêtes
+      # au front, sous la rafale de 50 même envoyées d'un coup. À revoir pour la production, où les
+      # utilisateurs d'un même site partagent une adresse.
       - traefik.http.middlewares.trame-staging-ratelimit.ratelimit.average=20
       - traefik.http.middlewares.trame-staging-ratelimit.ratelimit.burst=50
       - traefik.http.services.trame-staging-web.loadbalancer.server.port=8080

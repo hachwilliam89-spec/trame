@@ -36,6 +36,12 @@ export class SharedStack {
     await this.startHealthy('postgres', 'rabbitmq');
     await this.provision(secrets);
     await this.startHealthy('keycloak');
+    await this.provisionMasterRealm();
+  }
+
+  /** Le realm master prend l'adresse du tunnel : sans cela, la console ne peut pas s'y connecter. */
+  provisionMasterRealm(): Promise<void> {
+    return this.runProvisioning('keycloak', ['bash', '-s'], 'keycloak-master-realm.sh', {});
   }
 
   async containerOf(service: string): Promise<string> {

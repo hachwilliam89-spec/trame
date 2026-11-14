@@ -4,9 +4,12 @@ import { IncidentDetector, parseContainerEvent } from './lib/rehearsal/container
  * Incidents des conteneurs pendant la répétition (US-005 B2a, étape 4), lus dans le flux des
  * événements Docker du début à la fin du parcours : un conteneur remplacé emporte son compteur de
  * redémarrages, pas l'événement de son arrêt. Les séquences reprennent celles observées sur
- * Docker 29 : un arrêt demandé (recréation, stop, down) émet `kill` avant `die`, un arrêt spontané
- * émet `die` seul, puis `start` si Docker le relance.
+ * Docker 29 : un arrêt demandé (recréation, stop, down) émet `kill` avant `die`, avec le signal
+ * d'arrêt du conteneur ; un arrêt spontané émet `die` seul, puis `start` si Docker le relance.
  */
+const SIGHUP = '1';
+const SIGTERM = '15';
+
 interface EventFields {
   action: string;
   id: string;
@@ -14,6 +17,8 @@ interface EventFields {
   service: string;
   oneOff?: boolean;
   exitCode?: string;
+  /** Numéro du signal d'un événement `kill`. */
+  signal?: string;
 }
 
 function eventLine(fields: EventFields): string {
@@ -25,6 +30,9 @@ function eventLine(fields: EventFields): string {
   };
   if (fields.exitCode !== undefined) {
     attributes['exitCode'] = fields.exitCode;
+  }
+  if (fields.signal !== undefined) {
+    attributes['signal'] = fields.signal;
   }
   return JSON.stringify({
     Type: 'container',
@@ -48,7 +56,7 @@ describe('incidents des conteneurs pendant la répétition', () => {
   it('ne compte pas un remplacement demandé', () => {
     const detector = detectorAfter(
       eventLine({ action: 'start', ...OLD_API }),
-      eventLine({ action: 'kill', ...OLD_API }),
+      eventLine({ action: 'kill', ...OLD_API, signal: SIGTERM }),
       eventLine({ action: 'die', ...OLD_API, exitCode: '143' }),
       eventLine({ action: 'start', ...NEW_API }),
     );
@@ -61,7 +69,7 @@ describe('incidents des conteneurs pendant la répétition', () => {
       eventLine({ action: 'start', ...OLD_API }),
       eventLine({ action: 'die', ...OLD_API, exitCode: '1' }),
       eventLine({ action: 'start', ...OLD_API }),
-      eventLine({ action: 'kill', ...OLD_API }),
+      eventLine({ action: 'kill', ...OLD_API, signal: SIGTERM }),
       eventLine({ action: 'die', ...OLD_API, exitCode: '143' }),
       eventLine({ action: 'start', ...NEW_API }),
     );
@@ -99,9 +107,42 @@ describe('incidents des conteneurs pendant la répétition', () => {
 
   it('compte un arrêt spontané après une relance, même si un arrêt avait été demandé avant', () => {
     const detector = detectorAfter(
-      eventLine({ action: 'kill', ...OLD_API }),
+      eventLine({ action: 'kill', ...OLD_API, signal: SIGTERM }),
       eventLine({ action: 'die', ...OLD_API, exitCode: '143' }),
       eventLine({ action: 'start', ...OLD_API }),
+      eventLine({ action: 'die', ...OLD_API, exitCode: '1' }),
+    );
+
+    expect(detector.incidents()).toEqual(['trame-staging-api-1 : arrêt non demandé (code 1)']);
+  });
+
+  it.each([
+    ['SIGINT', '2'],
+    ['SIGQUIT, le signal d’arrêt de nginx', '3'],
+    ['SIGKILL', '9'],
+    ['SIGTERM', '15'],
+  ])('reconnaît un arrêt demandé par %s', (_name, signal) => {
+    const detector = detectorAfter(
+      eventLine({ action: 'kill', ...OLD_API, signal }),
+      eventLine({ action: 'die', ...OLD_API, exitCode: '0' }),
+    );
+
+    expect(detector.incidents()).toEqual([]);
+  });
+
+  it('garde un plantage qui suit un signal de rechargement, qui ne demande pas l’arrêt', () => {
+    const detector = detectorAfter(
+      eventLine({ action: 'start', ...OLD_API }),
+      eventLine({ action: 'kill', ...OLD_API, signal: SIGHUP }),
+      eventLine({ action: 'die', ...OLD_API, exitCode: '1' }),
+    );
+
+    expect(detector.incidents()).toEqual(['trame-staging-api-1 : arrêt non demandé (code 1)']);
+  });
+
+  it('garde un arrêt qui suit un signal non précisé', () => {
+    const detector = detectorAfter(
+      eventLine({ action: 'kill', ...OLD_API }),
       eventLine({ action: 'die', ...OLD_API, exitCode: '1' }),
     );
 

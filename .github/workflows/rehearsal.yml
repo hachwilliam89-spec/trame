@@ -54,11 +54,18 @@ jobs:
       - name: Diriger les noms publics du staging vers ce runner
         run: echo '127.0.0.1 staging.trame.wkhach.dev auth.trame.wkhach.dev' | sudo tee -a /etc/hosts
 
+      # Chromium des parcours réels : console d'administration, connexion et diagnostic. La répétition
+      # ajoute son autorité de test à cette base de certificats, que Chromium lit à son lancement.
+      - uses: $/.github/actions/playwright-server
+        with:
+          certificate-database: ${{ runner.temp }}/navigateur-nssdb
+
       - name: Répéter le déploiement
         env:
           TRAME_REHEARSAL_VERSION: ${{ inputs.version }}
           TRAME_REHEARSAL_PREVIOUS: ${{ inputs.previous }}
           TRAME_REHEARSAL_REPORT: ${{ runner.temp }}/repetition
+          TRAME_REHEARSAL_BROWSER_TRUST: ${{ runner.temp }}/navigateur-nssdb
         run: pnpm nx run infra:rehearsal
 
       - name: Résumer la répétition
