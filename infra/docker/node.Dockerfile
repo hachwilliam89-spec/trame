@@ -57,9 +57,13 @@ COPY --from=builder /workspace/dist/migrator/package.json /workspace/dist/migrat
 RUN pnpm install --prod --frozen-lockfile
 
 FROM toolchain AS migrator
-# La migration ne lance que la CLI Prisma avec node : npm et corepack ne lui servent pas.
+# La migration ne lance que la CLI Prisma avec node : npm et corepack ne lui servent pas. La
+# bibliothèque cliente C de PostgreSQL de l'image de base non plus, Prisma ayant son propre client :
+# elle est retirée, avec ses failles hautes que cette base (digest inchangé au 2026-11-14) n'a pas
+# encore corrigées. dpkg échoue si un autre paquet en dépend.
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
-      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+  && dpkg --purge libpq-dev libpq5
 COPY --from=migration-dependencies /runtime/node_modules ./node_modules
 COPY libs/api/shared/database/prisma ./prisma
 COPY infra/docker/prisma.config.ts ./prisma.config.ts
