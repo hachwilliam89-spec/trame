@@ -10,7 +10,7 @@ Scripts lancés **une fois avant le premier déploiement** d'un environnement, p
 | `rabbitmq-environment.sh`  | vhost `trame-<env>`, utilisateurs `trame_<env>_relay` et `trame_<env>_worker`                             | `TRAME_ENVIRONMENT`, `TRAME_RELAY_PASSWORD`, `TRAME_WORKER_PASSWORD` |
 | `keycloak-master-realm.sh` | donne au realm `master` l'adresse du tunnel d'administration, après le premier démarrage de Keycloak      | aucune : il lit l'environnement du conteneur                         |
 
-`<env>` vaut `staging` ou `production`. L'invocation exacte figure en tête de chaque script ; le runbook (étape 4) donne l'ordre complet, avec la provenance des secrets.
+`<env>` vaut `staging` ou `production`. L'invocation exacte figure en tête de chaque script ; [le runbook du staging](../staging/RUNBOOK.md) donne l'ordre complet, avec la génération des secrets.
 
 ## Comportement
 

@@ -13,7 +13,7 @@ Il suppose la stack `trame-shared` démarrée et provisionnée (`infra/compose/s
 sudo /opt/trame/source/infra/staging/install-release-tools.sh    # dans /usr/local/bin
 ```
 
-Le runbook de l'étape 4 donne l'installation et l'ordre complet.
+[RUNBOOK.md](RUNBOOK.md) donne l'ordre complet de la mise en service, commande par commande.
 
 ## Fichiers sur le VPS
 
@@ -67,7 +67,7 @@ Tous ces fichiers ne sont lisibles que par root.
     run --rm --no-deps migrator migrate status
   ```
 
-  Une migration marquée en échec se résout par `migrate resolve` (Prisma), ou par la restauration de la sauvegarde si des données ont été touchées. Le runbook de l'étape 4 détaille les deux.
+  Une migration marquée en échec se résout par `migrate resolve` (Prisma), ou par la restauration de la sauvegarde si des données ont été touchées. [Le runbook](RUNBOOK.md#migration-en-échec) donne la commande de restauration.
 
 ## Bascule interrompue
 
@@ -123,4 +123,4 @@ Après un code 4 : `docker compose --project-name trame-staging ps --all` et `lo
 
 ## Tests
 
-`pnpm nx test infra` joue chaque scénario dans `infra/src/staging-deploy.spec.ts`, avec un vrai git et le vrai vérificateur, mais de faux `docker`, `oras`, `cosign`, `curl` et `sleep` (`infra/src/fixtures/staging-host`). Le temps des contrôles externes y est simulé : faux `curl` et faux `sleep` avancent une horloge que le faux `python3` donne au script, sans attendre. Le faux `docker` interpole les digests comme Docker Compose, où une variable du shell l'emporte sur `--env-file`. Le comportement réel de Docker Compose sur lequel reposent les étapes 7 et 8 (migration à part, `--no-deps`, redémarrage du front) a été vérifié à la main sur Docker 29 et Compose 5.6 ; la répétition de l'étape 4 le rejoue avec les vraies images.
+`pnpm nx test infra` joue chaque scénario dans `infra/src/staging-deploy.spec.ts`, avec un vrai git et le vrai vérificateur, mais de faux `docker`, `oras`, `cosign`, `curl` et `sleep` (`infra/src/fixtures/staging-host`). Le temps des contrôles externes y est simulé : faux `curl` et faux `sleep` avancent une horloge que le faux `python3` donne au script, sans attendre. Le faux `docker` interpole les digests comme Docker Compose, où une variable du shell l'emporte sur `--env-file`. Le comportement réel de Docker Compose sur lequel reposent les étapes 7 et 8 (migration à part, `--no-deps`, redémarrage du front) a été vérifié à la main sur Docker 29 et Compose 5.6 ; la répétition du staging le rejoue avec les vraies images.
