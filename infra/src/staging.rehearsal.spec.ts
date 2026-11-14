@@ -34,6 +34,7 @@ import {
 import { KEYCLOAK_ADMIN_URL, SharedStack } from './lib/rehearsal/shared-stack';
 import {
   type AccountCredentials,
+  type RequiredAction,
   describePage,
   openAdminConsole,
   runDiagnostic,
@@ -443,10 +444,13 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
     const requests = tallyRequests(context);
     const page = await context.newPage();
 
-    await reportingWhereItStopped(page, requests, () =>
-      signInForTheFirstTime(page, STAGING_URL, account),
-    );
+    let actionsDone: RequiredAction[] = [];
+    await reportingWhereItStopped(page, requests, async () => {
+      actionsDone = await signInForTheFirstTime(page, STAGING_URL, account);
+    });
 
+    // Keycloak a imposé les deux, dans l'ordre de son choix, avant de rendre la main au front.
+    expect([...actionsDone].sort()).toEqual(['password-update', 'totp-enrolment']);
     journey = { page, requests, startedAt };
     report.steps.push({
       name: 'Première connexion depuis le front',
@@ -474,6 +478,16 @@ describe('répétition du staging (US-005 B2a, étape 4)', () => {
     expect(requests.throttledRequests()).toBe(0);
     expect(Object.keys(edgeRequests.byHost())).toEqual(publicHosts);
     expect(edgeRequests.throttledRequests()).toBe(0);
+  });
+
+  it('rejoue sans erreur le réglage du realm master, dont l’émetteur reste l’adresse du tunnel', async () => {
+    await sharedStack.provisionMasterRealm();
+
+    const discovery = await fetch(
+      `${KEYCLOAK_ADMIN_URL}/realms/master/.well-known/openid-configuration`,
+    );
+    const configuration = (await discovery.json()) as { issuer: string };
+    expect(configuration.issuer).toBe(`${KEYCLOAK_ADMIN_URL}/realms/master`);
   });
 
   it('ne tue ni ne redémarre aucun conteneur, et relève la mémoire de chacun', async () => {

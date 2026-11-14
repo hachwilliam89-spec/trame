@@ -115,7 +115,10 @@ services:
       - traefik.http.routers.trame-auth.rule=Host(`auth.trame.wkhach.dev`) && (PathPrefix(`/realms/trame-staging/`) || PathPrefix(`/resources/`))
       - traefik.http.routers.trame-auth.entrypoints=websecure
       - traefik.http.routers.trame-auth.middlewares=trame-auth-ratelimit
-      # Valeurs techniques de départ, à ajuster après la mesure de l'étape 4.
+      # Mesuré par la répétition (étape 4) : une première connexion complète, avec enrôlement du
+      # TOTP et changement de mot de passe, envoie 18 requêtes à Keycloak. La rafale de 20 les
+      # laisse passer même envoyées en une seconde. À revoir pour la production, où les
+      # utilisateurs d'un même site partagent une adresse.
       - traefik.http.middlewares.trame-auth-ratelimit.ratelimit.average=5
       - traefik.http.middlewares.trame-auth-ratelimit.ratelimit.burst=20
       - traefik.http.services.trame-auth.loadbalancer.server.port=8080

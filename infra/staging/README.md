@@ -89,7 +89,7 @@ Après un code 4 : `docker compose --project-name trame-staging ps --all` et `lo
 
 ## Limites connues
 
-- `relay` et `worker` n'ont pas de sonde : `--wait` ne détecte pas leur échec. Le critère de réussite de B2b (un diagnostic lancé depuis le front aboutit) couvre cette chaîne.
+- `relay` et `worker` n'ont pas de sonde : `--wait` ne détecte pas leur échec. Un diagnostic lancé depuis le front couvre cette chaîne : la répétition le joue, et c'est un critère de réussite de B2b.
 - Sauvegardes et dossiers de versions ne sont pas purgés. La rotation viendra avec la sauvegarde hors du VPS (US-008).
 - Les adresses publiques sont fixes. La répétition les fait pointer vers le runner par `/etc/hosts`, avec une autorité de test (voir « Répétition »).
 
@@ -101,14 +101,25 @@ Après un code 4 : `docker compose --project-name trame-staging ps --all` et `lo
   - sur chaque PR qui touche `infra/`, `tools/release-images/` ou ce workflow : régression du script contre les deux dernières versions publiées de `main` ;
   - **à la demande, avant B2b**, sur le commit exact à mettre en service : `gh workflow run rehearsal.yml -f version=<commit>` (et `-f previous=<commit>` pour imposer la version d'avant).
 - **Réel** : `deploy.sh` tel quel, les versions publiées et signées avec leur vraie vérification, `oras` et `cosign` installés par `install-release-tools.sh`, la stack partagée provisionnée par `infra/provisioning`, et Traefik à l'image et à la configuration de `vps-edge` (`infra/compose/rehearsal-edge.yml`, `infra/rehearsal`).
-- **Remplacé** : le DNS public, par `/etc/hosts` du runner ; Let's Encrypt, par une autorité de test que curl reconnaît par `CURL_CA_BUNDLE`, sans désactiver la vérification ; le proxy du socket Docker de `vps-edge`, qui ne fait que restreindre cet accès.
+- **Remplacé**, sans jamais désactiver la vérification TLS :
+  - le DNS public, par `/etc/hosts` du runner pour curl, et par les règles de résolution de Chromium pour le navigateur, qui tourne dans son propre conteneur ;
+  - Let's Encrypt, par une autorité de test. curl la reconnaît par `CURL_CA_BUNDLE`. Chromium la lit dans sa base de certificats NSS, où la répétition l'ajoute avec `certutil` ; un certificat d'un autre nom y reste refusé, ce qu'un test vérifie ;
+  - le proxy du socket Docker de `vps-edge`, qui ne fait que restreindre cet accès.
 - **Parcours** : version précédente, version visée, `--rollback`, puis de nouveau la version visée. Ensuite :
   - aucun port publié par les conteneurs de Trame ;
   - d'un client extérieur, seuls 80 et 443 répondent ;
   - la console de Keycloak ne s'ouvre que par le tunnel, et `/admin/` comme `/realms/master/` répondent 404 par Traefik ;
-  - mémoire relevée toutes les 2 secondes, et aucun conteneur tué ni redémarré.
-- **Preuve** : l'artefact `repetition-staging` et le résumé du job donnent le SHA du script, ceux des deux versions, leurs digests vérifiés, les versions d'`oras` et de `cosign`, et le maximum de mémoire de chaque conteneur.
-- **Limite** : le retour sur un schéma migré n'est prouvé que si une migration sépare les deux versions. La première version qui ajoute une migration est répétée à la demande avec la précédente avant sa mise en service.
+  - **dans un navigateur** :
+    - la console d'administration s'ouvre et se connecte par le tunnel, sans aucune requête vers l'adresse publique (ADR-0034) ;
+    - un compte créé par l'API d'administration, avec un mot de passe temporaire et le rôle `manager`, se connecte depuis `https://staging.trame.wkhach.dev` : Keycloak impose l'enrôlement du TOTP et le changement du mot de passe ;
+    - un diagnostic lancé depuis le front aboutit, ce qui couvre `relay` et `worker`, sans sonde ;
+    - le navigateur ne joint que les deux noms publics, et Traefik ne refuse aucune requête par sa limite de débit ;
+  - mémoire relevée toutes les 2 secondes, diagnostic compris, et aucun conteneur tué ni redémarré.
+- **Preuve** : l'artefact `repetition-staging` et le résumé du job donnent le SHA du script, ceux des deux versions, leurs digests vérifiés, les versions d'`oras` et de `cosign`, le maximum de mémoire de chaque conteneur, et les requêtes que Traefik a reçues pendant la connexion et le diagnostic (nombre, pic sur une seconde, refus), lues dans son journal d'accès.
+- **Limites** :
+  - le retour sur un schéma migré n'est prouvé que si une migration sépare les deux versions. La première version qui ajoute une migration est répétée à la demande avec la précédente avant sa mise en service ;
+  - le pic de requêtes est celui d'un automate, qui remplit les formulaires en moins d'une seconde : un utilisateur étale les mêmes requêtes ;
+  - la mémoire est celle du diagnostic actuel, trois tâches fictives. Le contrôle avec KCD et Équilibre actifs reste à faire sur le VPS.
 
 ## Tests
 

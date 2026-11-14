@@ -13,6 +13,9 @@ export interface AccountCredentials {
   newPassword: string;
 }
 
+/** Une action que Keycloak impose à la première connexion. */
+export type RequiredAction = 'totp-enrolment' | 'password-update';
+
 const DIAGNOSTIC_HEADING = 'Tester le moteur';
 const DIAGNOSTIC_SUCCESS = 'Les trois tâches ont été affectées.';
 /** Deux actions sont attendues (TOTP, mot de passe) ; au-delà, une page se répète sur une erreur. */
@@ -73,13 +76,13 @@ export async function openAdminConsole(
 /**
  * Première connexion d'un compte créé par l'administration, depuis le front : identifiants, puis
  * les actions que Keycloak impose (enrôlement du TOTP, changement du mot de passe temporaire),
- * dans l'ordre où il les présente, jusqu'au retour dans l'application.
+ * dans l'ordre où il les présente, jusqu'au retour dans l'application. Rend les actions faites.
  */
 export async function signInForTheFirstTime(
   page: Page,
   applicationUrl: string,
   credentials: AccountCredentials,
-): Promise<void> {
+): Promise<RequiredAction[]> {
   await page.goto(applicationUrl);
   await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
   await page.locator('#username').fill(credentials.username);
@@ -89,15 +92,18 @@ export async function signInForTheFirstTime(
   const application = page.getByRole('heading', { name: DIAGNOSTIC_HEADING, exact: true });
   const totpEnrolment = page.locator('#totp');
   const passwordUpdate = page.locator('#password-new');
-  for (let action = 0; action < MAXIMUM_REQUIRED_ACTIONS; action += 1) {
+  const actionsDone: RequiredAction[] = [];
+  while (actionsDone.length < MAXIMUM_REQUIRED_ACTIONS) {
     await application.or(totpEnrolment).or(passwordUpdate).first().waitFor();
     if (await application.isVisible()) {
-      return;
+      return actionsDone;
     }
     if (await passwordUpdate.isVisible()) {
       await updatePassword(page, passwordUpdate, credentials.newPassword);
+      actionsDone.push('password-update');
     } else {
       await enrolTotp(page, totpEnrolment);
+      actionsDone.push('totp-enrolment');
     }
   }
   throw new Error(`Connexion inachevée, page affichée : ${await describePage(page)}`);
