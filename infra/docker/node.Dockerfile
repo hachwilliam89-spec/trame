@@ -57,9 +57,13 @@ COPY --from=builder /workspace/dist/migrator/package.json /workspace/dist/migrat
 RUN pnpm install --prod --frozen-lockfile
 
 FROM toolchain AS migrator
-# La migration ne lance que la CLI Prisma avec node : npm et corepack ne lui servent pas.
+# La migration ne lance que la CLI Prisma avec node : npm et corepack ne lui servent pas. La
+# bibliothèque cliente C de PostgreSQL de l'image de base non plus, Prisma ayant son propre client :
+# elle est retirée, avec ses failles hautes que cette base (digest inchangé au 2026-11-14) n'a pas
+# encore corrigées. dpkg échoue si un autre paquet en dépend.
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
-      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+  && dpkg --purge libpq-dev libpq5
 COPY --from=migration-dependencies /runtime/node_modules ./node_modules
 COPY libs/api/shared/database/prisma ./prisma
 COPY infra/docker/prisma.config.ts ./prisma.config.ts
@@ -72,10 +76,13 @@ FROM builder AS web-assets
 RUN rm /workspace/dist/apps/web/browser/config.json
 
 FROM nginx/nginx-unprivileged:1.30.6-alpine@sha256:44e74ca483234093081138b6d7b6f561d55557756a2deefc3a5056148defeb99 AS web
-# L'image de base (digest inchangé au 2026-11-06) a libexpat 2.9.0, aux failles hautes corrigées
-# en 2.10.0. Sans effet dès qu'une base plus récente l'inclut.
+# L'image de base (digest inchangé au 2026-11-14) a deux paquets aux failles hautes déjà corrigées
+# par Alpine : libexpat 2.9.0 (corrigé en 2.10.0) et libxslt 1.1.43-r3 (corrigé en 1.1.43-r4).
+# Sans effet dès qu'une base plus récente les inclut.
 USER root
-RUN apk upgrade --no-cache libexpat && apk info --exists 'libexpat>=2.10.0'
+RUN apk upgrade --no-cache libexpat libxslt \
+  && apk info --exists 'libexpat>=2.10.0' \
+  && apk info --exists 'libxslt>=1.1.43-r4'
 COPY --from=web-assets /workspace/dist/apps/web/browser /usr/share/nginx/html
 COPY infra/docker/web/nginx.conf /etc/nginx/nginx.conf
 COPY --chmod=555 infra/docker/web/entrypoint.sh /trame-entrypoint.sh
