@@ -18,9 +18,9 @@ export async function trustAuthorityInBrowser(
 ): Promise<void> {
   const database = `sql:${databaseDirectory}`;
   if (!existsSync(join(databaseDirectory, 'cert9.db'))) {
-    await runCommand('certutil', ['-d', database, '-N', '--empty-password']);
+    await certutil(['-d', database, '-N', '--empty-password']);
   }
-  await runCommand('certutil', [
+  await certutil([
     '-d',
     database,
     '-A',
@@ -31,6 +31,20 @@ export async function trustAuthorityInBrowser(
     '-i',
     authorityCertificatePath,
   ]);
+}
+
+async function certutil(args: string[]): Promise<void> {
+  try {
+    await runCommand('certutil', args);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      throw new Error(
+        'certutil introuvable : il vient du paquet libnss3-tools, préinstallé sur les runners de GitHub.',
+        { cause: error },
+      );
+    }
+    throw error;
+  }
 }
 
 /**
