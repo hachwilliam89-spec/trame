@@ -1,6 +1,6 @@
 # Déploiement de Trame — cadrage
 
-Statut : préparation, 5 novembre 2026. Le front Guidé est livré dans #38 ; aucun service Trame n'est encore déployé sur le VPS observé. Le passage au staging est suivi dans [US-005, #39](https://github.com/hachwilliam89-spec/trame/issues/39).
+Statut : 14 novembre 2026. Le staging est prêt à être mis en service, mais aucun service Trame n'est encore déployé sur le VPS. Le déroulé de la mise en service est dans [le runbook du staging](../infra/staging/RUNBOOK.md) ; le passage au staging est suivi dans [US-005, #39](https://github.com/hachwilliam89-spec/trame/issues/39).
 
 ## Domaines retenus
 
@@ -19,7 +19,9 @@ Les domaines sont retenus pour la configuration. Les enregistrements DNS et les 
 1. **US-005 A — images et preuve locale**, [#40](https://github.com/hachwilliam89-spec/trame/issues/40) : Dockerfiles multi-stage, processus Node compilés, moteur installé depuis le lockfile, serveur du front non root, cible de migration distincte, configuration au démarrage et parcours complet sur les images réelles. Scénarios et plan validés par Kim le 5 novembre 2026 ; livrée par [#42](https://github.com/hachwilliam89-spec/trame/pull/42).
 2. **US-005 B — publication et staging**, découpée le 6 novembre 2026 :
    - **B1 — publication** ✅, livrée le 6 novembre 2026 ([#45](https://github.com/hachwilliam89-spec/trame/pull/45), issue [#44](https://github.com/hachwilliam89-spec/trame/issues/44), première publication sur `db4100e`, run [42219643979](https://github.com/hachwilliam89-spec/trame/actions/runs/42219643979)) : images de la tête de `main` scannées (Trivy), avec SBOM et provenance, poussées sans reconstruction sur GHCR, signées sans clé (cosign) pour leur commit, et un manifeste de version signé qui marque la publication comme terminée. Aucune intervention sur le VPS. Voir [la publication des images](../infra/docker/README.md#publication-us-005-b1).
-   - **B2 — staging**, après US-013 : Compose/Traefik, déploiement par digests après `release-images verify`, isolation des données et des secrets, migrations avec rôle dédié et contrôle des sondes.
+   - **B2 — staging**, après US-013 ([#47](https://github.com/hachwilliam89-spec/trame/issues/47)) :
+     - **B2a — préparation** ✅ : stacks Compose derrière Traefik, provisionnement, `deploy.sh` par digests vérifiés avec retour automatique, répétition complète en CI, navigateur compris ([déploiement du staging](../infra/staging/README.md)) ;
+     - **B2b — mise en service** : sur le VPS, par Kim, commande par commande ([runbook](../infra/staging/RUNBOOK.md)).
 3. **US-005 C — promotion/retour arrière** : même image que staging, release, API précédente compatible avec les migrations et production fermée avant protection de démo.
 
 La première tranche ne clôture pas US-005. Les sauvegardes/restaurations (US-008) et la trace distribuée (US-007) restent nécessaires à la preuve déployée d'US-009. Les commandes de mise en service seront présentées avec leur retour arrière avant exécution.
@@ -44,7 +46,7 @@ Un changement de configuration de logs ne s'applique pas automatiquement aux con
 - US-013 appliquée sur une version de scripts revue, avec contrôles locaux/externes et routes inchangées.
 - Bases/vhosts/realms séparés ; comptes de test du realm local réservés aux tests isolés. Compte de migration distinct du compte applicatif, ce dernier sans DDL.
 - Aucun port applicatif publié sur l'hôte, aucune base sur le réseau `edge`, noms de routeurs préfixés `trame-` (ADR-0016).
-- Accès privé choisi sans conflit entre une protection de proxy et le Bearer API ; pas de désactivation d'OIDC pour faciliter l'accès.
+- Accès au staging : public, protégé par OIDC avec TOTP obligatoire et par la détection de force brute de Keycloak, sans protection de proxy en plus (décision du 6 novembre 2026, #47). La console d'administration et le realm `master` ne sont joignables que par un tunnel SSH (ADR-0016, ADR-0034).
 - Budget mémoire réévalué : l'estimation du cadrage ne remplace pas une mesure et doit inclure les processus de relais ajoutés avec A2.
 - Versions, architectures et digests des images vérifiés sur les registres officiels, notamment Linux amd64 et les roues OR-Tools/Python.
 - Sauvegarde chiffrée hors VPS et restauration testée avant données réelles ; backend de stockage et secrets à définir dans US-008.
