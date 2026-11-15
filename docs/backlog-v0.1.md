@@ -128,7 +128,7 @@ Scénario: Surface réseau
 
 ### US-013 — Durcissement : compléments des revues
 
-> Scripts écrits le 2026-11-01 dans `vps-edge/host/`, **compléments encore à appliquer et vérifier**. Précontrôle SSH du 5 novembre : huit conteneurs avec `json-file` sans plafonds, deux conteneurs web Équilibre sans projet Compose ; voir [le constat daté](deploiement.md#précontrôle-du-vps).
+> Scripts écrits le 2026-11-01 dans `vps-edge/host/`. **État constaté sur le VPS dans la nuit du 14 au 15 novembre 2026** : `host/check.sh` passe ses treize contrôles, les logs sont plafonnés et les conteneurs d'Équilibre sont sous Compose ; le contrôle externe complet (`check-externe.sh --complet`) n'a pas été rejoué à cette occasion. Précontrôle SSH du 5 novembre : huit conteneurs avec `json-file` sans plafonds, deux conteneurs web Équilibre sans projet Compose ; voir [le constat daté](deploiement.md#précontrôle-du-vps).
 
 - Logs Docker plafonnés par Docker seul (`daemon.json`, avec `live-restore`), sans outil externe sur ses fichiers. Puis Docker est redémarré et les conteneurs recréés.
 - `equilibre-web` et `equilibre-telechargements`, lancés hors compose, sont repris dans un fichier compose avant toute recréation :
