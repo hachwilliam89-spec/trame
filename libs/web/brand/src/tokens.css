@@ -12,4 +12,12 @@
   --soft: light-dark(#e7f3f2, #213d41);
   --error: light-dark(#9d332c, #ffb4ac);
   --warning: light-dark(#7c5715, #eacb8e);
+  /* Les bandeaux de vitrine gardent les couleurs du logo, quel que soit le thème système. */
+  --weave-ground: #0f4f58;
+  --weave-ground-deep: #0b4149;
+  --weave-paper: #e4f4f5;
+  --weave-paper-muted: #b8e3e7;
+  --weave-note: #c5e5e8;
+  --weave-thread: #8fdde4;
+  --weave-ink: #0d3a41;
 }

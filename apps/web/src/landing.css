@@ -1,17 +1,15 @@
 /* La vitrine emploie les couleurs du logo, indépendamment du thème système. */
 .landing-hero {
-  --hero-paper: #e4f4f5;
-  --hero-thread: #8fdde4;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(100px, 25%);
   align-items: center;
   gap: 36px;
   padding: 40px;
-  background: #0f4f58;
-  color: var(--hero-paper);
+  background: var(--weave-ground);
+  color: var(--weave-paper);
 }
 .landing-hero .eyebrow {
-  color: #b8e3e7;
+  color: var(--weave-paper-muted);
 }
 .landing-hero h1 {
   font-size: clamp(30px, 4.5vw, 50px);
@@ -21,26 +19,26 @@
   font-weight: 600;
 }
 .landing-hero h1 span {
-  color: var(--hero-thread);
+  color: var(--weave-thread);
 }
 .hero-mark {
   display: block;
   width: 100%;
   height: auto;
   transform: rotate(-7deg);
-  filter: drop-shadow(8px 8px 0 #0b4149);
+  filter: drop-shadow(8px 8px 0 var(--weave-ground-deep));
 }
 .landing-hero .hero-action {
-  background: var(--hero-thread);
-  color: #0d3a41;
-  border-color: var(--hero-thread);
+  background: var(--weave-thread);
+  color: var(--weave-ink);
+  border-color: var(--weave-thread);
   text-decoration: none;
   padding: 14px 20px;
 }
 .hero-note {
   margin: 18px 0 0;
   font-size: 13px;
-  color: #c5e5e8;
+  color: var(--weave-note);
 }
 .discovery {
   display: grid;

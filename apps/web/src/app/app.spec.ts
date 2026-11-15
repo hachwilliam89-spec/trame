@@ -96,15 +96,120 @@ describe('Premier parcours Guidé', () => {
               ? { cost: 5, assignment: [1, 0, 2] }
               : null,
           },
+          problem: {
+            name: 'assignment-smoke-v1',
+            costs: [
+              [4, 1, 3],
+              [2, 0, 5],
+              [3, 2, 2],
+            ],
+          },
+          parameters: { workers: 1, seed: 0, timeLimitSeconds: 5 },
         },
       });
       const fixture = TestBed.createComponent(App);
       await fixture.whenStable();
       const element = fixture.nativeElement as HTMLElement;
       expect(element.textContent).toContain(status);
-      expect(element.querySelectorAll('tbody tr').length).toBe(
+      expect(element.querySelectorAll('table.assignments tbody tr').length).toBe(
+        ['OPTIMAL', 'FEASIBLE'].includes(status) ? 3 : 0,
+      );
+      expect(element.querySelectorAll('tr-assignment-weave path.thread').length).toBe(
         ['OPTIMAL', 'FEASIBLE'].includes(status) ? 3 : 0,
       );
     },
   );
+
+  describe('page du diagnostic aux couleurs du tissage', () => {
+    const optimalRun = {
+      id: 'diagnostic-A',
+      status: 'SUCCEEDED',
+      createdAt: '2026-11-15T18:00:02.000Z',
+      finishedAt: '2026-11-15T18:00:03.400Z',
+      outcome: {
+        result: { status: 'OPTIMAL', solution: { cost: 5, assignment: [1, 0, 2] } },
+        problem: {
+          name: 'assignment-smoke-v1',
+          costs: [
+            [4, 1, 3],
+            [2, 0, 5],
+            [3, 2, 2],
+          ],
+        },
+        parameters: { workers: 1, seed: 0, timeLimitSeconds: 5 },
+      },
+    };
+
+    async function renderAsManager(run: unknown, phase = 'result'): Promise<HTMLElement> {
+      session.identity.set(identity);
+      session.status.set('authenticated');
+      diagnostic.phase.set(phase);
+      diagnostic.run.set(run);
+      const fixture = TestBed.createComponent(App);
+      await fixture.whenStable();
+      return fixture.nativeElement as HTMLElement;
+    }
+
+    it('montre le logo dans le bandeau, sans le répéter aux lecteurs d’écran', async () => {
+      const element = await renderAsManager(undefined, 'ready');
+
+      const mark = element.querySelector<HTMLImageElement>('.diagnostic-band img.band-mark');
+      expect(mark?.getAttribute('src')).toBe('/trame-mark.svg');
+      expect(mark?.alt).toBe('');
+      expect(element.querySelector('.diagnostic-band h1')?.textContent).toBe('Tester le moteur');
+    });
+
+    it('relie chaque tâche à son poste par un fil, et donne l’affectation en tableau aux lecteurs d’écran', async () => {
+      const element = await renderAsManager(optimalRun);
+
+      const weave = element.querySelector('tr-assignment-weave svg');
+      expect(weave?.querySelectorAll('path.thread').length).toBe(3);
+      expect(weave?.getAttribute('aria-hidden')).toBe('true');
+      const table = element.querySelector('table.assignments');
+      expect(table?.closest('details')).toBeNull();
+      const rows = Array.from(table?.querySelectorAll('tbody tr') ?? []);
+      const cellTexts = rows.map((row) =>
+        Array.from(row.querySelectorAll('td'))
+          .map((cell) => cell.textContent?.trim())
+          .join(' '),
+      );
+      expect(cellTexts).toEqual(['Tâche A Poste 2', 'Tâche B Poste 1', 'Tâche C Poste 3']);
+    });
+
+    it('affiche l’issue, la durée réelle du calcul et son coût', async () => {
+      const element = await renderAsManager(optimalRun);
+
+      const facts = element.querySelector('.facts')?.textContent ?? '';
+      expect(facts).toContain('Optimale');
+      expect(facts).toContain('1,4 s');
+      expect(element.querySelector('.fact-cost dd')?.textContent?.trim()).toBe('5');
+    });
+
+    it('n’invente pas de durée quand la fin du calcul n’est pas connue', async () => {
+      const element = await renderAsManager({ ...optimalRun, finishedAt: undefined });
+
+      expect(element.querySelector('.fact-duration')).toBeNull();
+    });
+
+    it('détaille les coûts du problème et marque les trois cases retenues', async () => {
+      const element = await renderAsManager(optimalRun);
+
+      const chosen = Array.from(element.querySelectorAll('table.costs td.chosen'));
+      expect(chosen.map((cell) => cell.textContent?.trim())).toEqual([
+        '1 (retenu)',
+        '2 (retenu)',
+        '2 (retenu)',
+      ]);
+      expect(element.querySelectorAll('table.costs tbody td').length).toBe(9);
+    });
+
+    it('annonce la suite sans la présenter comme disponible', async () => {
+      const element = await renderAsManager(undefined, 'ready');
+
+      const nextStep = element.querySelector('.next-step')?.textContent ?? '';
+      expect(nextStep).toContain('En construction');
+      expect(nextStep).toContain('planning d’une semaine');
+      expect(element.querySelector('.next-step a, .next-step button')).toBeNull();
+    });
+  });
 });
