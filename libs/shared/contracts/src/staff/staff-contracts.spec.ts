@@ -5,12 +5,15 @@ import {
   employeeQualificationV1,
   employeeV1,
 } from './employee.v1';
+import { employmentContractPageV1, employmentContractV1 } from './employment-contract.v1';
 
 const exchangedSchemas = {
   employeeQualificationV1,
   employeeV1,
   employeeListQueryV1,
   employeePageV1,
+  employmentContractV1,
+  employmentContractPageV1,
 };
 
 const SITE_ID = '0190f0a0-0000-7000-8000-0000000000d1';
@@ -39,6 +42,26 @@ describe('contrats du contexte staff', () => {
       expect(employeeQualificationV1.safeParse(qualification).success).toBe(false);
     },
   );
+
+  it('accepte un contrat de travail avec ou sans date de fin', () => {
+    const contract = {
+      id: '0190f0a0-0000-7000-8000-0000000000f1',
+      employeeId: '0190f0a0-0000-7000-8000-0000000000e1',
+      weeklyMinutesMin: 1680,
+      weeklyMinutesMax: 2100,
+      startsOn: '2026-01-01',
+      endsOn: null,
+      createdAt: '2026-11-15T08:00:00Z',
+    };
+
+    expect(employmentContractV1.safeParse(contract).success).toBe(true);
+    expect(employmentContractV1.safeParse({ ...contract, endsOn: '2026-12-31' }).success).toBe(
+      true,
+    );
+    expect(employmentContractV1.safeParse({ ...contract, weeklyMinutesMax: 35.5 }).success).toBe(
+      false,
+    );
+  });
 
   it('exige le site pour lister les employés', () => {
     expect(employeeListQueryV1.safeParse({}).success).toBe(false);
