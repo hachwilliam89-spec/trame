@@ -18,23 +18,45 @@
     } @else if (session.status() === 'loading') {
     <h1>Préparation de votre espace…</h1>
     } @else {
-    <section class="login-layout">
-      <div class="login-copy">
+    <section class="landing-hero" aria-labelledby="welcome-title">
+      <div class="hero-copy">
         <div class="eyebrow">Planification d’équipes</div>
-        <h1>Le bon rythme,<br />ensemble.</h1>
-        <p class="muted">
-          Un premier aperçu de Trame, avec un calcul de démonstration à suivre en direct.
-        </p>
-        <div class="login-feature">
-          <h2>Du lancement au résultat</h2>
-          <p>Suivez chaque étape du calcul.</p>
-        </div>
-        <div class="login-feature">
-          <h2>Reprenez le fil</h2>
-          <p>Retrouvez le suivi après une déconnexion.</p>
-        </div>
+        <h1 id="welcome-title">Relier les tâches.<br /><span>Composer l’équipe.</span></h1>
+        <a class="action hero-action" href="#diagnostic-start"
+          >Voir le premier diagnostic <span aria-hidden="true">↘</span></a
+        >
+        <p class="hero-note">En construction · Diagnostic réel sur compte</p>
       </div>
-      <div class="panel login-panel">
+      <img class="hero-mark" src="/trame-mark.svg" width="120" height="120" alt="" />
+    </section>
+    <section class="discovery" aria-labelledby="discovery-title">
+      <div>
+        <div class="eyebrow">Le point de départ</div>
+        <h2 id="discovery-title">Trois tâches.<br />Trois postes. Un résultat.</h2>
+      </div>
+      <p>
+        Le moteur répartit trois tâches fictives entre trois postes. Connectez-vous pour lancer le
+        calcul, suivre sa progression et retrouver son résultat.
+      </p>
+    </section>
+    <section class="login-layout" aria-label="Accéder au diagnostic">
+      <div class="login-copy">
+        <h2>Du lancement au résultat</h2>
+        <p>Une demande enregistrée, un calcul exécuté, une affectation lisible.</p>
+        <h2>Reprenez le fil</h2>
+        <p>
+          Le résultat reste disponible après une déconnexion. La génération de plannings d’équipe
+          est la prochaine étape.
+        </p>
+        <a
+          class="source-link"
+          href="https://github.com/hachwilliam89-spec/trame"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Explorer le code et les choix du projet <span aria-hidden="true">↗</span></a
+        >
+      </div>
+      <div class="panel login-panel" id="diagnostic-start">
         <div class="eyebrow">Bienvenue</div>
         <h2>Accéder à votre espace</h2>
         <p class="muted">Connectez-vous avec votre compte Trame pour lancer le test.</p>

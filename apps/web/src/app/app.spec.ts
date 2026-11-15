@@ -56,6 +56,17 @@ describe('Premier parcours Guidé', () => {
     (element.querySelector('button') as HTMLButtonElement).click();
     expect(session.login).toHaveBeenCalledOnce();
   });
+  it('guide le visiteur vers la connexion sans simuler un résultat', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const element = fixture.nativeElement as HTMLElement;
+    const link = element.querySelector<HTMLAnchorElement>('a[href="#diagnostic-start"]');
+    expect(link?.textContent).toContain('Voir le premier diagnostic');
+    expect(element.querySelector('#diagnostic-start')?.textContent).toContain('Se connecter');
+    expect(element.textContent).toContain('Diagnostic réel sur compte');
+    expect(element.querySelector('tbody')).toBeNull();
+    expect(diagnostic.start).not.toHaveBeenCalled();
+  });
   it('propose le test au manager et déclenche le vrai état sans animation simulée', async () => {
     session.identity.set(identity);
     session.status.set('authenticated');
