@@ -1,7 +1,8 @@
 import { type DynamicModule, type INestApplication, Module } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { CreateEmployee } from '@trame/api/staff/application';
+import { CreateContract, CreateEmployee } from '@trame/api/staff/application';
 import {
+  InMemoryContractRepository,
   InMemoryEmployeeRepository,
   InMemoryOrganizationCatalog,
 } from '@trame/api/staff/application/testing';
@@ -15,7 +16,11 @@ import { CLOCK, ClockModule, FixedClock } from '@trame/platform/clock';
 import { ID_GENERATOR, IdsModule, SequentialIdGenerator } from '@trame/platform/ids';
 import { ProblemDetailsModule } from '@trame/platform/problem-details';
 import request from 'supertest';
-import { EMPLOYEE_REPOSITORY, ORGANIZATION_CATALOG } from '../lib/injection-tokens';
+import {
+  CONTRACT_REPOSITORY,
+  EMPLOYEE_REPOSITORY,
+  ORGANIZATION_CATALOG,
+} from '../lib/injection-tokens';
 import { StaffModule } from '../lib/staff.module';
 
 export const ORGANIZATION_A = '0190f0a0-0000-7000-8000-00000000000a';
@@ -52,8 +57,9 @@ export interface StaffTestApp {
   app: INestApplication;
   /** Les sites et les compétences connus du contexte `organization`, déclarés par le test. */
   catalog: InMemoryOrganizationCatalog;
-  /** Les employés sont créés par use case : l'API ne les écrit pas encore. */
+  /** Les employés et leurs contrats sont créés par use case : l'API ne les écrit pas encore. */
   createEmployee: CreateEmployee;
+  createContract: CreateContract;
 }
 
 @Module({})
@@ -88,11 +94,18 @@ export async function createStaffTestApp(): Promise<StaffTestApp> {
     .useValue(new SequentialIdGenerator())
     .overrideProvider(EMPLOYEE_REPOSITORY)
     .useValue(new InMemoryEmployeeRepository())
+    .overrideProvider(CONTRACT_REPOSITORY)
+    .useValue(new InMemoryContractRepository())
     .compile();
 
   const app = moduleRef.createNestApplication({ logger: false });
   await app.init();
-  return { app, catalog, createEmployee: moduleRef.get(CreateEmployee, { strict: false }) };
+  return {
+    app,
+    catalog,
+    createEmployee: moduleRef.get(CreateEmployee, { strict: false }),
+    createContract: moduleRef.get(CreateContract, { strict: false }),
+  };
 }
 
 /** Requête `GET` au nom d'un utilisateur, ou anonyme sans utilisateur. */

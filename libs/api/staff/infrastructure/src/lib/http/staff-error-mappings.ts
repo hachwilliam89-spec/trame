@@ -5,8 +5,11 @@ import {
 } from '@trame/api/staff/application';
 import {
   DuplicateQualificationError,
+  InvalidContractPeriodError,
   InvalidEmployeeFirstNameError,
   InvalidEmployeeLastNameError,
+  InvalidWeeklyVolumeError,
+  OverlappingContractError,
 } from '@trame/api/staff/domain';
 import type { ErrorMapping } from '@trame/platform/problem-details';
 
@@ -26,4 +29,11 @@ export const staffErrorMappings: ErrorMapping[] = [
     pointer: '#/qualifications',
     code: 'duplicate_qualification',
   },
+  {
+    error: InvalidWeeklyVolumeError,
+    pointer: '#/weeklyMinutesMax',
+    code: 'invalid_weekly_volume',
+  },
+  { error: InvalidContractPeriodError, pointer: '#/endsOn', code: 'invalid_contract_period' },
+  { error: OverlappingContractError, pointer: '#/startsOn', code: 'overlapping_contract' },
 ];

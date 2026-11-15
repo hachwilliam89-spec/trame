@@ -1,15 +1,20 @@
 import { type DynamicModule, Module, type ModuleMetadata } from '@nestjs/common';
 import {
+  type ContractRepository,
+  CreateContract,
   CreateEmployee,
   type EmployeeRepository,
   GetEmployee,
+  ListContracts,
   ListEmployees,
   type OrganizationCatalog,
 } from '@trame/api/staff/application';
 import { CLOCK, type Clock } from '@trame/platform/clock';
 import { ID_GENERATOR, type IdGenerator } from '@trame/platform/ids';
 import { EmployeesController } from './http/employees.controller';
-import { EMPLOYEE_REPOSITORY, ORGANIZATION_CATALOG } from './injection-tokens';
+import { EmploymentContractsController } from './http/employment-contracts.controller';
+import { CONTRACT_REPOSITORY, EMPLOYEE_REPOSITORY, ORGANIZATION_CATALOG } from './injection-tokens';
+import { PrismaContractRepository } from './persistence/prisma-contract.repository';
 import { PrismaEmployeeRepository } from './persistence/prisma-employee.repository';
 
 type ImportedModule = NonNullable<ModuleMetadata['imports']>[number];
@@ -20,7 +25,7 @@ export interface StaffModuleOptions {
 }
 
 /**
- * Contexte `staff` : employés et habilitations (US-031). Les use cases sont des classes sans
+ * Contexte `staff` : employés, habilitations (US-031) et contrats de travail (US-032). Les use cases sont des classes sans
  * framework : ce module les assemble avec leurs dépendances.
  * Requiert `DatabaseModule`, `ClockModule`, `IdsModule` et `AuthModule` dans l'application.
  */
@@ -30,9 +35,10 @@ export class StaffModule {
     return {
       module: StaffModule,
       imports: [options.organizationCatalog],
-      controllers: [EmployeesController],
+      controllers: [EmployeesController, EmploymentContractsController],
       providers: [
         { provide: EMPLOYEE_REPOSITORY, useClass: PrismaEmployeeRepository },
+        { provide: CONTRACT_REPOSITORY, useClass: PrismaContractRepository },
         {
           provide: CreateEmployee,
           inject: [ORGANIZATION_CATALOG, EMPLOYEE_REPOSITORY, CLOCK, ID_GENERATOR],
@@ -54,9 +60,26 @@ export class StaffModule {
           useFactory: (catalog: OrganizationCatalog, employees: EmployeeRepository) =>
             new ListEmployees(catalog, employees),
         },
+        {
+          provide: CreateContract,
+          inject: [EMPLOYEE_REPOSITORY, CONTRACT_REPOSITORY, CLOCK, ID_GENERATOR],
+          useFactory: (
+            employees: EmployeeRepository,
+            contracts: ContractRepository,
+            clock: Clock,
+            ids: IdGenerator,
+          ) => new CreateContract(employees, contracts, clock, ids),
+        },
+        {
+          provide: ListContracts,
+          inject: [EMPLOYEE_REPOSITORY, CONTRACT_REPOSITORY],
+          useFactory: (employees: EmployeeRepository, contracts: ContractRepository) =>
+            new ListContracts(employees, contracts),
+        },
       ],
-      // Use case public : d'autres parties de l'application créent des employés par lui.
-      exports: [CreateEmployee],
+      // Use cases publics : d'autres parties de l'application créent des employés et leurs
+      // contrats par eux.
+      exports: [CreateEmployee, CreateContract],
     };
   }
 }
