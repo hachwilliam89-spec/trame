@@ -1,0 +1,136 @@
+/* La vitrine emploie les couleurs du logo, indépendamment du thème système. */
+.landing-hero {
+  --hero-paper: #e4f4f5;
+  --hero-thread: #8fdde4;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(100px, 25%);
+  align-items: center;
+  gap: 36px;
+  padding: 40px;
+  background: #0f4f58;
+  color: var(--hero-paper);
+}
+.landing-hero .eyebrow {
+  color: #b8e3e7;
+}
+.landing-hero h1 {
+  font-size: clamp(30px, 4.5vw, 50px);
+  line-height: 1.12;
+  letter-spacing: -1.8px;
+  margin: 28px 0;
+  font-weight: 600;
+}
+.landing-hero h1 span {
+  color: var(--hero-thread);
+}
+.hero-mark {
+  display: block;
+  width: 100%;
+  height: auto;
+  transform: rotate(-7deg);
+  filter: drop-shadow(8px 8px 0 #0b4149);
+}
+.landing-hero .hero-action {
+  background: var(--hero-thread);
+  color: #0d3a41;
+  border-color: var(--hero-thread);
+  text-decoration: none;
+  padding: 14px 20px;
+}
+.hero-note {
+  margin: 18px 0 0;
+  font-size: 13px;
+  color: #c5e5e8;
+}
+.discovery {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  padding: 32px 0;
+  border-bottom: 1px solid var(--line);
+  align-items: center;
+}
+.discovery h2 {
+  font-size: 28px;
+  line-height: 1.25;
+  letter-spacing: -0.7px;
+  margin: 12px 0 0;
+}
+.discovery p {
+  color: var(--muted);
+  margin: 0;
+}
+.login-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+  align-items: start;
+  padding: 32px 0;
+}
+.login-copy {
+  max-width: 350px;
+  padding-top: 8px;
+}
+.login-copy h2 {
+  font-size: 17px;
+  margin-bottom: 8px;
+}
+.login-copy p {
+  color: var(--muted);
+  margin-bottom: 24px;
+}
+.source-link {
+  color: var(--brand-warp);
+  text-underline-offset: 4px;
+  display: inline-block;
+  padding: 10px 0;
+}
+.login-panel {
+  scroll-margin-top: 24px;
+}
+.login-panel h2 {
+  margin-top: 12px;
+}
+.login-panel .action {
+  width: 100%;
+  margin: 10px 0 14px;
+}
+@media (max-width: 650px) {
+  .landing-hero {
+    padding: 26px 22px;
+    gap: 20px;
+    grid-template-columns: minmax(0, 1fr) 76px;
+  }
+  .hero-copy {
+    display: contents;
+  }
+  .landing-hero .eyebrow,
+  .hero-action,
+  .hero-note {
+    grid-column: 1 / -1;
+  }
+  .landing-hero h1 {
+    font-size: clamp(28px, 6vw, 38px);
+    margin: 0;
+    letter-spacing: -1px;
+  }
+  .hero-mark {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .hero-action {
+    justify-self: start;
+  }
+  .hero-note {
+    margin: 0;
+  }
+  .discovery,
+  .login-layout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 24px 0;
+  }
+  .login-copy {
+    max-width: none;
+  }
+}
