@@ -437,6 +437,8 @@ Depuis US-020 A (#22 et #28), les routes métier utilisent le résolveur OIDC de
 
 ### US-031 — Employés
 
+> **Première partie livrée au jalon 1** ([#69](https://github.com/hachwilliam89-spec/trame/issues/69)) : le modèle de l'employé et de ses habilitations, sa persistance (schéma `staff`), sa lecture par l'API (`GET /api/v1/employees`) et le monteur `anEmployee()`. L'écriture par l'API et l'écran de gestion restent à faire. La validité d'une habilitation à une date est décidée par le moteur seul (règle 5).
+
 - CRUD : compétences, habilitations avec date d'expiration (ex. CACES).
 - Pattern envisagé : **Monteur de données de test** (Test Data Builder), exposé par le point d'entrée `testing`. Les scénarios restent lisibles (« un cariste dont le CACES expire le 10 décembre ») sans fixtures longues. Il sert ensuite à `staff`, `demand` et `scheduling`, et son équivalent Python au moteur.
 
