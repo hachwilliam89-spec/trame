@@ -9,7 +9,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["organization", "scheduling"]
+  schemas  = ["organization", "scheduling", "staff"]
 }
 
 // ─── Contexte organization (US-030) ─────────────────────────────────────────
@@ -96,6 +96,41 @@ model ShiftTemplate {
   @@index([siteId, organizationId])
   @@map("shift_templates")
   @@schema("organization")
+}
+
+// ─── Contexte staff (US-031) ─────────────────────────────────────────────────────────────────────
+
+/// Employé d'une organisation, rattaché à un site. `siteId` désigne un site du contexte
+/// organization, sans clé étrangère : les contextes ne se référencent que par identifiant (ADR-0022).
+model Employee {
+  id             String                  @id @db.Uuid
+  organizationId String                  @map("organization_id") @db.Uuid
+  siteId         String                  @map("site_id") @db.Uuid
+  firstName      String                  @map("first_name") @db.VarChar(100)
+  lastName       String                  @map("last_name") @db.VarChar(100)
+  createdAt      DateTime                @map("created_at") @db.Timestamptz(3)
+  qualifications EmployeeQualification[]
+
+  @@unique([id, organizationId])
+  @@index([organizationId, siteId, id])
+  @@map("employees")
+  @@schema("staff")
+}
+
+/// Habilitation d'un employé. `skillId` désigne une compétence du contexte organization, sans clé
+/// étrangère. La clé composite impose à l'habilitation l'organisation de son employé.
+model EmployeeQualification {
+  organizationId String    @map("organization_id") @db.Uuid
+  employeeId     String    @map("employee_id") @db.Uuid
+  skillId        String    @map("skill_id") @db.Uuid
+  /// Dernier jour de validité, inclus. Vide : l'habilitation n'expire pas.
+  expiresOn      DateTime? @map("expires_on") @db.Date
+  employee       Employee  @relation(fields: [employeeId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@id([employeeId, skillId])
+  @@index([skillId, organizationId])
+  @@map("employee_qualifications")
+  @@schema("staff")
 }
 
 // ─── Diagnostic technique du contexte scheduling (US-009 A1) ────────────────

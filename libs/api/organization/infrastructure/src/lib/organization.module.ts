@@ -11,6 +11,7 @@ import {
   ListSites,
   type ShiftTemplateRepository,
   type SiteRepository,
+  GetSkill,
 } from '@trame/api/organization/application';
 import { CLOCK, type Clock } from '@trame/platform/clock';
 import { ID_GENERATOR, type IdGenerator } from '@trame/platform/ids';
@@ -70,5 +71,7 @@ import { SHIFT_TEMPLATE_REPOSITORY, SITE_REPOSITORY } from './repository-tokens'
         new GetShiftTemplateDurations(sites, shiftTemplates),
     },
   ],
+  // Use cases publics : l'application les appelle pour répondre aux autres contextes (règle 4).
+  exports: [GetSite, GetSkill],
 })
 export class OrganizationModule {}
