@@ -1,0 +1,8 @@
+{
+  "name": "api-staff-domain",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/api/staff/domain/src",
+  "projectType": "library",
+  "tags": ["scope:api", "layer:domain", "context:staff"],
+  "targets": {}
+}
