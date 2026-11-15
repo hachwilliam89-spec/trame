@@ -4,7 +4,7 @@ import type { EmployeeRepository } from '@trame/api/staff/application';
 import { Employee } from '@trame/api/staff/domain';
 import { type Page, type PageRequest, pageFrom } from '@trame/platform/pagination';
 import { afterCursor } from './after-cursor';
-import { dateToPlainDate, plainDateToDate } from './plain-date-conversions';
+import { optionalDateToPlainDate, optionalPlainDateToDate } from './optional-date-conversions';
 
 type EmployeeRecord = Prisma.EmployeeModel & {
   qualifications: { skillId: string; expiresOn: Date | null }[];
@@ -20,7 +20,7 @@ export class PrismaEmployeeRepository implements EmployeeRepository {
       employeeId: employee.id,
       organizationId: employee.organizationId,
       skillId: qualification.skillId,
-      expiresOn: plainDateToDate(qualification.expiresOn),
+      expiresOn: optionalPlainDateToDate(qualification.expiresOn),
     }));
     // Les identifiants sont déjà attribués : les deux écritures partagent la même transaction.
     await this.prisma.$transaction([
@@ -80,7 +80,7 @@ function toEmployee(record: EmployeeRecord): Employee {
     lastName: record.lastName,
     qualifications: record.qualifications.map((qualification) => ({
       skillId: qualification.skillId,
-      expiresOn: dateToPlainDate(qualification.expiresOn),
+      expiresOn: optionalDateToPlainDate(qualification.expiresOn),
     })),
     createdAt: dateToInstant(record.createdAt),
   });
