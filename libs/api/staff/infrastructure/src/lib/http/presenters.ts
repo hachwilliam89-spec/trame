@@ -1,5 +1,9 @@
-import type { Employee, Qualification } from '@trame/api/staff/domain';
-import type { EmployeeQualificationV1, EmployeeV1 } from '@trame/shared/contracts';
+import type { Contract, Employee, Qualification } from '@trame/api/staff/domain';
+import type {
+  EmployeeQualificationV1,
+  EmployeeV1,
+  EmploymentContractV1,
+} from '@trame/shared/contracts';
 
 /** Conversion des objets du domaine vers les contrats de l'API (`@trame/shared/contracts`). */
 
@@ -19,4 +23,16 @@ function toEmployeeQualificationV1(qualification: Qualification): EmployeeQualif
     return { skillId: qualification.skillId, expiresOn: null };
   }
   return { skillId: qualification.skillId, expiresOn: qualification.expiresOn.toString() };
+}
+
+export function toEmploymentContractV1(contract: Contract): EmploymentContractV1 {
+  return {
+    id: contract.id,
+    employeeId: contract.employeeId,
+    weeklyMinutesMin: contract.weeklyMinutesMin,
+    weeklyMinutesMax: contract.weeklyMinutesMax,
+    startsOn: contract.startsOn.toString(),
+    endsOn: contract.endsOn === undefined ? null : contract.endsOn.toString(),
+    createdAt: contract.createdAt.toString(),
+  };
 }

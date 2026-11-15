@@ -1,3 +1,6 @@
+/** Jeton du dépôt des contrats de travail. */
+export const CONTRACT_REPOSITORY = Symbol('CONTRACT_REPOSITORY');
+
 /** Jeton du dépôt des employés. Les tests HTTP y substituent le dépôt en mémoire. */
 export const EMPLOYEE_REPOSITORY = Symbol('EMPLOYEE_REPOSITORY');
 
