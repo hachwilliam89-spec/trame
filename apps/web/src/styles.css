@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import '../../../libs/web/brand/src/tokens.css';
+@import './landing.css';
 * {
   box-sizing: border-box;
 }
@@ -119,7 +120,7 @@ p {
 .panel {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 3px;
   padding: 28px;
   min-width: 0;
 }
@@ -165,7 +166,7 @@ p {
   background: var(--brand-warp);
   color: var(--action-ink);
   border: 1px solid var(--brand-warp);
-  border-radius: 7px;
+  border-radius: 3px;
   font: inherit;
   font-weight: 500;
   max-width: 100%;
@@ -268,37 +269,6 @@ footer {
   text-underline-offset: 3px;
   min-height: 44px;
 }
-.login-layout {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: center;
-  gap: 56px;
-  min-height: 450px;
-}
-.login-copy {
-  max-width: 340px;
-}
-.login-feature {
-  margin: 22px 0;
-}
-.login-feature h2 {
-  font-size: 15px;
-  margin-bottom: 6px;
-}
-.login-feature p {
-  font-size: 12px;
-  color: var(--muted);
-}
-.login-panel {
-  padding: 32px;
-}
-.login-panel h2 {
-  margin-top: 12px;
-}
-.login-panel .action {
-  width: 100%;
-  margin: 10px 0 14px;
-}
 .sr-only {
   position: absolute;
   width: 1px;
@@ -333,8 +303,7 @@ footer {
   .context {
     gap: 10px;
   }
-  .workspace,
-  .login-layout {
+  .workspace {
     grid-template-columns: 1fr;
     gap: 24px;
   }
@@ -343,9 +312,6 @@ footer {
   }
   .panel {
     padding: 22px 18px;
-  }
-  .login-layout {
-    padding: 14px 0;
   }
   h1 {
     font-size: 26px;

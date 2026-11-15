@@ -1,4 +1,4 @@
-# Trame web — premier parcours Guidé
+# Trame web — accueil Tissage et parcours guidé
 
 Depuis la racine, avec la stack locale et les environnements Node/Python installés :
 
@@ -23,3 +23,7 @@ Le suivi est authentifié, ordonné et reprenable. Une panne de suivi ne relance
 Vérifications : `pnpm nx test web`, tests des libs `web-auth-data-access` et `web-scheduling-data-access`, puis `pnpm nx run infra:integration`. Installer les navigateurs avec `pnpm exec playwright install chromium firefox webkit` ; le test réel construit Angular et l'API et utilise une stack Docker isolée.
 
 La CSP n'autorise pas eval. L'import `browser-validation` doit précéder la construction des schémas zod ; les styles critiques inline sont désactivés. Voir ADR-0033.
+
+## Accueil Tissage
+
+La direction visuelle validée le 15 novembre reprend les deux couleurs du logo dans un hero compact. Le lien « Voir le premier diagnostic » mène à la connexion OIDC existante. Aucun résultat simulé n’est publié : seul un calcul lancé après connexion produit des affectations. Les styles de l’accueil sont dans `src/landing.css` ; le logo illustré conserve la géométrie du logo original. Aucun service de police externe n’est chargé.
