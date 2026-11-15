@@ -9,7 +9,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  schemas  = ["organization", "scheduling", "staff"]
+  schemas  = ["demand", "organization", "scheduling", "staff"]
 }
 
 // ─── Contexte organization (US-030) ─────────────────────────────────────────
@@ -152,6 +152,42 @@ model Contract {
   @@index([organizationId, employeeId, id])
   @@map("contracts")
   @@schema("staff")
+}
+
+// ─── Contexte demand (US-050) ────────────────────────────────────────────────────────────────────
+
+/// Semaine de besoins d'un site, du lundi au dimanche. `siteId` désigne un site du contexte
+/// organization, sans clé étrangère (ADR-0022). La ligne sert aussi de verrou : remplacer les
+/// besoins d'une semaine la modifie, ce qui met en file deux remplacements simultanés.
+model WeeklyCoverage {
+  organizationId String         @map("organization_id") @db.Uuid
+  siteId         String         @map("site_id") @db.Uuid
+  /// Lundi de la semaine, dans le calendrier du site.
+  weekStartsOn   DateTime       @map("week_starts_on") @db.Date
+  updatedAt      DateTime       @map("updated_at") @db.Timestamptz(3)
+  needs          CoverageNeed[]
+
+  @@id([organizationId, siteId, weekStartsOn])
+  @@map("weekly_coverages")
+  @@schema("demand")
+}
+
+/// Besoin de couverture : le nombre de personnes requises un jour, sur un créneau type et un
+/// poste du contexte organization, sans clé étrangère vers lui.
+model CoverageNeed {
+  organizationId  String         @map("organization_id") @db.Uuid
+  siteId          String         @map("site_id") @db.Uuid
+  weekStartsOn    DateTime       @map("week_starts_on") @db.Date
+  date            DateTime       @db.Date
+  shiftTemplateId String         @map("shift_template_id") @db.Uuid
+  positionId      String         @map("position_id") @db.Uuid
+  requiredCount   Int            @map("required_count") @db.SmallInt
+  coverage        WeeklyCoverage @relation(fields: [organizationId, siteId, weekStartsOn], references: [organizationId, siteId, weekStartsOn], onDelete: Cascade)
+
+  @@id([organizationId, siteId, date, shiftTemplateId, positionId])
+  @@index([organizationId, siteId, weekStartsOn])
+  @@map("coverage_needs")
+  @@schema("demand")
 }
 
 // ─── Diagnostic technique du contexte scheduling (US-009 A1) ────────────────

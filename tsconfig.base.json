@@ -21,6 +21,10 @@
     "paths": {
       "@trame/api/database": ["./libs/api/shared/database/src/index.ts"],
       "@trame/api/database/testing": ["./libs/api/shared/database/src/testing.ts"],
+      "@trame/api/demand/application": ["./libs/api/demand/application/src/index.ts"],
+      "@trame/api/demand/application/testing": ["./libs/api/demand/application/src/testing.ts"],
+      "@trame/api/demand/domain": ["./libs/api/demand/domain/src/index.ts"],
+      "@trame/api/demand/infrastructure": ["./libs/api/demand/infrastructure/src/index.ts"],
       "@trame/api/organization/application": ["./libs/api/organization/application/src/index.ts"],
       "@trame/api/organization/application/testing": [
         "./libs/api/organization/application/src/testing.ts"

@@ -1,10 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { type Prisma, PrismaService, dateToInstant, instantToDate } from '@trame/api/database';
+import {
+  type Prisma,
+  PrismaService,
+  dateToInstant,
+  dateToPlainDate,
+  instantToDate,
+  plainDateToDate,
+} from '@trame/api/database';
 import type { ContractRepository } from '@trame/api/staff/application';
 import { Contract, ensureNoOverlappingContract } from '@trame/api/staff/domain';
 import { type Page, type PageRequest, pageFrom } from '@trame/platform/pagination';
 import { afterCursor } from './after-cursor';
-import { dateToPlainDate, plainDateToDate } from './plain-date-conversions';
+import { optionalDateToPlainDate, optionalPlainDateToDate } from './optional-date-conversions';
 
 /** Contrats de travail dans `staff.contracts`. */
 @Injectable()
@@ -25,8 +32,8 @@ export class PrismaContractRepository implements ContractRepository {
           employeeId: contract.employeeId,
           weeklyMinutesMin: contract.weeklyMinutesMin,
           weeklyMinutesMax: contract.weeklyMinutesMax,
-          startsOn: instantToDate(startOfDayInUtc(contract.startsOn)),
-          endsOn: plainDateToDate(contract.endsOn),
+          startsOn: plainDateToDate(contract.startsOn),
+          endsOn: optionalPlainDateToDate(contract.endsOn),
           createdAt: instantToDate(contract.createdAt),
         },
       });
@@ -62,11 +69,6 @@ async function lockEmployee(
   `;
 }
 
-/** Une colonne `DATE` s'écrit comme l'instant de minuit UTC de ce jour. */
-function startOfDayInUtc(date: Temporal.PlainDate): Temporal.Instant {
-  return date.toZonedDateTime('UTC').toInstant();
-}
-
 function toContract(record: Prisma.ContractModel): Contract {
   return Contract.create({
     id: record.id,
@@ -74,8 +76,8 @@ function toContract(record: Prisma.ContractModel): Contract {
     employeeId: record.employeeId,
     weeklyMinutesMin: record.weeklyMinutesMin,
     weeklyMinutesMax: record.weeklyMinutesMax,
-    startsOn: dateToInstant(record.startsOn).toZonedDateTimeISO('UTC').toPlainDate(),
-    endsOn: dateToPlainDate(record.endsOn),
+    startsOn: dateToPlainDate(record.startsOn),
+    endsOn: optionalDateToPlainDate(record.endsOn),
     createdAt: dateToInstant(record.createdAt),
   });
 }

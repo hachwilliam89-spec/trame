@@ -6,6 +6,7 @@ import {
   SkillNotFoundError,
 } from '@trame/api/organization/application';
 import type { OrganizationCatalog } from '@trame/api/staff/application';
+import { allExist, resourceExists } from '../context-ports/resource-exists';
 
 /**
  * Répond aux questions du contexte `staff` sur le contexte `organization`, par les use cases
@@ -20,36 +21,18 @@ export class OrganizationCatalogAdapter implements OrganizationCatalog {
   ) {}
 
   async hasSite(organizationId: string, siteId: string): Promise<boolean> {
-    try {
-      await this.getSite.execute({ organizationId, siteId });
-      return true;
-    } catch (error) {
-      if (error instanceof SiteNotFoundError) {
-        return false;
-      }
-      throw error;
-    }
+    return resourceExists(
+      () => this.getSite.execute({ organizationId, siteId }),
+      [SiteNotFoundError],
+    );
   }
 
   async hasAllSkills(organizationId: string, skillIds: readonly string[]): Promise<boolean> {
-    for (const skillId of skillIds) {
-      const skillExists = await this.hasSkill(organizationId, skillId);
-      if (!skillExists) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private async hasSkill(organizationId: string, skillId: string): Promise<boolean> {
-    try {
-      await this.getSkill.execute({ organizationId, skillId });
-      return true;
-    } catch (error) {
-      if (error instanceof SkillNotFoundError) {
-        return false;
-      }
-      throw error;
-    }
+    return allExist(skillIds, (skillId) =>
+      resourceExists(
+        () => this.getSkill.execute({ organizationId, skillId }),
+        [SkillNotFoundError],
+      ),
+    );
   }
 }
