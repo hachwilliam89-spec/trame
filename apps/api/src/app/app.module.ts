@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DatabaseModule, DatabaseReadiness } from '@trame/api/database';
 import { SchedulingModule } from '@trame/api/scheduling/infrastructure';
+import { DemandModule } from '@trame/api/demand/infrastructure';
 import { OrganizationModule } from '@trame/api/organization/infrastructure';
 import { StaffModule } from '@trame/api/staff/infrastructure';
 import { AuthModule } from '@trame/platform/auth';
@@ -12,6 +13,7 @@ import { IdsModule } from '@trame/platform/ids';
 import { LoggingModule } from '@trame/platform/logging';
 import { ProblemDetailsModule } from '@trame/platform/problem-details';
 import { type Env, envSchema } from '../config/env.schema';
+import { DemandSiteCatalogModule } from './demand/demand-site-catalog.module';
 import { StaffOrganizationCatalogModule } from './staff/staff-organization-catalog.module';
 import { trameActorResolver } from './trame-actor-resolver';
 
@@ -46,6 +48,7 @@ import { trameActorResolver } from './trame-actor-resolver';
     OrganizationModule,
     SchedulingModule,
     StaffModule.forRoot({ organizationCatalog: StaffOrganizationCatalogModule }),
+    DemandModule.forRoot({ siteCatalog: DemandSiteCatalogModule }),
   ],
 })
 export class AppModule {}
