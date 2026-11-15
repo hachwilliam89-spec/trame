@@ -29,7 +29,7 @@ Organiser par fonctionnalité. Un composant propre à un écran reste près de c
 
 - Pour de nouvelles lectures HTTP réactives, considérer `httpResource` dans `data-access`, après vérification dans la version Angular épinglée et de sa compatibilité avec l’authentification. Traiter explicitement erreurs, absence de données et annulation.
 - Les écritures restent des commandes explicites : pas de `POST` déclenché par une ressource réactive ou un effet. Conserver les clés d’idempotence et le traitement des réponses tardives.
-- L’adaptateur Fetch/SSE authentifié existant reste en place tant qu’un remplacement n’apporte pas un bénéfice prouvé. L’ADR-0033 impose la reprise du flux, la validation des messages et les jetons en mémoire.
+- L’adaptateur Fetch/SSE authentifié existant reste en place tant qu’un remplacement n’apporte pas un bénéfice prouvé. Le parcours existant, décrit dans l’ADR-0033 encore proposée, conserve la reprise du flux, la validation des messages et les jetons en mémoire.
 - L’état métier de l’écran est limité au parcours ou au contexte pertinent. Au changement de compte ou d’organisation, annuler les requêtes et vider l’état concerné avant d’afficher le nouveau contexte.
 - Utiliser l’injection de dépendances et des ports aux frontières qui ont de vraies variantes ou doublures de test. Pas d’interface, de service ou de factory supplémentaire pour chaque fonction.
 
