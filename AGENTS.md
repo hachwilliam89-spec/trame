@@ -113,6 +113,12 @@ Décision de Kim du 2026-11-05 : utiliser les design patterns lorsqu'ils répond
 - Pour une optimisation, mesurer le coût initial et le gain obtenu. Le poids mouche (_Flyweight_) convient au partage de données immuables répétées lorsque ce partage est utile ; ne pas mutualiser de données métier mutables entre utilisateurs ou organisations.
 - Garder une solution simple quand une abstraction supplémentaire ne rend pas de service concret.
 
+## Architecture du front Angular
+
+Décision de Kim du 2026-11-15 : exploiter les signals et les capacités d’Angular avec pertinence, dans une architecture front maintenable et évolutive.
+
+Pour toute tâche dans `apps/web` ou `libs/web`, lire [architecture-front.md](docs/architecture-front.md). Séparer pages, état et adaptateurs réseau ; garder les composants UI indépendants du métier. Privilégier les signals et `computed`, réserver `effect` aux effets de bord, et exposer l’état des nouvelles façades en lecture seule. Le CDK sert les interactions accessibles sans imposer une esthétique. Mesurer avant d’optimiser, vérifier les API dans la version épinglée et ne pas ajouter de couches sans besoin concret.
+
 ## Mesure dans l'infrastructure
 
 Décision de Kim du 2026-11-06, après la relecture de structure de Codex : la valeur de Trame est dans son cœur métier (planification, règles, PE, explication). L'infrastructure le sert ; elle ne doit pas prendre sa place.
