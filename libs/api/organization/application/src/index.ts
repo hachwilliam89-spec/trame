@@ -6,6 +6,10 @@ export {
   type CreateShiftTemplateCommand,
 } from './lib/shift-templates/create-shift-template';
 export {
+  GetShiftTemplate,
+  type GetShiftTemplateQuery,
+} from './lib/shift-templates/get-shift-template';
+export {
   GetShiftTemplateDurations,
   type GetShiftTemplateDurationsQuery,
 } from './lib/shift-templates/get-shift-template-durations';

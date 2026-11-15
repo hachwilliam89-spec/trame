@@ -5,6 +5,8 @@ import { PositionsController } from './http/positions.controller';
 import {
   CreateShiftTemplate,
   CreateSite,
+  GetPosition,
+  GetShiftTemplate,
   GetShiftTemplateDurations,
   GetSite,
   ListShiftTemplates,
@@ -65,6 +67,12 @@ import { SHIFT_TEMPLATE_REPOSITORY, SITE_REPOSITORY } from './repository-tokens'
         new ListShiftTemplates(sites, shiftTemplates),
     },
     {
+      provide: GetShiftTemplate,
+      inject: [SITE_REPOSITORY, SHIFT_TEMPLATE_REPOSITORY],
+      useFactory: (sites: SiteRepository, shiftTemplates: ShiftTemplateRepository) =>
+        new GetShiftTemplate(sites, shiftTemplates),
+    },
+    {
       provide: GetShiftTemplateDurations,
       inject: [SITE_REPOSITORY, SHIFT_TEMPLATE_REPOSITORY],
       useFactory: (sites: SiteRepository, shiftTemplates: ShiftTemplateRepository) =>
@@ -72,6 +80,6 @@ import { SHIFT_TEMPLATE_REPOSITORY, SITE_REPOSITORY } from './repository-tokens'
     },
   ],
   // Use cases publics : l'application les appelle pour répondre aux autres contextes (règle 4).
-  exports: [GetSite, GetSkill],
+  exports: [GetPosition, GetShiftTemplate, GetSite, GetSkill],
 })
 export class OrganizationModule {}

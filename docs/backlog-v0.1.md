@@ -500,6 +500,8 @@ Scénario: Habilitation expirée
 
 ### US-050 — Besoins de couverture
 
+> **Première partie livrée au jalon 1** ([#69](https://github.com/hachwilliam89-spec/trame/issues/69)) : les besoins d'une semaine datée (jour, créneau type, poste, nombre requis), leur remplacement en entier, la validation « créneaux et postes du site », la persistance (schéma `demand`) et la lecture par l'API (`GET /api/v1/coverage-needs`). Restent à faire : la copie d'une semaine sur une autre, l'écriture par l'API et l'écran de gestion.
+
 - Grille hebdomadaire : par créneau type et par poste, le nombre de personnes requises.
 - Copie d'une semaine sur une autre. Validation (pas de besoin négatif, créneaux du site uniquement).
 

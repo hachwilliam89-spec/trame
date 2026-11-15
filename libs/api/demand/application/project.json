@@ -1,0 +1,8 @@
+{
+  "name": "api-demand-application",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/api/demand/application/src",
+  "projectType": "library",
+  "tags": ["scope:api", "layer:application", "context:demand"],
+  "targets": {}
+}

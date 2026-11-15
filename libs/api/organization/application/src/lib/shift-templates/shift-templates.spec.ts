@@ -6,6 +6,7 @@ import { InMemorySiteRepository } from '../../testing/in-memory-site.repository'
 import { ShiftTemplateNotFoundError, SiteNotFoundError } from '../not-found.errors';
 import { CreateSite } from '../sites/create-site';
 import { CreateShiftTemplate, type CreateShiftTemplateCommand } from './create-shift-template';
+import { GetShiftTemplate } from './get-shift-template';
 import { GetShiftTemplateDurations } from './get-shift-template-durations';
 import { ListShiftTemplates } from './list-shift-templates';
 
@@ -37,6 +38,7 @@ async function setUp() {
     night,
     createShiftTemplate: new CreateShiftTemplate(sites, shiftTemplates, clock, ids),
     listShiftTemplates: new ListShiftTemplates(sites, shiftTemplates),
+    getShiftTemplate: new GetShiftTemplate(sites, shiftTemplates),
     getDurations: new GetShiftTemplateDurations(sites, shiftTemplates),
   };
 }
@@ -107,6 +109,46 @@ describe('ListShiftTemplates', () => {
 
     await expect(
       listShiftTemplates.execute({ organizationId: 'org-b', siteId: site.id, page: { limit: 50 } }),
+    ).rejects.toThrow(SiteNotFoundError);
+  });
+});
+
+describe('GetShiftTemplate', () => {
+  it('lit un créneau type de son site', async () => {
+    const { createShiftTemplate, getShiftTemplate, night, site } = await setUp();
+    const created = await createShiftTemplate.execute(night);
+
+    const read = await getShiftTemplate.execute({
+      organizationId: 'org-a',
+      siteId: site.id,
+      shiftTemplateId: created.id,
+    });
+
+    expect(read).toBe(created);
+  });
+
+  it('signale un créneau absent du site', async () => {
+    const { getShiftTemplate, site } = await setUp();
+
+    await expect(
+      getShiftTemplate.execute({
+        organizationId: 'org-a',
+        siteId: site.id,
+        shiftTemplateId: 'absent',
+      }),
+    ).rejects.toThrow(ShiftTemplateNotFoundError);
+  });
+
+  it('BDD isolation : le site d’une autre organisation est introuvable', async () => {
+    const { createShiftTemplate, getShiftTemplate, night, site } = await setUp();
+    const created = await createShiftTemplate.execute(night);
+
+    await expect(
+      getShiftTemplate.execute({
+        organizationId: 'org-b',
+        siteId: site.id,
+        shiftTemplateId: created.id,
+      }),
     ).rejects.toThrow(SiteNotFoundError);
   });
 });

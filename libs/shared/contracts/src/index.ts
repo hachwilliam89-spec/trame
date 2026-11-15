@@ -1,5 +1,6 @@
 export * from './auth/role.v1';
 export * from './common/page.v1';
+export * from './demand/weekly-coverage.v1';
 export * from './engine/engine-health.v1';
 export { engineContracts, engineContractsJsonSchema } from './engine-contracts';
 export * from './organization/position.v1';
