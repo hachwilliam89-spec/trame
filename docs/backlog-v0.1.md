@@ -451,6 +451,8 @@ Scénario: Habilitation expirée
 
 ### US-032 — Contrats
 
+> **Première partie livrée au jalon 1** ([#69](https://github.com/hachwilliam89-spec/trame/issues/69)) : le volume hebdomadaire minimum et maximum, la période, la règle « un seul contrat actif par employé et par période », la persistance et la lecture par l'API (`GET /api/v1/employees/:employeeId/contracts`). Restent à faire : le type de contrat, les jours travaillables (avec leur règle dans le moteur), l'indicateur « peut travailler de nuit » (avec l'équipe de nuit, jalon 2), l'écriture par l'API et l'écran de gestion.
+
 - Type de contrat, volume horaire hebdomadaire minimum et maximum, jours travaillables, dates de début et de fin, indicateur « peut travailler de nuit ». Le statut de travailleur de nuit, lui, est calculé par le moteur (US-061).
 - Un seul contrat actif par employé et par période.
 
