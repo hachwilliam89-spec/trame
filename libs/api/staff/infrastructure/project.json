@@ -1,0 +1,17 @@
+{
+  "name": "api-staff-infrastructure",
+  "$schema": "../../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/api/staff/infrastructure/src",
+  "projectType": "library",
+  "tags": ["scope:api", "layer:infrastructure", "context:staff"],
+  "targets": {
+    "integration": {
+      "dependsOn": ["^prisma-generate"],
+      "command": "vitest run --config vitest.integration.config.mts",
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "cache": false
+    }
+  }
+}
