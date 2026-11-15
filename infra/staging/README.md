@@ -13,7 +13,7 @@ Il suppose la stack `trame-shared` démarrée et provisionnée (`infra/compose/s
 sudo /opt/trame/source/infra/staging/install-release-tools.sh    # dans /usr/local/bin
 ```
 
-[RUNBOOK.md](RUNBOOK.md) donne l'ordre complet de la mise en service, commande par commande.
+[RUNBOOK.md](RUNBOOK.md) donne l'ordre complet de la mise en service, commande par commande. [ADMINISTRATION.md](ADMINISTRATION.md) donne les gestes courants une fois le staging en service : console de Keycloak, comptes, état des services.
 
 ## Fichiers sur le VPS
 
