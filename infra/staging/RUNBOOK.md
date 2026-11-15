@@ -6,21 +6,34 @@ Mise en service du staging sur le VPS, pas à pas : chaque commande, ce qu'elle 
 
 - Kim approuve et lance chaque commande. Aucun agent n'agit sur le VPS.
 - Une sortie différente de l'attendu arrête le déroulé : on diagnostique avant de continuer.
-- Sauf mention « sur le poste », les commandes se lancent sur le VPS, en root (`sudo -i`), dans une session `tmux` : une coupure SSH n'interrompt rien, et les variables de l'étape 4 y restent disponibles jusqu'à l'étape 6.
-- `<vps>` est l'alias SSH du VPS. `SHA` est le commit de `main` à mettre en service, en 40 caractères : `export SHA=<commit>` au début de la session, sur le poste comme sur le VPS.
+- Sauf mention « sur le poste », les commandes se lancent sur le VPS, en root (`sudo -i`), dans une session `tmux` (`tmux new -s trame`) : une coupure SSH n'interrompt rien, et les variables de l'étape 4 y restent disponibles jusqu'à l'étape 7. `echo "tmux : ${TMUX:-ABSENT}"` dit si l'on y est, `tmux attach -t trame` y revient.
+- Les blocs se collent un par un, sur une ligne vide (Ctrl+C la vide), et chaque sortie attendue se vérifie avant le bloc suivant. Un collage long a été tronqué pendant la mise en service : les blocs longs sont découpés.
+- Un texte entre chevrons (`<vps>`, `<commit>`, `<fichier>`) est à remplacer avant de lancer la commande : collé tel quel, il provoque une erreur de syntaxe.
+- `SHA` est le commit de `main` à mettre en service, en 40 caractères : `export SHA=<commit>` une fois entré dans `tmux`, sur le poste comme sur le VPS, puis `echo "$SHA"`.
 
-**Ce que la répétition a déjà prouvé.** Les étapes 3 à 7 et 9 utilisent les scripts que la répétition du staging joue à chaque passage (`rehearsal.yml`) : installation d'`oras` et de `cosign`, provisionnement, realm `master`, `deploy.sh`. Les étapes marquées **(non répété)** n'ont jamais été jouées : elles demandent plus d'attention.
+**Ce que la répétition a déjà prouvé.** Les étapes 3 à 7 et 9 utilisent les scripts que la répétition du staging joue à chaque passage (`rehearsal.yml`) : installation d'`oras` et de `cosign`, provisionnement, realm `master`, `deploy.sh`. Les étapes marquées **(non répété)** n'ont jamais été jouées : elles demandent plus d'attention. La répétition s'appuie sur une autorité de certification de test : l'émission des certificats par Let's Encrypt ne se vérifie que sur le VPS (étapes 1 et 7).
 
 ## 1. Préalables, sans effet sur le VPS
 
-| Contrôle                                 | Commande                                                                             | Attendu                                                                                           |
-| ---------------------------------------- | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- |
-| Durcissement de l'hôte appliqué (US-013) | `scripts/check.sh` du dépôt `vps-edge`, puis `scripts/check-externe.sh` sur le poste | Les deux réussissent                                                                              |
-| Outils présents                          | `command -v docker git tar curl python3 openssl tmux`                                | Sept chemins. `tmux` absent : l'installer, ou accepter le risque d'une coupure SSH                |
-| Réseau de Traefik                        | `docker network inspect edge --format '{{.Name}}'`                                   | `edge`                                                                                            |
-| Seul Traefik publie des ports            | `docker ps --format '{{.Names}}\t{{.Ports}}' \| grep -F -e '->'`                     | Une seule ligne, celle de Traefik                                                                 |
-| Tunnel SSH permis                        | `sshd -T \| grep -i allowtcpforwarding`                                              | `yes` ou `local`. Sinon, la console d'administration est injoignable : décider avant de continuer |
-| Mémoire avant                            | `free -m`                                                                            | Noter `available` et le swap utilisé : la référence de l'étape 10                                 |
+| Contrôle                                | Commande                                                         | Attendu                                                                                                                                                                                    |
+| --------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Durcissement de l'hôte (US-013)         | `/opt/edge/host/check.sh; echo "code : $?"`                      | Chaque ligne en `[OK]`, puis `code : 0`                                                                                                                                                    |
+| KCD et Équilibre répondent              | `/opt/edge/scripts/check.sh; echo "code : $?"`                   | `code : 0`. Garder la sortie : la référence de l'étape 10                                                                                                                                  |
+| KCD et Équilibre actifs                 | `docker ps --format '{{.Names}}\t{{.Status}}'`                   | Leurs conteneurs en `Up` : sans eux, la référence mémoire ne vaut rien                                                                                                                     |
+| Outils présents                         | `command -v docker git tar curl python3 openssl tmux`            | Sept chemins. `tmux` absent : l'installer, ou accepter le risque d'une coupure SSH                                                                                                         |
+| Réseau de Traefik                       | `docker network inspect edge --format '{{.Name}}'`               | `edge`                                                                                                                                                                                     |
+| Seul Traefik publie des ports           | `docker ps --format '{{.Names}}\t{{.Ports}}' \| grep -F -e '->'` | Une seule ligne, celle de Traefik                                                                                                                                                          |
+| Certificats demandés par l'entrée HTTPS | `grep -n certResolver /opt/edge/traefik.yml`                     | Une ligne `certResolver: letsencrypt` : les routes de Trame ne nomment aucun résolveur                                                                                                     |
+| Tunnel SSH permis                       | `sshd -T \| grep -i allowtcpforwarding`                          | `yes` ou `local`. Sinon, la console d'administration est injoignable : décider avant de continuer                                                                                          |
+| Mémoire avant                           | `free -m`                                                        | Noter `available` et le swap utilisé : la référence de l'étape 10. Il faut au moins 3,7 Gio disponibles : les 2,5 Gio du critère, plus 1,2 Gio, la somme des maxima observés en répétition |
+
+**Ports ouverts, sur le poste.** `VPS_ADDRESS` est l'adresse IPv4 du VPS ; `-G` est l'option de macOS, `-w` celle de Linux.
+
+```bash
+for port in 22 80 443 5432 5672 8080 15672; do nc -z -G 3 "$VPS_ADDRESS" $port >/dev/null 2>&1 && echo "$port ouvert" || echo "$port fermé"; done
+```
+
+Attendu : 22, 80 et 443 ouverts, les quatre autres fermés. Le contrôle externe complet d'US-013 (`host/check-externe.sh` du dépôt `vps-edge`) n'a pas été rejoué à la mise en service.
 
 **Répétition finale, sur le poste.** Elle joue la version exacte à mettre en service, avec le script qui la déploiera :
 
@@ -31,15 +44,15 @@ gh run watch
 
 Attendu : le job réussit. Son résumé donne le SHA du script répété, les deux versions et leurs digests. Si une migration sépare `SHA` de la version précédente, la répétition prouve aussi le retour sur le schéma migré. Sans répétition verte sur ce `SHA`, on ne déploie pas.
 
-## 2. DNS (chez OVH)
+## 2. DNS
 
-Créer deux enregistrements `A` vers l'adresse du VPS : `staging.trame.wkhach.dev` et `auth.trame.wkhach.dev`. Un enregistrement `AAAA` seulement si les domaines déjà servis par `vps-edge` en ont un.
+La zone `wkhach.dev` est chez Porkbun (`dig +short NS wkhach.dev`). Y créer deux enregistrements `A` vers l'adresse IPv4 du VPS, pour les hôtes `staging.trame` et `auth.trame`. Pas d'enregistrement `AAAA` : les domaines déjà servis par ce VPS n'en ont pas.
 
 ```bash
-dig +short staging.trame.wkhach.dev auth.trame.wkhach.dev
+dig +short staging.trame.wkhach.dev auth.trame.wkhach.dev @salvador.ns.porkbun.com
 ```
 
-Attendu : l'adresse du VPS, deux fois. Les enregistrements doivent répondre **avant** l'étape 7 : Traefik demande les certificats dès que les routes apparaissent, et Let's Encrypt limite les essais en échec.
+Attendu : l'adresse du VPS, deux fois. La question est posée au serveur de la zone : un résolveur garde en mémoire l'absence de réponse d'un essai fait trop tôt. Les enregistrements doivent répondre **avant** l'étape 7 : Traefik demande les certificats dès que les routes apparaissent, et Let's Encrypt limite les essais en échec.
 
 Retour arrière : supprimer les deux enregistrements.
 
@@ -64,7 +77,7 @@ Retour arrière : `rm /usr/local/bin/oras /usr/local/bin/cosign`, puis `rm -rf /
 
 ## 4. Secrets
 
-Les mots de passe sont générés en hexadécimal : plusieurs entrent dans une URL, où les caractères `/`, `+` et `=` du base64 seraient mal lus. Les variables sont exportées pour le provisionnement de l'étape 6, qui les lit dans l'environnement.
+Les mots de passe sont générés en hexadécimal : plusieurs entrent dans une URL, où les caractères `/`, `+` et `=` du base64 seraient mal lus. Les variables sont exportées pour le provisionnement de l'étape 6, qui les lit dans l'environnement. Deux blocs, dans la même session.
 
 ```bash
 umask 077
@@ -80,7 +93,9 @@ printf 'POSTGRES_PASSWORD=%s\n' "$(secret)" > postgres.env
 printf 'RABBITMQ_DEFAULT_USER=trame-admin\nRABBITMQ_DEFAULT_PASS=%s\n' "$(secret)" > rabbitmq.env
 printf 'KC_DB_PASSWORD=%s\nKC_BOOTSTRAP_ADMIN_USERNAME=admin-temporaire\nKC_BOOTSTRAP_ADMIN_PASSWORD=%s\n' \
   "$TRAME_KEYCLOAK_DATABASE_PASSWORD" "$(secret)" > keycloak.env
+```
 
+```bash
 cd /opt/trame/staging/secrets
 database='postgres:5432/trame_staging'
 printf 'DATABASE_URL=postgresql://trame_staging_migrator:%s@%s\n' "$TRAME_MIGRATOR_PASSWORD" "$database" > migrator.env
@@ -89,10 +104,12 @@ printf 'DATABASE_URL=postgresql://trame_staging_api:%s@%s\nAMQP_URL=amqp://trame
   "$TRAME_API_PASSWORD" "$database" "$TRAME_RELAY_PASSWORD" > relay.env
 printf 'AMQP_URL=amqp://trame_staging_worker:%s@rabbitmq:5672/trame-staging\n' "$TRAME_WORKER_PASSWORD" > worker.env
 
+umask 022
 ls -l /opt/trame/shared/secrets /opt/trame/staging/secrets
+grep -c -E '[0-9a-f]{64}' /opt/trame/*/secrets/*.env
 ```
 
-Attendu : sept fichiers en `-rw-------`, propriétaire root. Aucune valeur ne s'affiche. Les noms et les variables sont ceux des modèles de `infra/compose/secrets.example`.
+Attendu : sept fichiers en `-rw-------`, propriétaire root, puis le compte des secrets présents : `2` pour `keycloak.env` et `relay.env`, `1` pour les cinq autres. Aucune valeur ne s'affiche. Les noms et les variables sont ceux des modèles de `infra/compose/secrets.example`. `umask 022` rend à la suite les droits par défaut, ceux de la répétition.
 
 Retour arrière, avant tout démarrage : `rm -rf /opt/trame/shared/secrets /opt/trame/staging/secrets`.
 
@@ -108,31 +125,49 @@ docker compose -f infra/compose/shared.yml up -d --wait postgres rabbitmq
 docker compose -p trame-shared ps
 ```
 
-Attendu : `postgres` et `rabbitmq` en `running (healthy)`, sans port publié.
+Attendu : `postgres` et `rabbitmq` avec un statut `Up … (healthy)`, sans flèche `->` dans la colonne des ports.
 
 Retour arrière : `docker compose -p trame-shared down` arrête et retire les conteneurs, en gardant les volumes. `down --volumes` détruit les données : seulement avant toute donnée réelle.
 
 ## 6. Provisionnement
 
-Dans la même session que l'étape 4. Les scripts sont silencieux quand ils réussissent, et rejouables.
+Dans la même session que l'étape 4. Les scripts sont silencieux quand ils réussissent, et rejouables. Chaque bloc s'arrête au premier échec, et refuse de partir si une variable de l'étape 4 manque.
+
+```bash
+(
+  set -euo pipefail
+  cd /opt/trame/source
+  export TRAME_SECRETS_DIR=/opt/trame/shared/secrets KEYCLOAK_ADMIN_URL=http://127.0.0.1:18080
+  : "${TRAME_KEYCLOAK_DATABASE_PASSWORD:?absente}" "${TRAME_MIGRATOR_PASSWORD:?absente}" "${TRAME_API_PASSWORD:?absente}"
+  shared() { docker compose -f infra/compose/shared.yml exec -T "$@"; }
+
+  shared postgres psql --no-psqlrc -U postgres -d postgres < infra/provisioning/postgres-cluster.sql
+  shared -e TRAME_KEYCLOAK_DATABASE_PASSWORD postgres psql --no-psqlrc -U postgres -d postgres \
+    < infra/provisioning/postgres-keycloak.sql
+  shared -e TRAME_ENVIRONMENT=staging -e TRAME_MIGRATOR_PASSWORD -e TRAME_API_PASSWORD postgres \
+    psql --no-psqlrc -U postgres -d postgres < infra/provisioning/postgres-environment.sql
+  echo "PostgreSQL provisionné"
+)
+```
+
+```bash
+(
+  set -euo pipefail
+  cd /opt/trame/source
+  export TRAME_SECRETS_DIR=/opt/trame/shared/secrets KEYCLOAK_ADMIN_URL=http://127.0.0.1:18080
+  : "${TRAME_RELAY_PASSWORD:?absente}" "${TRAME_WORKER_PASSWORD:?absente}"
+  docker compose -f infra/compose/shared.yml exec -T \
+    -e TRAME_ENVIRONMENT=staging -e TRAME_RELAY_PASSWORD -e TRAME_WORKER_PASSWORD rabbitmq \
+    sh -s < infra/provisioning/rabbitmq-environment.sh
+  echo "RabbitMQ provisionné"
+)
+```
+
+Attendu : `PostgreSQL provisionné`, puis `RabbitMQ provisionné`, sans autre sortie des scripts. Contrôle :
 
 ```bash
 cd /opt/trame/source
 shared() { docker compose -f infra/compose/shared.yml exec -T "$@"; }
-
-shared postgres psql --no-psqlrc -U postgres -d postgres < infra/provisioning/postgres-cluster.sql
-shared -e TRAME_KEYCLOAK_DATABASE_PASSWORD postgres psql --no-psqlrc -U postgres -d postgres \
-  < infra/provisioning/postgres-keycloak.sql
-shared -e TRAME_ENVIRONMENT=staging -e TRAME_MIGRATOR_PASSWORD -e TRAME_API_PASSWORD postgres \
-  psql --no-psqlrc -U postgres -d postgres < infra/provisioning/postgres-environment.sql
-shared -e TRAME_ENVIRONMENT=staging -e TRAME_RELAY_PASSWORD -e TRAME_WORKER_PASSWORD rabbitmq \
-  sh -s < infra/provisioning/rabbitmq-environment.sh
-echo "code de sortie : $?"
-```
-
-Attendu : aucune sortie des scripts, puis `code de sortie : 0`. Contrôle :
-
-```bash
 shared postgres psql -U postgres -Atc '\l' | cut -d'|' -f1 | grep -E '^(keycloak|trame_staging)$'
 shared rabbitmq rabbitmqctl -q list_vhosts | grep -x trame-staging
 ```
@@ -143,32 +178,51 @@ Retour arrière : rien à défaire tant que rien ne s'y connecte. Pour repartir 
 
 ## 7. Keycloak et realm `master`
 
+Le DNS d'abord : sans lui, Let's Encrypt refuse le certificat et compte un essai en échec.
+
 ```bash
-docker compose -f infra/compose/shared.yml up -d --wait keycloak
-shared keycloak bash -s < infra/provisioning/keycloak-master-realm.sh
-echo "code de sortie : $?"
+dig +short auth.trame.wkhach.dev staging.trame.wkhach.dev
 ```
 
-Attendu : `keycloak` en `running (healthy)`, puis `code de sortie : 0`. Le script donne au realm `master` l'adresse du tunnel (ADR-0034). Il utilise le compte temporaire : il passe **avant** l'étape 8.
+Attendu : l'adresse du VPS, deux fois. Sinon, ne pas démarrer Keycloak.
 
-Contrôles, depuis le VPS :
+```bash
+(
+  set -euo pipefail
+  cd /opt/trame/source
+  export TRAME_SECRETS_DIR=/opt/trame/shared/secrets KEYCLOAK_ADMIN_URL=http://127.0.0.1:18080
+  docker compose -f infra/compose/shared.yml up -d --wait --wait-timeout 300 keycloak
+  docker compose -f infra/compose/shared.yml exec -T keycloak bash -s < infra/provisioning/keycloak-master-realm.sh
+  docker compose -f infra/compose/shared.yml ps
+  echo "Keycloak prêt et console configurée"
+)
+```
+
+Attendu : `keycloak` avec un statut `Up … (healthy)`, puis `Keycloak prêt et console configurée`. Le script donne au realm `master` l'adresse du tunnel (ADR-0034). Il utilise le compte temporaire : il passe **avant** l'étape 8.
+
+Contrôles :
 
 ```bash
 keycloak_address="$(docker inspect -f '{{(index .NetworkSettings.Networks "edge").IPAddress}}' trame-shared-keycloak-1)"
 curl -s "http://$keycloak_address:8080/realms/master/.well-known/openid-configuration" \
   | python3 -c 'import json, sys; print(json.load(sys.stdin)["issuer"])'
-for path in /realms/trame-staging/.well-known/openid-configuration /realms/master/.well-known/openid-configuration /admin/master/console/; do
-  curl -s -o /dev/null -w "%{http_code} $path\n" "https://auth.trame.wkhach.dev$path"
-done
 ```
 
-Attendu : `http://127.0.0.1:18080/realms/master`, puis `200` pour le realm de staging et `404` pour les deux autres chemins. Un certificat refusé à ce stade : attendre une minute, Traefik l'obtient à la première requête.
+```bash
+curl -s -o /dev/null -w "%{http_code} trame-staging\n" https://auth.trame.wkhach.dev/realms/trame-staging/.well-known/openid-configuration
+curl -s -o /dev/null -w "%{http_code} master\n" https://auth.trame.wkhach.dev/realms/master/.well-known/openid-configuration
+curl -s -o /dev/null -w "%{http_code} console\n" https://auth.trame.wkhach.dev/admin/master/console/
+```
+
+Attendu : `http://127.0.0.1:18080/realms/master`, puis `200 trame-staging`, `404 master` et `404 console`. Un code `000` : le certificat n'est pas encore émis. Vérifier le DNS, attendre une minute, relancer les trois lignes.
 
 Retour arrière : `docker compose -f infra/compose/shared.yml rm --stop --force keycloak`. Sa base reste dans PostgreSQL.
 
 Les variables de l'étape 4 ne servent plus : `unset TRAME_KEYCLOAK_DATABASE_PASSWORD TRAME_MIGRATOR_PASSWORD TRAME_API_PASSWORD TRAME_RELAY_PASSWORD TRAME_WORKER_PASSWORD`.
 
 ## 8. Administrateur permanent **(non répété)**
+
+Joué une fois, à la mise en service ; toujours absent de la répétition.
 
 Sur le poste, ouvrir le tunnel avec l'adresse relevée à l'étape 7, qui change à chaque recréation du conteneur :
 
@@ -183,7 +237,16 @@ Puis, dans un navigateur, `http://127.0.0.1:18080/admin/master/console/`. Le mot
 3. Onglet Role mapping : attribuer le rôle de realm `admin`.
 4. Se déconnecter, puis se reconnecter avec ce compte : Keycloak impose l'enrôlement du TOTP.
 5. **Seulement après cette connexion réussie**, supprimer le compte `admin-temporaire` (Users).
-6. Sur le VPS, retirer les deux lignes `KC_BOOTSTRAP_ADMIN_*` de `/opt/trame/shared/secrets/keycloak.env`.
+6. Sur le VPS, retirer ses identifiants du fichier de secrets, puis recréer Keycloak, pour que le conteneur ne les porte plus dans son environnement :
+
+   ```bash
+   sed -i '/^KC_BOOTSTRAP_ADMIN_/d' /opt/trame/shared/secrets/keycloak.env
+   cd /opt/trame/source
+   export TRAME_SECRETS_DIR=/opt/trame/shared/secrets KEYCLOAK_ADMIN_URL=http://127.0.0.1:18080
+   docker compose -f infra/compose/shared.yml up -d --wait --wait-timeout 300 keycloak
+   ```
+
+   Attendu : `keycloak` recréé, puis `Healthy`. Son adresse a pu changer : la relever de nouveau avant de rouvrir le tunnel.
 
 Contrôle : une nouvelle connexion à la console demande le mot de passe et le code TOTP, et la liste des utilisateurs de `master` ne contient plus `admin-temporaire`.
 
@@ -204,13 +267,15 @@ Attendu : les étapes défilent (vérification, extraction, préchargement, sauv
 | 3    | Impossible pour l'instant                        | Rien n'a été touché : outil, dossier ou verrou                                                                          |
 | 4    | Arrêt des services en échec                      | État incertain : `docker compose -p trame-staging ps --all`, puis décider                                               |
 
+Un premier déploiement en échec au contrôle de l'adresse publique : vérifier le DNS et le certificat (contrôles de l'étape 7), puis relancer la même commande. À la mise en service, des problèmes de DNS et de certificat ont dû être résolus, et `deploy.sh` a été lancé deux fois.
+
 Retour arrière : voir « Retirer le staging ».
 
 ## 10. Critères de réussite de B2b
 
 Tous doivent être remplis. Sinon, on retire le staging.
 
-1. **Surface.** `docker ps --format '{{.Names}}\t{{.Ports}}' | grep -F -e '->'` ne montre que Traefik. Sur le poste, `scripts/check-externe.sh` de `vps-edge` réussit toujours.
+1. **Surface.** `docker ps --format '{{.Names}}\t{{.Ports}}' | grep -F -e '->'` ne montre que Traefik. `/opt/edge/host/check.sh` et `/opt/edge/scripts/check.sh` réussissent toujours, et la boucle des ports de l'étape 1, sur le poste, donne le même résultat.
 2. **Compte de Kim (non répété dans la console).** Par le tunnel, realm `trame-staging`, Users, Add user : nom, adresse, attribut `organization_id` (un UUID, par exemple `python3 -c 'import uuid; print(uuid.uuid4())'`, à garder pour les données à venir). Credentials : mot de passe **temporaire**. Role mapping : `manager`. La répétition crée ce même compte par l'API d'administration.
 3. **Connexion réelle.** Sur `https://staging.trame.wkhach.dev`, « Se connecter » : Keycloak impose l'enrôlement du TOTP et le changement du mot de passe, puis la page du diagnostic s'affiche.
 4. **Diagnostic.** « Tester le moteur » affiche « Les trois tâches ont été affectées. » : l'API, le relais, RabbitMQ, le worker et le moteur fonctionnent ensemble.
