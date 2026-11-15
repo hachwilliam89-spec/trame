@@ -94,6 +94,25 @@
     <p class="muted">Le caractère optimal de cette affectation n’a pas été prouvé.</p>
     } @if (assignments().length > 0) {
     <tr-assignment-weave [assignments]="assignments()" />
+    <table class="assignments sr-only">
+      <caption>
+        Affectation retenue
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Tâche fictive</th>
+          <th scope="col">Affectation</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (assignment of assignments(); track assignment.task) {
+        <tr>
+          <td>Tâche {{ assignment.task }}</td>
+          <td>Poste {{ assignment.post }}</td>
+        </tr>
+        }
+      </tbody>
+    </table>
     }
     <dl class="facts">
       <div class="fact">
@@ -114,27 +133,7 @@
     </dl>
     <details>
       <summary>Détails du calcul</summary>
-      @if (assignments().length > 0) {
-      <table class="assignments">
-        <caption>
-          Affectation retenue
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col">Tâche fictive</th>
-            <th scope="col">Affectation</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (assignment of assignments(); track assignment.task) {
-          <tr>
-            <td>Tâche {{ assignment.task }}</td>
-            <td>Poste {{ assignment.post }}</td>
-          </tr>
-          }
-        </tbody>
-      </table>
-      } @if (costRows().length > 0) {
+      @if (costRows().length > 0) {
       <table class="costs">
         <caption>
           Coût de chaque affectation possible. Le moteur retient la répartition dont le total est le

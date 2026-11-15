@@ -19,12 +19,13 @@ const THREAD_MIDDLE_X = 180;
 /**
  * Résultat du diagnostic dessiné comme un tissage : un fil relie chaque tâche au poste retenu.
  * Le dessin ne montre que les affectations reçues, sans animation ni valeur inventée.
+ * Il est masqué aux lecteurs d'écran : la page leur donne la même affectation en tableau.
  */
 @Component({
   selector: 'tr-assignment-weave',
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <svg viewBox="0 0 360 150" role="img" [attr.aria-label]="description()">
+    <svg viewBox="0 0 360 150" aria-hidden="true" focusable="false">
       @for (thread of threads(); track thread.task) {
         <path class="thread" [attr.d]="thread.path" />
       }
@@ -90,9 +91,6 @@ export class AssignmentWeave {
       path: threadPath(rowCenter(index), rowCenter(assignment.post - 1)),
     })),
   );
-
-  /** Ce que le dessin montre, pour un lecteur d'écran. */
-  protected readonly description = computed(() => describeWeave(this.assignments()));
 }
 
 function rowCenter(index: number): number {
@@ -102,16 +100,4 @@ function rowCenter(index: number): number {
 /** Courbe qui part du bord d'une tâche et rejoint le bord de son poste. */
 function threadPath(taskY: number, postY: number): string {
   return `M${THREAD_START_X} ${taskY} C ${THREAD_MIDDLE_X} ${taskY}, ${THREAD_MIDDLE_X} ${postY}, ${THREAD_END_X} ${postY}`;
-}
-
-function describeWeave(assignments: readonly WovenAssignment[]): string {
-  const [first, ...others] = assignments;
-  if (first === undefined) {
-    return 'Aucune affectation.';
-  }
-  const links = [
-    `La tâche ${first.task} est reliée au poste ${first.post}`,
-    ...others.map((assignment) => `la tâche ${assignment.task} au poste ${assignment.post}`),
-  ];
-  return `${links.join(', ')}.`;
 }

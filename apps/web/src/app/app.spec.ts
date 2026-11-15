@@ -159,15 +159,21 @@ describe('Premier parcours Guidé', () => {
       expect(element.querySelector('.diagnostic-band h1')?.textContent).toBe('Tester le moteur');
     });
 
-    it('relie chaque tâche à son poste par un fil, décrit pour les lecteurs d’écran', async () => {
+    it('relie chaque tâche à son poste par un fil, et donne l’affectation en tableau aux lecteurs d’écran', async () => {
       const element = await renderAsManager(optimalRun);
 
       const weave = element.querySelector('tr-assignment-weave svg');
       expect(weave?.querySelectorAll('path.thread').length).toBe(3);
-      expect(weave?.getAttribute('role')).toBe('img');
-      expect(weave?.getAttribute('aria-label')).toBe(
-        'La tâche A est reliée au poste 2, la tâche B au poste 1, la tâche C au poste 3.',
+      expect(weave?.getAttribute('aria-hidden')).toBe('true');
+      const table = element.querySelector('table.assignments');
+      expect(table?.closest('details')).toBeNull();
+      const rows = Array.from(table?.querySelectorAll('tbody tr') ?? []);
+      const cellTexts = rows.map((row) =>
+        Array.from(row.querySelectorAll('td'))
+          .map((cell) => cell.textContent?.trim())
+          .join(' '),
       );
+      expect(cellTexts).toEqual(['Tâche A Poste 2', 'Tâche B Poste 1', 'Tâche C Poste 3']);
     });
 
     it('affiche l’issue, la durée réelle du calcul et son coût', async () => {
