@@ -267,7 +267,7 @@ Attendu : les étapes défilent (vérification, extraction, préchargement, sauv
 | 3    | Impossible pour l'instant                        | Rien n'a été touché : outil, dossier ou verrou                                                                          |
 | 4    | Arrêt des services en échec                      | État incertain : `docker compose -p trame-staging ps --all`, puis décider                                               |
 
-Un premier déploiement en échec au contrôle de l'adresse publique : vérifier le DNS et le certificat (contrôles de l'étape 7), puis relancer la même commande. À la mise en service, des problèmes de DNS et de certificat ont dû être résolus, et `deploy.sh` a été lancé deux fois.
+Un premier déploiement en échec au contrôle de l'adresse publique : vérifier le DNS et le certificat (contrôles de l'étape 7), puis relancer la même commande. C'est ce qui s'est produit à la mise en service : le certificat n'était pas encore émis au premier lancement, et le second a réussi une fois le DNS et le certificat en place.
 
 Retour arrière : voir « Retirer le staging ».
 
