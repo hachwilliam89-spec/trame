@@ -1,6 +1,6 @@
 # Runbook du staging (US-005 B2b)
 
-Mise en service du staging sur le VPS, pas à pas : chaque commande, ce qu'elle doit afficher, et son retour arrière. Le fonctionnement de `deploy.sh` est décrit dans [README.md](README.md) ; ce document dit dans quel ordre agir.
+Mise en service du staging sur le VPS, pas à pas : chaque commande, ce qu'elle doit afficher, et son retour arrière. Le fonctionnement de `deploy.sh` est décrit dans [README.md](README.md) ; ce document dit dans quel ordre agir. Les gestes courants une fois le staging en service (console de Keycloak, comptes, état des services) sont dans [ADMINISTRATION.md](ADMINISTRATION.md).
 
 **Règles**
 

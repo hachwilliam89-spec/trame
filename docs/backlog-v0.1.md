@@ -44,6 +44,19 @@ Priorité MoSCoW : **M** indispensable à la démo · **S** important, peut suiv
 
 La stack Grafana complète (US-007) est reportée avant l'ouverture de la démo publique (US-092), et US-009 B n'en dépend plus.
 
+**Ordre révisé le 15 novembre 2026**, décidé par Kim sur la recommandation de Claude, une fois le staging en service. La recherche de stage a commencé : la démo doit montrer le cœur métier au plus tôt. Le chemin vers la démo passe par une tranche verticale, en trois jalons. Les stories et leurs règles ne changent pas. Seul leur ordre change, et chaque story de gestion est coupée en deux : le modèle et sa persistance d'abord, l'écran ensuite.
+
+1. **Jalon 1 — Générer et voir** ([#69](https://github.com/hachwilliam89-spec/trame/issues/69)) : un jeu de démo réduit, le modèle des employés, des contrats et des besoins, un premier jeu de règles dans le moteur, le lancement d'une génération et la grille en lecture seule, avec la couverture chiffrée. Premières parties d'US-031, 032, 050, 040, 061, 060, 062, 071 et 090.
+2. **Jalon 2 — Modifier et comprendre** : d'abord une équipe de nuit et les règles du travail de nuit (US-061), puis la PE et une modification évaluée (US-070, US-072). La nuit fait partie du métier d'un entrepôt, mais ses règles, dont le statut de travailleur de nuit calculé, se livrent entières : le jalon 1 reste en 2×8 de jour. Le reste de son contenu est fixé à l'ouverture de son issue.
+3. **Jalon 3 — Ouvrir** : une organisation par visiteur (US-021, US-090), les sauvegardes avec test de restauration (US-008), puis la protection et l'ouverture (US-092).
+
+Deux écarts par rapport à l'ordre du 6 novembre :
+
+- les sauvegardes (US-008) passent du début du métier à l'avant-ouverture, le staging ne portant que des données fictives ;
+- les écrans de gestion (US-031 à US-050), la publication (US-080) et la vue employé viennent après les jalons.
+
+Garde-fous : chaque contexte suit le module de référence, les données de démo passent par les use cases, et chaque règle est une classe unique avec son test de cohérence (ADR-0020).
+
 ### Phase 2 — pendant le stage (sessions courtes : une story = un déploiement)
 
 | Ordre | US  | Titre                                        | Priorité |
@@ -437,6 +450,8 @@ Depuis US-020 A (#22 et #28), les routes métier utilisent le résolveur OIDC de
 
 ### US-031 — Employés
 
+> **Première partie livrée au jalon 1** ([#69](https://github.com/hachwilliam89-spec/trame/issues/69)) : le modèle de l'employé et de ses habilitations, sa persistance (schéma `staff`), sa lecture par l'API (`GET /api/v1/employees`) et le monteur `anEmployee()`. L'écriture par l'API et l'écran de gestion restent à faire. La validité d'une habilitation à une date est décidée par le moteur seul (règle 5).
+
 - CRUD : compétences, habilitations avec date d'expiration (ex. CACES).
 - Pattern envisagé : **Monteur de données de test** (Test Data Builder), exposé par le point d'entrée `testing`. Les scénarios restent lisibles (« un cariste dont le CACES expire le 10 décembre ») sans fixtures longues. Il sert ensuite à `staff`, `demand` et `scheduling`, et son équivalent Python au moteur.
 
@@ -448,6 +463,8 @@ Scénario: Habilitation expirée
 ```
 
 ### US-032 — Contrats
+
+> **Première partie livrée au jalon 1** ([#69](https://github.com/hachwilliam89-spec/trame/issues/69)) : le volume hebdomadaire minimum et maximum, la période, la règle « un seul contrat actif par employé et par période », la persistance et la lecture par l'API (`GET /api/v1/employees/:employeeId/contracts`). Restent à faire : le type de contrat, les jours travaillables (avec leur règle dans le moteur), l'indicateur « peut travailler de nuit » (avec l'équipe de nuit, jalon 2), l'écriture par l'API et l'écran de gestion.
 
 - Type de contrat, volume horaire hebdomadaire minimum et maximum, jours travaillables, dates de début et de fin, indicateur « peut travailler de nuit ». Le statut de travailleur de nuit, lui, est calculé par le moteur (US-061).
 - Un seul contrat actif par employé et par période.
