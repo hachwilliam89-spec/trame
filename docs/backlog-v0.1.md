@@ -47,7 +47,7 @@ La stack Grafana complète (US-007) est reportée avant l'ouverture de la démo 
 **Ordre révisé le 15 novembre 2026**, décidé par Kim sur la recommandation de Claude, une fois le staging en service. La recherche de stage a commencé : la démo doit montrer le cœur métier au plus tôt. Le chemin vers la démo passe par une tranche verticale, en trois jalons. Les stories et leurs règles ne changent pas. Seul leur ordre change, et chaque story de gestion est coupée en deux : le modèle et sa persistance d'abord, l'écran ensuite.
 
 1. **Jalon 1 — Générer et voir** ([#69](https://github.com/hachwilliam89-spec/trame/issues/69)) : un jeu de démo réduit, le modèle des employés, des contrats et des besoins, un premier jeu de règles dans le moteur, le lancement d'une génération et la grille en lecture seule, avec la couverture chiffrée. Premières parties d'US-031, 032, 050, 040, 061, 060, 062, 071 et 090.
-2. **Jalon 2 — Modifier et comprendre** : la PE et une modification évaluée (US-070, US-072). Son contenu exact est fixé à l'ouverture de son issue.
+2. **Jalon 2 — Modifier et comprendre** : d'abord une équipe de nuit et les règles du travail de nuit (US-061), puis la PE et une modification évaluée (US-070, US-072). La nuit fait partie du métier d'un entrepôt, mais ses règles, dont le statut de travailleur de nuit calculé, se livrent entières : le jalon 1 reste en 2×8 de jour. Le reste de son contenu est fixé à l'ouverture de son issue.
 3. **Jalon 3 — Ouvrir** : une organisation par visiteur (US-021, US-090), les sauvegardes avec test de restauration (US-008), puis la protection et l'ouverture (US-092).
 
 Deux écarts par rapport à l'ordre du 6 novembre :
