@@ -203,6 +203,29 @@ describe('Premier parcours Guidé', () => {
       expect(element.querySelectorAll('table.costs tbody td').length).toBe(9);
     });
 
+    it('marque l’étape du calcul comme en cours, et le statut comme un repère creux', async () => {
+      const element = await renderAsManager(
+        { ...optimalRun, status: 'RUNNING', outcome: undefined },
+        'running',
+      );
+
+      const steps = Array.from(element.querySelectorAll('.steps li'));
+      expect(steps.map((step) => step.className.trim())).toEqual(['done', 'current', '']);
+      expect(element.querySelector('.diagnostic-band .status')?.classList.contains('running')).toBe(
+        true,
+      );
+    });
+
+    it('marque les trois étapes comme terminées une fois le résultat reçu', async () => {
+      const element = await renderAsManager(optimalRun);
+
+      const steps = Array.from(element.querySelectorAll('.steps li'));
+      expect(steps.map((step) => step.className.trim())).toEqual(['done', 'done', 'done']);
+      expect(element.querySelector('.diagnostic-band .status')?.classList.contains('running')).toBe(
+        false,
+      );
+    });
+
     it('annonce la suite sans la présenter comme disponible', async () => {
       const element = await renderAsManager(undefined, 'ready');
 

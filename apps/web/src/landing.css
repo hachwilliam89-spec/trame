@@ -14,9 +14,9 @@
 .landing-hero h1 {
   font-size: clamp(30px, 4.5vw, 50px);
   line-height: 1.12;
-  letter-spacing: -1.8px;
+  letter-spacing: -0.03em;
   margin: 28px 0;
-  font-weight: 600;
+  font-weight: 650;
 }
 .landing-hero h1 span {
   color: var(--weave-thread);
