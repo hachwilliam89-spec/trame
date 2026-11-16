@@ -50,3 +50,7 @@ export const scheduleReportedV1 = z.object({
   occurredAt: z.iso.datetime({ offset: true }),
   payload: z.object({ generationId: z.uuid(), requestId: z.uuid(), report: scheduleReportV1 }),
 });
+
+export type ScheduleOutcomeV1 = z.infer<typeof scheduleOutcomeV1>;
+export type ScheduleFailureV1 = z.infer<typeof scheduleFailureV1>;
+export type ScheduleReportedV1 = z.infer<typeof scheduleReportedV1>;
