@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 from enum import StrEnum
+from threading import Event, Thread
+from typing import Protocol
 
 from ortools.sat.python import cp_model
 
@@ -40,7 +42,22 @@ class ScheduleOutcome:
     solve_seconds: float
 
 
-def solve_week(week: Week, parameters: SolveParameters) -> ScheduleOutcome:
+class StoppableSearch(Protocol):
+    def stop_search(self) -> None: ...
+
+
+def watch_stop(solver: StoppableSearch, stop: Event, done: Event) -> None:
+    """Interrompt la recherche si l'arrêt est demandé avant qu'elle ne se termine."""
+    while not done.wait(0.1):
+        if stop.is_set():
+            solver.stop_search()
+            return
+
+
+def solve_week(
+    week: Week, parameters: SolveParameters, stop: Event | None = None
+) -> ScheduleOutcome:
+    """`stop` interrompt la recherche depuis un autre thread : le worker qui s'arrête l'active."""
     week_model = build_week_model(week)
     for rule in week.rules:
         rule.add_to_model(week_model)
@@ -50,7 +67,13 @@ def solve_week(week: Week, parameters: SolveParameters) -> ScheduleOutcome:
     solver.parameters.max_time_in_seconds = parameters.time_limit_seconds
     solver.parameters.num_workers = parameters.workers
     solver.parameters.random_seed = parameters.seed
-    status = status_of(solver.status_name(solver.solve(week_model.model)))
+    done = Event()
+    if stop is not None:
+        Thread(target=watch_stop, args=(solver, stop, done), daemon=True).start()
+    try:
+        status = status_of(solver.status_name(solver.solve(week_model.model)))
+    finally:
+        done.set()
     checked_rules = tuple(rule.rule_id for rule in week.rules)
 
     if status not in {ScheduleStatus.OPTIMAL, ScheduleStatus.FEASIBLE}:

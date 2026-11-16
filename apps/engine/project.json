@@ -51,6 +51,14 @@
       ],
       "cache": true
     },
+    "integration": {
+      "description": "Worker contre un vrai RabbitMQ (Testcontainers, Docker requis).",
+      "command": "uv run pytest tests_integration",
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "cache": false
+    },
     "lint": {
       "executor": "nx:run-commands",
       "options": {
