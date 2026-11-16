@@ -10,9 +10,10 @@ import {
 import { WebSession } from '@trame/web/auth/data-access';
 import { DiagnosticState } from '@trame/web/scheduling/data-access';
 import { DiagnosticPage } from '@trame/web/scheduling/feature-diagnostic';
+import { LandingPage } from './landing/landing-page';
 @Component({
   selector: 'tr-root',
-  imports: [DiagnosticPage],
+  imports: [DiagnosticPage, LandingPage],
   templateUrl: './app.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
