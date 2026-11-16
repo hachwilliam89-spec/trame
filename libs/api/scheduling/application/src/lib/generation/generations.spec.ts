@@ -1,0 +1,251 @@
+import {
+  NoCoverageNeedError,
+  WeekMustStartOnMondayError,
+  type ScheduleGeneration,
+  type WeekPlanning,
+} from '@trame/api/scheduling/domain';
+import { FixedClock } from '@trame/platform/clock';
+import { SequentialIdGenerator } from '@trame/platform/ids';
+import { IdempotencyKey } from '@trame/platform/idempotency';
+import { scheduleRequestedV1 } from '@trame/shared/contracts';
+import { InMemoryScheduleGenerations, InMemoryWeekPlanningSource } from '../../testing';
+import {
+  IdempotencyKeyReusedError,
+  ScheduleGenerationNotFoundError,
+  SiteNotFoundError,
+} from './generation.errors';
+import { GetScheduleGeneration } from './get-schedule-generation';
+import { GetWeekScheduleGenerations } from './get-week-schedule-generations';
+import { StartScheduleGeneration } from './start-schedule-generation';
+
+const organizationId = '0190f0a0-0000-7000-8000-00000000000a';
+const anotherOrganizationId = '0190f0a0-0000-7000-8000-00000000000b';
+const SITE_ID = '0190f0a0-0000-7000-8000-0000000000d1';
+const OTHER_SITE_ID = '0190f0a0-0000-7000-8000-0000000000d2';
+const MONDAY = Temporal.PlainDate.from('2026-11-23');
+const CACES_3 = '0190f0a0-0000-7000-8000-000000000031';
+const clock = new FixedClock('2026-11-16T21:00:00Z');
+
+function weekPlanning(siteId: string, requiredCount = 2): WeekPlanning {
+  return {
+    siteId,
+    weekStartsOn: MONDAY,
+    timeZone: 'Europe/Paris',
+    shifts: [
+      {
+        date: MONDAY,
+        shiftTemplateId: '0190f0a0-0000-7000-8000-000000000011',
+        positionId: '0190f0a0-0000-7000-8000-000000000021',
+        startsAt: Temporal.Instant.from('2026-11-23T05:00:00Z'),
+        endsAt: Temporal.Instant.from('2026-11-23T12:20:00Z'),
+        effectiveMinutes: 420,
+        requiredSkillIds: [CACES_3],
+        requiredCount,
+      },
+    ],
+    employees: [
+      {
+        id: '0190f0a0-0000-7000-8000-000000000041',
+        qualifications: [{ skillId: CACES_3, expiresOn: undefined }],
+        contracts: [
+          {
+            weeklyMinutesMin: 0,
+            weeklyMinutesMax: 2100,
+            startsOn: Temporal.PlainDate.from('2026-01-05'),
+            endsOn: undefined,
+          },
+        ],
+      },
+      {
+        id: '0190f0a0-0000-7000-8000-000000000049',
+        qualifications: [],
+        contracts: [],
+      },
+    ],
+  };
+}
+
+describe('Lancer la génération du planning d’une semaine', () => {
+  let generations: InMemoryScheduleGenerations;
+  let planning: InMemoryWeekPlanningSource;
+  let start: StartScheduleGeneration;
+
+  beforeEach(() => {
+    generations = new InMemoryScheduleGenerations();
+    planning = new InMemoryWeekPlanningSource();
+    planning.define(organizationId, weekPlanning(SITE_ID));
+    planning.define(organizationId, weekPlanning(OTHER_SITE_ID));
+    planning.define(anotherOrganizationId, weekPlanning(SITE_ID));
+    start = new StartScheduleGeneration(generations, planning, clock, new SequentialIdGenerator());
+  });
+
+  function launch(key: string, siteId = SITE_ID, weekStartsOn = MONDAY) {
+    return start.execute({ organizationId, siteId, weekStartsOn, key: IdempotencyKey.of(key) });
+  }
+
+  it('enregistre une génération en attente, son instantané et un seul message pour le moteur', async () => {
+    const generation = await launch('request-1');
+
+    expect(generation).toMatchObject({
+      organizationId,
+      siteId: SITE_ID,
+      status: 'QUEUED',
+      parameters: { timeLimitSeconds: 30, workers: 1, seed: 0 },
+      excludedEmployees: [
+        { employeeId: '0190f0a0-0000-7000-8000-000000000049', reason: 'NO_CONTRACT_COVERING_WEEK' },
+      ],
+      createdAt: clock.now(),
+    });
+    expect(generation.weekStartsOn.equals(MONDAY)).toBe(true);
+    expect(generation.problem.shifts[0]?.requiredCount).toBe(2);
+    const messages = generations.messages();
+    expect(messages).toHaveLength(1);
+    const message = scheduleRequestedV1.parse(messages[0]);
+    expect(message).toMatchObject({
+      organizationId,
+      type: 'scheduling.schedule-requested.v1',
+      payload: { generationId: generation.id, parameters: generation.parameters },
+    });
+    expect(message.payload.problem).toEqual(generation.problem);
+  });
+
+  it('Double clic : la même clé rend la génération d’origine, même si les besoins ont changé', async () => {
+    const first = await launch('same-request');
+    planning.define(organizationId, weekPlanning(SITE_ID, 5));
+
+    const replay = await launch('same-request');
+
+    expect(replay).toEqual(first);
+    expect(replay.problem.shifts[0]?.requiredCount).toBe(2);
+    expect(generations.messages()).toHaveLength(1);
+  });
+
+  it('refuse la même clé pour un autre site ou une autre semaine, sans rien créer', async () => {
+    await launch('same-key');
+
+    await expect(launch('same-key', OTHER_SITE_ID)).rejects.toThrow(IdempotencyKeyReusedError);
+    await expect(launch('same-key', SITE_ID, MONDAY.add({ weeks: 1 }))).rejects.toThrow(
+      IdempotencyKeyReusedError,
+    );
+    expect(generations.messages()).toHaveLength(1);
+  });
+
+  it('sépare les organisations qui utilisent la même clé', async () => {
+    const first = await launch('same-key');
+    const second = await start.execute({
+      organizationId: anotherOrganizationId,
+      siteId: SITE_ID,
+      weekStartsOn: MONDAY,
+      key: IdempotencyKey.of('same-key'),
+    });
+
+    expect(second.id).not.toBe(first.id);
+    expect(second.organizationId).toBe(anotherOrganizationId);
+  });
+
+  it('ne lance rien sur le site d’une autre organisation', async () => {
+    planning.forget(organizationId, SITE_ID);
+
+    await expect(launch('request-1')).rejects.toThrow(SiteNotFoundError);
+    expect(generations.messages()).toHaveLength(0);
+  });
+
+  it('Semaine sans besoin : refusée, aucune génération créée', async () => {
+    planning.define(organizationId, { ...weekPlanning(SITE_ID), shifts: [] });
+
+    await expect(launch('request-1')).rejects.toThrow(NoCoverageNeedError);
+    expect(generations.messages()).toHaveLength(0);
+  });
+
+  it('Semaine qui ne commence pas un lundi : refusée', async () => {
+    await expect(launch('request-1', SITE_ID, MONDAY.add({ days: 1 }))).rejects.toThrow(
+      WeekMustStartOnMondayError,
+    );
+  });
+});
+
+describe('Retrouver les générations', () => {
+  let generations: InMemoryScheduleGenerations;
+  let planning: InMemoryWeekPlanningSource;
+  let ids: SequentialIdGenerator;
+
+  beforeEach(() => {
+    generations = new InMemoryScheduleGenerations();
+    planning = new InMemoryWeekPlanningSource();
+    planning.define(organizationId, weekPlanning(SITE_ID));
+    ids = new SequentialIdGenerator();
+  });
+
+  async function generation(key: string, minutesLater: number): Promise<ScheduleGeneration> {
+    const later = new FixedClock(clock.now().add({ minutes: minutesLater }).toString());
+    const start = new StartScheduleGeneration(generations, planning, later, ids);
+    return start.execute({
+      organizationId,
+      siteId: SITE_ID,
+      weekStartsOn: MONDAY,
+      key: IdempotencyKey.of(key),
+    });
+  }
+
+  it('Isolation : une autre organisation ne trouve pas la génération', async () => {
+    const launched = await generation('request-1', 0);
+    const get = new GetScheduleGeneration(generations);
+
+    expect(await get.execute({ organizationId, generationId: launched.id })).toEqual(launched);
+    await expect(
+      get.execute({ organizationId: anotherOrganizationId, generationId: launched.id }),
+    ).rejects.toThrow(ScheduleGenerationNotFoundError);
+  });
+
+  it('garde le dernier planning exploitable pendant qu’un nouveau calcul tourne', async () => {
+    const solved = await generation('first', 0);
+    generations.finish(solved.id, {
+      status: 'FEASIBLE',
+      schedule: { assignments: [], shortfalls: [] },
+    });
+    const running = await generation('second', 5);
+    generations.start(running.id);
+
+    const week = await new GetWeekScheduleGenerations(generations, planning).execute({
+      organizationId,
+      siteId: SITE_ID,
+      weekStartsOn: MONDAY,
+    });
+
+    expect(week.latestAttempt?.id).toBe(running.id);
+    expect(week.latestAttempt?.status).toBe('RUNNING');
+    expect(week.latestSchedule?.id).toBe(solved.id);
+  });
+
+  it('ne prend pas un calcul sans planning pour le dernier planning exploitable', async () => {
+    const solved = await generation('first', 0);
+    generations.finish(solved.id, {
+      status: 'OPTIMAL',
+      schedule: { assignments: [], shortfalls: [] },
+    });
+    const impossible = await generation('second', 5);
+    generations.finish(impossible.id, { status: 'INFEASIBLE', schedule: null });
+
+    const week = await new GetWeekScheduleGenerations(generations, planning).execute({
+      organizationId,
+      siteId: SITE_ID,
+      weekStartsOn: MONDAY,
+    });
+
+    expect(week.latestAttempt?.id).toBe(impossible.id);
+    expect(week.latestSchedule?.id).toBe(solved.id);
+  });
+
+  it('rend une semaine vide sans génération, et refuse le site d’une autre organisation', async () => {
+    const getWeek = new GetWeekScheduleGenerations(generations, planning);
+    const query = { organizationId, siteId: SITE_ID, weekStartsOn: MONDAY };
+
+    expect(await getWeek.execute(query)).toEqual({
+      latestAttempt: undefined,
+      latestSchedule: undefined,
+    });
+    await expect(
+      getWeek.execute({ ...query, organizationId: anotherOrganizationId }),
+    ).rejects.toThrow(SiteNotFoundError);
+  });
+});

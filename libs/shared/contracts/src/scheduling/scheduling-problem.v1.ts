@@ -100,3 +100,6 @@ export const schedulingProblemV1 = z.object({
   /** Mode standard du cadrage §8 : la couverture est un objectif, un manque est permis et chiffré. */
   objective: z.object({ mode: z.literal('STANDARD') }),
 });
+
+export type SchedulingRuleV1 = z.infer<typeof schedulingRuleV1>;
+export type SchedulingProblemV1 = z.infer<typeof schedulingProblemV1>;

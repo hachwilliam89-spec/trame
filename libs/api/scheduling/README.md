@@ -51,6 +51,39 @@ L'enveloppe `scheduling.diagnostic-requested.v1` contient organisation, identifi
 instant ISO 8601 avec fuseau (produit en UTC) et `{runId, problem: 'assignment-smoke-v1'}`. Elle est validée par zod,
 exportée en JSON Schema et générée en Pydantic ; les fixtures sont partagées.
 
+## Génération du planning d'une semaine (US-061, PR 6a)
+
+La PR 6a livre le cœur du lancement, sans route : le lancement par HTTP arrive avec la PR 6b,
+quand le relais sait router la demande et recevoir son résultat.
+
+- `domain` : `ScheduleGeneration`, et `composeSchedulingProblem`, qui fige le problème envoyé
+  au moteur (`SchedulingProblemV1`) :
+  - un shift par jour, créneau type et poste ayant un besoin, d'identifiant
+    `date/créneau type/poste`, avec ses instants dans le fuseau du site ;
+  - les salariés du site dont un contrat couvre toute la semaine ; les autres sont écartés
+    avec le motif `NO_CONTRACT_COVERING_WEEK`, que l'écran expliquera ;
+  - les six règles du jalon 1 aux valeurs du cadrage §6 (11 h, 10 h, 48 h), fixes à ce jalon ;
+  - un worker, la graine 0 et 30 s (ADR-0037).
+- `application` :
+  - `StartScheduleGeneration` : 400 si la semaine ne commence pas un lundi, 404 pour un site
+    d'une autre organisation, 422 sans besoin. La même clé rend la génération d'origine, même
+    si les besoins ont changé ; la même clé pour un autre site ou une autre semaine est refusée
+    (409) ;
+  - `GetScheduleGeneration` et `GetWeekScheduleGenerations`, qui rend le dernier essai et le
+    dernier planning exploitable (`OPTIMAL` ou `FEASIBLE`), affiché pendant un nouveau calcul.
+- `infrastructure` : `ScheduleGenerationModule.forRoot({ weekPlanning })` et
+  `PrismaScheduleGenerations`. Le port `WeekPlanningSource` est fourni par `apps/api`
+  (`SchedulingWeekPlanningModule`), avec les use cases publics d'`organization`, `demand` et
+  `staff`.
+
+La table `schedule_generations` garde l'instantané, les paramètres et le résultat : un besoin
+modifié après le calcul ne change pas la couverture affichée d'un ancien planning. Les noms des
+salariés restent dans `staff` : aucune donnée nominative n'est copiée dans `scheduling`.
+
+Le relais ne prend dans l'outbox que les types qu'il sait router, filtrés dans la sélection
+SQL avant `LIMIT 1` : une demande de génération en attente ne bloque jamais les diagnostics,
+même après un retour à une version antérieure.
+
 ## Vérifications
 
 ```bash

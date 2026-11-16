@@ -44,8 +44,8 @@ export class DemandModule {
             new GetWeeklyCoverage(catalog, coverages),
         },
       ],
-      // Use case public : d'autres parties de l'application définissent des besoins par lui.
-      exports: [DefineWeeklyCoverage],
+      // Use cases publics : d'autres parties de l'application définissent et lisent des besoins.
+      exports: [DefineWeeklyCoverage, GetWeeklyCoverage],
     };
   }
 }

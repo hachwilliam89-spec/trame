@@ -77,9 +77,9 @@ export class StaffModule {
             new ListContracts(employees, contracts),
         },
       ],
-      // Use cases publics : d'autres parties de l'application créent des employés et leurs
-      // contrats par eux.
-      exports: [CreateEmployee, CreateContract],
+      // Use cases publics : d'autres parties de l'application créent et lisent des employés et
+      // leurs contrats par eux.
+      exports: [CreateEmployee, CreateContract, ListEmployees, ListContracts],
     };
   }
 }

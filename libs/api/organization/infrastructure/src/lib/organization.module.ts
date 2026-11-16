@@ -80,6 +80,6 @@ import { SHIFT_TEMPLATE_REPOSITORY, SITE_REPOSITORY } from './repository-tokens'
     },
   ],
   // Use cases publics : l'application les appelle pour répondre aux autres contextes (règle 4).
-  exports: [GetPosition, GetShiftTemplate, GetSite, GetSkill],
+  exports: [GetPosition, GetShiftTemplate, GetShiftTemplateDurations, GetSite, GetSkill],
 })
 export class OrganizationModule {}

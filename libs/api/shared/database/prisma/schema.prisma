@@ -212,6 +212,33 @@ model DiagnosticRun {
   @@schema("scheduling")
 }
 
+// ─── Génération du planning d'une semaine (US-061, jalon 1) ─────────────────
+
+/// L'instantané du problème, ses paramètres et son résultat : de quoi réafficher et auditer un
+/// calcul (cadrage, reproductibilité), même après une modification des besoins.
+model ScheduleGeneration {
+  id                String   @id @db.Uuid
+  organizationId    String   @map("organization_id") @db.Uuid
+  siteId            String   @map("site_id") @db.Uuid
+  weekStartsOn      DateTime @map("week_starts_on") @db.Date
+  idempotencyKey    String   @map("idempotency_key") @db.VarChar(128)
+  status            String   @db.VarChar(16)
+  problem           Json     @db.JsonB
+  parameters        Json     @db.JsonB
+  excludedEmployees Json     @map("excluded_employees") @db.JsonB
+  createdAt         DateTime @map("created_at") @db.Timestamptz(3)
+
+  outcome    Json?     @db.JsonB
+  failure    String?   @db.VarChar(32)
+  finishedAt DateTime? @map("finished_at") @db.Timestamptz(3)
+
+  @@unique([id, organizationId])
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, siteId, weekStartsOn, createdAt], map: "schedule_generations_week_idx")
+  @@map("schedule_generations")
+  @@schema("scheduling")
+}
+
 /// Le relais et le marquage de publication arriveront avec A2.
 model OutboxMessage {
   id             String   @id @db.Uuid
