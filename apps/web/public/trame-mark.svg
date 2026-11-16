@@ -1,15 +1,19 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
-  <g>
-    <rect x="0" y="0" width="16" height="46" fill="#2DB4C4"/>
-    <rect x="0" y="74" width="16" height="46" fill="#2DB4C4"/>
-    <rect x="52" y="22" width="16" height="76" fill="#2DB4C4"/>
-    <rect x="104" y="0" width="16" height="46" fill="#2DB4C4"/>
-    <rect x="104" y="74" width="16" height="46" fill="#2DB4C4"/>
-    <rect x="22" y="0" width="76" height="16" fill="#8FDDE4"/>
-    <rect x="0" y="52" width="46" height="16" fill="#8FDDE4"/>
-    <rect x="74" y="52" width="46" height="16" fill="#8FDDE4"/>
-    <rect x="22" y="104" width="76" height="16" fill="#8FDDE4"/>
-    <rect x="23" y="23" width="22" height="22" fill="#8FDDE4"/>
-    <rect x="75" y="75" width="22" height="22" fill="#8FDDE4"/>
-  </g>
-</svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 126 126" width="126" height="126" role="img" aria-label="Trame">
+  <title>Trame</title>
+  <rect fill="#2DB4C4" x="0" y="0" width="70" height="14"/>
+  <rect fill="#2DB4C4" x="28" y="14" width="14" height="39"/>
+  <rect fill="#2DB4C4" x="28" y="73" width="14" height="8"/>
+  <rect fill="#2DB4C4" x="28" y="101" width="14" height="25"/>
+  <rect fill="#36C9DC" x="56" y="112" width="70" height="14"/>
+  <rect fill="#36C9DC" x="84" y="0" width="14" height="25"/>
+  <rect fill="#36C9DC" x="84" y="45" width="14" height="8"/>
+  <rect fill="#36C9DC" x="84" y="73" width="14" height="39"/>
+  <rect fill="#8FDDE4" x="0" y="56" width="14" height="70"/>
+  <rect fill="#8FDDE4" x="14" y="84" width="39" height="14"/>
+  <rect fill="#8FDDE4" x="73" y="84" width="8" height="14"/>
+  <rect fill="#8FDDE4" x="101" y="84" width="25" height="14"/>
+  <rect fill="#5FD8BC" x="112" y="0" width="14" height="70"/>
+  <rect fill="#5FD8BC" x="0" y="28" width="25" height="14"/>
+  <rect fill="#5FD8BC" x="45" y="28" width="67" height="14"/>
+  <rect fill="#F2FBFB" x="28" y="56" width="70" height="14"/>
+  <rect fill="#F2FBFB" x="56" y="70" width="14" height="36"/></svg>
