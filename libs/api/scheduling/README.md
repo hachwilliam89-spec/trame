@@ -97,6 +97,10 @@ même après un retour à une version antérieure.
 - Un rapport refusé (illisible, sans demande, incohérent) part en rebut. Rattaché à sa demande
   publiée, il fait passer la génération en `FAILED` (`PROCESSING_FAILED`) ; une demande épuisée
   donne `RETRIES_EXHAUSTED`. Une génération terminée n'est jamais rouverte.
+- Une demande dont le message publié dépasserait 1 Mio (`SCHEDULE_MESSAGE_MAX_BYTES`) est refusée
+  avant toute écriture (`ScheduleRequestTooLargeError`, 422 en 6c).
+- Une file pleine ne suspend que son flux, 5 s : le diagnostic continue pendant une saturation
+  de la génération, et inversement (ADR-0032, ajout du 17 novembre).
 
 ## Vérifications
 
