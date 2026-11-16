@@ -61,9 +61,15 @@ FROM toolchain AS migrator
 # bibliothèque cliente C de PostgreSQL de l'image de base non plus, Prisma ayant son propre client :
 # elle est retirée, avec ses failles hautes que cette base (digest inchangé au 2026-11-14) n'a pas
 # encore corrigées. dpkg échoue si un autre paquet en dépend.
+# L'analyse refuse toute faille haute ou critique déjà corrigée par Debian. Cette base complète
+# embarque des paquets de compilation (en-têtes du noyau, par exemple) dont les correctifs
+# arrivent avant un nouveau digest : ils sont appliqués ici (CVE-2026-99083, 2026-11-16).
 RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
       /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
-  && dpkg --purge libpq-dev libpq5
+  && dpkg --purge libpq-dev libpq5 \
+  && apt-get update \
+  && apt-get upgrade --yes --no-install-recommends \
+  && rm -rf /var/lib/apt/lists/*
 COPY --from=migration-dependencies /runtime/node_modules ./node_modules
 COPY libs/api/shared/database/prisma ./prisma
 COPY infra/docker/prisma.config.ts ./prisma.config.ts
