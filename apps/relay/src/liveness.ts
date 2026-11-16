@@ -1,16 +1,12 @@
 import { writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import type { Clock } from '@trame/platform/clock';
-
-/** Dans le conteneur, le dossier temporaire est un tmpfs privé (infra/compose/staging.yml). */
-export const LIVENESS_FILE = join(tmpdir(), 'trame-relay-alive');
 
 const BEAT_INTERVAL_SECONDS = 5;
 
 /**
  * La boucle du relais touche ce fichier pendant qu'elle tourne connectée. La sonde du conteneur
- * le juge vivant s'il a moins de 20 s : sans RabbitMQ ni PostgreSQL, il vieillit.
+ * le juge vivant s'il a moins de 20 s : sans RabbitMQ ni PostgreSQL, il vieillit. Son chemin vient
+ * de `RELAY_LIVENESS_FILE`, posé par le déploiement dans un tmpfs privé (infra/compose/staging.yml).
  */
 export class Liveness {
   private lastBeat: Temporal.Instant | undefined;

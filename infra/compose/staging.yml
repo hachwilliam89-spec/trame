@@ -70,11 +70,12 @@ services:
     env_file:
       - path: ${TRAME_SECRETS_DIR:?}/relay.env
         required: true
+    environment: { RELAY_LIVENESS_FILE: /tmp/trame-relay-alive }
     depends_on:
       migrator: { condition: service_completed_successfully }
     networks: [staging, data]
     mem_limit: 256m
-    # La boucle du relais touche ce fichier toutes les 5 s quand elle tourne connectée
+    # La boucle du relais touche RELAY_LIVENESS_FILE toutes les 5 s quand elle tourne connectée
     # (apps/relay/src/liveness.ts) : sans RabbitMQ ni PostgreSQL, `deploy.sh` revient en arrière.
     healthcheck:
       test:

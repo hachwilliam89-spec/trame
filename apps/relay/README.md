@@ -27,8 +27,9 @@ borné à 1 Mio, et son planning contrôlé contre l'instantané stocké avant d
 Une demande ou un rapport de génération en rebut, rattaché à sa demande publiée, fait échouer
 la génération si elle n'est pas terminée (`RETRIES_EXHAUSTED` ou `PROCESSING_FAILED`).
 
-La boucle touche `trame-relay-alive`, dans le dossier temporaire, au plus toutes les 5 s :
-c'est la sonde du conteneur au staging, qui le juge vivant s'il a moins de 20 s.
+Si `RELAY_LIVENESS_FILE` est défini, la boucle touche ce fichier au plus toutes les 5 s : c'est
+la sonde du conteneur au staging (`/tmp/trame-relay-alive`, sur un tmpfs privé), qui le juge
+vivant s'il a moins de 20 s.
 
 Le processus utilise une connexion/une requête SQL bornées à 5 secondes, et des publications
 AMQP confirmées en 5 secondes au maximum. Une publication retournée (`mandatory`),

@@ -13,7 +13,7 @@ import {
   scheduleTopologyV1,
 } from '@trame/shared/contracts';
 import pino from 'pino';
-import { LIVENESS_FILE, Liveness } from './liveness';
+import { Liveness } from './liveness';
 import { type TransportSettings, transportSettings } from './settings';
 
 interface Topologies {
@@ -58,12 +58,14 @@ async function connectAndRun(options: RunOptions): Promise<void> {
     session = await AmqpSession.open(options.settings.AMQP_URL);
     const transports = await startTransports(session, options);
     options.logger.info({ event: 'transport_ready' });
-    const liveness = new Liveness(LIVENESS_FILE, new SystemClock());
+    const livenessFile = options.settings.RELAY_LIVENESS_FILE;
+    const liveness =
+      livenessFile === undefined ? undefined : new Liveness(livenessFile, new SystemClock());
     while (!options.stop.signal.aborted) {
       for (const transport of transports) {
         await transport.tick();
       }
-      await liveness.beat();
+      await liveness?.beat();
       await pause(100, options.stop.signal);
     }
   } catch (error) {

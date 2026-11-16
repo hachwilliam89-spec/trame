@@ -14,6 +14,7 @@ import { type TestBroker, startTestBroker } from '@trame/platform/messaging/test
 import {
   type ScheduleOutcomeV1,
   type ScheduleReportV1,
+  scheduleRequestedV1,
   scheduleTopologyV1,
 } from '@trame/shared/contracts';
 import { PrismaScheduleGenerations } from '../persistence/prisma-schedule-generations';
@@ -177,11 +178,18 @@ describe('Génération : PostgreSQL, RabbitMQ et vrai moteur Python', () => {
     return stored;
   }
 
+  /** La demande publiée pour cette génération, parmi celles de l'outbox. */
   async function requestIdOf(generationId: string): Promise<string> {
-    const request = await prisma.outboxMessage.findFirstOrThrow({
+    const requests = await prisma.outboxMessage.findMany({
       where: { type: 'scheduling.schedule-requested.v1' },
     });
-    expect(JSON.stringify(request.body)).toContain(generationId);
+    const request = requests.find(
+      (candidate) =>
+        scheduleRequestedV1.parse(candidate.body).payload.generationId === generationId,
+    );
+    if (request === undefined) {
+      throw new Error('Demande introuvable.');
+    }
     return request.id;
   }
 

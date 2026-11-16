@@ -240,8 +240,10 @@ describe('stacks des environnements déployés (US-005 B2a)', () => {
   });
 
   it('sonde le relais du staging : sans boucle connectée, le déploiement échoue', () => {
-    const probe = service('staging', 'relay').healthcheck?.test;
+    const relay = service('staging', 'relay');
+    const probe = relay.healthcheck?.test;
 
+    expect(relay.environment?.['RELAY_LIVENESS_FILE']).toBe('/tmp/trame-relay-alive');
     expect(probe?.slice(0, 3)).toEqual(['CMD', 'node', '-e']);
     expect(probe?.[3]).toContain('/tmp/trame-relay-alive');
   });
