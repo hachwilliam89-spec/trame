@@ -23,6 +23,8 @@ from trame_engine.worker.deadline import PublicationDeadlineExceededError
 
 # Une semaine de 2 000 shifts tient en moins d'un mégaoctet ; au-delà, la demande est écartée.
 MAX_REQUEST_BYTES = 1024 * 1024
+# Limite de l'API pour un rapport de génération : au-delà, il serait refusé et jamais rattaché.
+MAX_REPORT_BYTES = 1024 * 1024
 
 type ScheduleSolver = Callable[[Week, SolveParameters], ScheduleOutcome | None]
 type IdGenerator = Callable[[], UUID]
@@ -104,7 +106,23 @@ def run_schedule(
     outcome = solve(week, parameters)
     if outcome is None:
         raise ComputationInterruptedError
-    yield create_report(request, outcome_report(outcome), clock, ids)
+    yield bounded_result_report(request, outcome, clock, ids)
+
+
+def bounded_result_report(
+    request: ScheduleRequestedV1, outcome: ScheduleOutcome, clock: Clock, ids: IdGenerator
+) -> ScheduleReportedV1:
+    """Le résultat, ou un petit rapport d'échec s'il dépasse la limite acceptée par l'API."""
+    report = create_report(request, outcome_report(outcome), clock, ids)
+    size = len(report.model_dump_json(by_alias=True).encode())
+    if size <= MAX_REPORT_BYTES:
+        return report
+    structlog.get_logger().warning(
+        "schedule_report_too_large",
+        generation_id=str(request.payload.generation_id),
+        report_bytes=size,
+    )
+    return create_report(request, {"kind": "FAILED", "code": "PROCESSING_FAILED"}, clock, ids)
 
 
 def handle_schedule_request(
