@@ -1,0 +1,51 @@
+{
+  "exchange": "trame.schedule.v1",
+  "requests": {
+    "name": "trame.schedule.requests.v1",
+    "routingKey": "requested",
+    "arguments": {
+      "x-queue-type": "quorum",
+      "x-overflow": "reject-publish",
+      "x-max-length-bytes": 16777216,
+      "x-single-active-consumer": true,
+      "x-delivery-limit": 3,
+      "x-delayed-retry-type": "failed",
+      "x-delayed-retry-min": 1000,
+      "x-delayed-retry-max": 5000,
+      "x-dead-letter-exchange": "trame.schedule.v1",
+      "x-dead-letter-routing-key": "dead",
+      "x-dead-letter-strategy": "at-least-once"
+    }
+  },
+  "reports": {
+    "name": "trame.schedule.reports.v1",
+    "routingKey": "reported",
+    "arguments": {
+      "x-queue-type": "quorum",
+      "x-overflow": "reject-publish",
+      "x-max-length-bytes": 16777216,
+      "x-single-active-consumer": true,
+      "x-delivery-limit": 3,
+      "x-delayed-retry-type": "failed",
+      "x-delayed-retry-min": 1000,
+      "x-delayed-retry-max": 5000,
+      "x-dead-letter-exchange": "trame.schedule.v1",
+      "x-dead-letter-routing-key": "dead",
+      "x-dead-letter-strategy": "at-least-once"
+    }
+  },
+  "deadLetters": {
+    "name": "trame.schedule.dead.v1",
+    "routingKey": "dead",
+    "arguments": {
+      "x-queue-type": "quorum",
+      "x-overflow": "reject-publish",
+      "x-max-length-bytes": 16777216,
+      "x-single-active-consumer": true,
+      "x-delivery-limit": -1,
+      "x-delayed-retry-type": "failed",
+      "x-delayed-retry-min": 1000,
+      "x-delayed-retry-max": 5000
+    }
+  }
+}

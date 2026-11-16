@@ -5,6 +5,8 @@ import { diagnosticRequestedV1 } from './scheduling/diagnostic-requested.v1';
 import { engineHealthV1 } from './engine/engine-health.v1';
 import { scheduleReportedV1 } from './scheduling/schedule-reported.v1';
 import { scheduleRequestedV1 } from './scheduling/schedule-requested.v1';
+import { scheduleTopologyV1 } from './scheduling/schedule-topology.v1';
+import { queueDeclarationV1 } from './scheduling/queue-topology.v1';
 import {
   contractualVolumeRuleV1,
   maximumDailyDurationRuleV1,
@@ -29,6 +31,7 @@ export const engineContracts = {
   DiagnosticTopologyV1: diagnosticTopologyV1,
   ScheduleRequestedV1: scheduleRequestedV1,
   ScheduleReportedV1: scheduleReportedV1,
+  ScheduleTopologyV1: scheduleTopologyV1,
 } as const satisfies Record<string, z.ZodType>;
 
 /**
@@ -44,6 +47,7 @@ export const engineContractParts = {
   MaximumDailyDurationRuleV1: maximumDailyDurationRuleV1,
   MaximumWeeklyDurationRuleV1: maximumWeeklyDurationRuleV1,
   ContractualVolumeRuleV1: contractualVolumeRuleV1,
+  QueueDeclarationV1: queueDeclarationV1,
 } as const satisfies Record<string, z.ZodType>;
 
 const registry = z.registry<{ id: string }>();
