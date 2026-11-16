@@ -1,4 +1,11 @@
 @import 'tailwindcss';
+/* Polices du design system, servies par l'application : la CSP n'autorise que l'origine du site. */
+@import '@fontsource-variable/bricolage-grotesque/wght.css';
+@import '@fontsource/ibm-plex-sans/latin-400.css';
+@import '@fontsource/ibm-plex-sans/latin-500.css';
+@import '@fontsource/ibm-plex-sans/latin-600.css';
+@import '@fontsource/ibm-plex-mono/latin-400.css';
+@import '@fontsource/ibm-plex-mono/latin-500.css';
 @import '../../../libs/web/brand/src/tokens.css';
 @import './landing.css';
 @import '../../../libs/web/scheduling/feature-diagnostic/src/lib/diagnostic-page.css';
@@ -13,40 +20,49 @@ body {
   margin: 0;
   background: var(--page);
   color: var(--ink);
-  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
-  line-height: 1.55;
+  line-height: 22px;
 }
 button,
 summary {
   cursor: pointer;
 }
 button:disabled {
-  cursor: wait;
+  cursor: not-allowed;
   opacity: 0.6;
+}
+button[aria-busy='true'] {
+  cursor: wait;
 }
 button:focus-visible,
 summary:focus-visible,
 a:focus-visible {
-  outline: 3px solid var(--brand-weft);
-  outline-offset: 4px;
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
+}
+/* Titres en Bricolage Grotesque, texte en IBM Plex Sans : le caractère reste aux titres. */
+h1,
+h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
 }
 h1 {
   font-size: 30px;
-  line-height: 1.2;
-  font-weight: 500;
-  letter-spacing: -0.7px;
+  line-height: 36px;
+  letter-spacing: -0.02em;
   margin: 10px 0 16px;
 }
 h2 {
   font-size: 20px;
-  line-height: 1.35;
-  font-weight: 500;
+  line-height: 28px;
+  letter-spacing: -0.01em;
   margin: 0 0 12px;
 }
 h3 {
   font-size: 15px;
-  font-weight: 500;
+  line-height: 22px;
+  font-weight: 600;
   margin: 0 0 12px;
 }
 p {
@@ -75,11 +91,29 @@ p {
 }
 .environment,
 .status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
   background: var(--soft);
   color: var(--ink);
-  padding: 4px 10px;
-  border-radius: 5px;
+  padding: 3px var(--space-2);
+  border-radius: var(--radius-md);
   font-size: 12px;
+  line-height: 18px;
+  font-weight: 500;
+}
+/* Le repère de statut est un carré, tiré des bouts de fils du logo. */
+.status::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  background: currentColor;
+  flex: none;
+}
+/* Plein pour un état acquis, creux pour un état en cours. */
+.status.running::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px currentColor;
 }
 .account,
 .muted,
@@ -106,29 +140,54 @@ p {
 .panel {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 3px;
-  padding: 28px;
+  border-radius: var(--radius-sm);
+  padding: var(--space-6);
   min-width: 0;
 }
+/* Le fil cousu : une bande de tirets en haut de l'avis remplace la bordure gauche colorée. */
 .notice {
-  border-left: 3px solid var(--brand-warp);
-  padding: 4px 0 4px 14px;
-  margin: 16px 0 22px;
+  --notice-tone: var(--brand-weft);
+  position: relative;
+  margin: var(--space-4) 0 22px;
+  padding: calc(var(--space-4) + 6px) var(--space-5) var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+.notice::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  left: -1px;
+  height: 6px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: repeating-linear-gradient(90deg, var(--notice-tone) 0 12px, transparent 12px 16px);
 }
 .notice strong {
   display: block;
-  font-weight: 500;
+  font-weight: 600;
 }
 .notice p {
-  margin: 4px 0 0;
+  margin: var(--space-1) 0 0;
   color: var(--muted);
   font-size: 13px;
+  line-height: 20px;
 }
-.warning {
-  border-color: var(--warning);
+.notice.warning {
+  --notice-tone: var(--warning);
+  background: var(--warning-soft);
+  border-color: transparent;
 }
-.error {
-  border-color: var(--error);
+.notice.error {
+  --notice-tone: var(--error);
+  background: var(--error-soft);
+  border-color: transparent;
+}
+.notice.warning strong {
+  color: var(--warning);
+}
+.notice.error strong {
   color: var(--error);
 }
 .action {
@@ -141,11 +200,19 @@ p {
   background: var(--brand-warp);
   color: var(--action-ink);
   border: 1px solid var(--brand-warp);
-  border-radius: 3px;
+  border-radius: var(--radius-sm);
   font: inherit;
   font-weight: 500;
   max-width: 100%;
   white-space: normal;
+  transition:
+    background-color 120ms,
+    border-color 120ms;
+}
+.action:hover:not(:disabled) {
+  background: var(--brand-ink);
+  border-color: var(--brand-ink);
+  color: var(--page);
 }
 .actions {
   display: flex;
@@ -153,38 +220,62 @@ p {
   align-items: center;
   flex-wrap: wrap;
 }
+/* La progression comme un fil qui relie des nœuds : terminé en chaîne, en cours en trame. */
 .steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   list-style: none;
   padding: 0;
   margin: 22px 0 28px;
 }
 .steps li {
-  display: flex;
-  align-items: flex-start;
-  gap: 13px;
-  padding: 12px 0;
+  position: relative;
+  padding: 28px var(--space-4) 0 0;
   color: var(--muted);
+  font-size: 13px;
+  line-height: 20px;
 }
-.steps li > span {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  flex: none;
-  font-size: 12px;
+.steps li::before {
+  content: '';
+  position: absolute;
+  top: 9px;
+  right: 0;
+  left: 0;
+  height: 3px;
+  background: var(--line);
 }
-.steps li.done > span {
+.steps li::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 0;
+  width: 16px;
+  height: 16px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1.5px var(--line-strong);
+}
+.steps li.done,
+.steps li.current {
+  color: var(--ink);
+}
+.steps li.done::before,
+.steps li.done::after {
   background: var(--brand-warp);
-  color: var(--action-ink);
-  border-color: var(--brand-warp);
+  box-shadow: none;
+}
+.steps li.current::before {
+  background: linear-gradient(90deg, var(--brand-weft) 0 50%, var(--line) 50%);
+}
+.steps li.current::after {
+  background: var(--brand-weft);
+  box-shadow: none;
 }
 .steps small {
   display: block;
-  font-size: 12px;
   margin-top: 2px;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--muted);
 }
 .result {
   margin: 22px 0;
@@ -266,6 +357,11 @@ footer {
 }
 .skip-link:focus {
   top: 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
 }
 @media (max-width: 650px) {
   .main-content {

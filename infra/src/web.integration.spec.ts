@@ -136,6 +136,26 @@ describe('Front Guidé construit et chaîne réelle', () => {
             .first()
             .evaluate((element) => getComputedStyle(element).textAlign),
         ).toBe('left');
+        // Les polices du design system sont servies par le site : la CSP refuserait toute autre origine.
+        // fonts.check() répond « vrai » quand aucune police ne porte ce nom : on charge pour de bon.
+        const loadedFaces = await page.evaluate(async () => {
+          async function countLoaded(font: string): Promise<number> {
+            try {
+              const faces = await document.fonts.load(font);
+              return faces.filter((face) => face.status === 'loaded').length;
+            } catch {
+              return 0;
+            }
+          }
+          return {
+            text: await countLoaded('14px "IBM Plex Sans"'),
+            titles: await countLoaded('600 30px "Bricolage Grotesque Variable"'),
+            data: await countLoaded('500 20px "IBM Plex Mono"'),
+          };
+        });
+        expect(loadedFaces.text).toBeGreaterThan(0);
+        expect(loadedFaces.titles).toBeGreaterThan(0);
+        expect(loadedFaces.data).toBeGreaterThan(0);
         await noViolations(page);
         const stored = await page.evaluate(() => ({ ...sessionStorage, ...localStorage }));
         expect(JSON.stringify(stored)).not.toMatch(/eyJ[a-zA-Z0-9_-]+\.eyJ/);

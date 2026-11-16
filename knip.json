@@ -46,6 +46,9 @@
     "angular-eslint",
     "typescript-eslint",
     "@tailwindcss/postcss",
+    "@fontsource-variable/bricolage-grotesque",
+    "@fontsource/ibm-plex-mono",
+    "@fontsource/ibm-plex-sans",
     "pino-pretty"
   ]
 }

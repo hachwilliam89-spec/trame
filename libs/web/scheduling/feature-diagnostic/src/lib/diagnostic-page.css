@@ -12,8 +12,15 @@ tr-diagnostic-page .diagnostic-band .eyebrow {
   color: var(--weave-paper-muted);
 }
 tr-diagnostic-page .diagnostic-band h1 {
-  margin: 10px 0 8px;
+  margin: var(--space-2) 0;
+  font-size: 36px;
+  line-height: 40px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
   color: var(--weave-paper);
+}
+tr-diagnostic-page .diagnostic-band :focus-visible {
+  outline-color: var(--weave-thread);
 }
 tr-diagnostic-page .diagnostic-band p {
   max-width: 46ch;
@@ -30,7 +37,7 @@ tr-diagnostic-page .band-mark {
   width: 96px;
   height: auto;
   transform: rotate(-7deg);
-  filter: drop-shadow(6px 6px 0 var(--weave-ground-deep));
+  filter: drop-shadow(var(--shadow-weave));
 }
 tr-diagnostic-page .diagnostic-panel {
   border-top: none;
@@ -51,12 +58,20 @@ tr-diagnostic-page .fact dt {
   font-size: 12px;
   color: var(--muted);
 }
+/* Les valeurs se lisent comme un relevé : chiffres tabulaires en IBM Plex Mono. */
 tr-diagnostic-page .fact dd {
-  margin: 2px 0 0;
+  margin: var(--space-1) 0 0;
   text-align: left;
-  font-size: 20px;
-  font-weight: 600;
+  font: 500 20px/24px var(--font-mono);
   color: var(--ink);
+}
+tr-diagnostic-page .costs td {
+  font-family: var(--font-mono);
+}
+/* L'issue est un mot, pas une mesure : elle garde la police du texte. */
+tr-diagnostic-page .fact-issue dd {
+  font-family: var(--font-sans);
+  font-weight: 600;
 }
 
 tr-diagnostic-page details table {
@@ -83,12 +98,24 @@ tr-diagnostic-page .technical {
   margin-top: 16px;
 }
 
+/* Même fil cousu que les avis, à la place de l'ancienne bordure gauche. */
 tr-diagnostic-page .next-step {
+  position: relative;
   margin-top: 24px;
-  padding: 20px 28px;
+  padding: calc(var(--space-5) + 6px) var(--space-6) var(--space-5);
   border: 1px solid var(--line);
-  border-left: 4px solid var(--brand-weft);
+  border-radius: var(--radius-sm);
   background: var(--surface);
+}
+tr-diagnostic-page .next-step::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  left: -1px;
+  height: 6px;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: repeating-linear-gradient(90deg, var(--brand-weft) 0 12px, transparent 12px 16px);
 }
 tr-diagnostic-page .next-step h2 {
   margin: 8px 0 6px;
@@ -115,9 +142,6 @@ tr-diagnostic-page .next-step p {
 
 /* La progression reste visible, sans repousser le résultat sous trois grands blocs. */
 tr-diagnostic-page .steps.completed {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
   padding-bottom: 20px;
   border-bottom: 1px solid var(--line);
 }
@@ -126,13 +150,4 @@ tr-diagnostic-page .steps.completed small {
 }
 tr-diagnostic-page .technical dd {
   overflow-wrap: anywhere;
-}
-@media (max-width: 650px) {
-  tr-diagnostic-page .steps.completed {
-    grid-template-columns: 1fr;
-    gap: 0;
-  }
-  tr-diagnostic-page .steps.completed li {
-    padding: 5px 0;
-  }
 }

@@ -3,7 +3,7 @@
     <div class="eyebrow">Premiers pas</div>
     <h1 id="diagnostic-heading">Tester le moteur</h1>
     <p>Trois tâches fictives, trois postes : le moteur cherche la répartition la moins coûteuse.</p>
-    <span class="status band-status">{{ statusLabel() }}</span>
+    <span class="status band-status" [class.running]="busy()">{{ statusLabel() }}</span>
   </div>
   <img class="band-mark" src="/trame-mark.svg" width="96" height="96" alt="" />
 </section>
@@ -65,11 +65,9 @@
   } @if (diagnostic.run() && diagnostic.phase() !== 'forbidden') {
   <ol class="steps" [class.completed]="complete()" aria-label="Étapes du diagnostic">
     <li class="done">
-      <span aria-hidden="true">✓</span>
       <div>Demande enregistrée<small>Votre calcul est conservé.</small></div>
     </li>
-    <li [class.done]="diagnostic.phase() === 'running' || complete()">
-      <span aria-hidden="true">{{ complete() ? '✓' : '2' }}</span>
+    <li [class.current]="diagnostic.phase() === 'running'" [class.done]="complete()">
       <div>
         {{ complete() ? 'Calcul terminé' : 'Calcul en cours' }}<small
           >{{ complete() ? 'Le traitement du test est terminé.' : 'Le moteur recherche une
@@ -78,7 +76,6 @@
       </div>
     </li>
     <li [class.done]="complete()">
-      <span aria-hidden="true">{{ complete() ? '✓' : '3' }}</span>
       <div>
         Résultat disponible<small
           >{{ complete() ? 'Consultez le résultat ci-dessous.' : 'Le résultat sera conservé ici.'
@@ -115,7 +112,7 @@
     </table>
     }
     <dl class="facts">
-      <div class="fact">
+      <div class="fact fact-issue">
         <dt>Résultat du calcul</dt>
         <dd>{{ issueLabel() }}</dd>
       </div>
