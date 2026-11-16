@@ -18,62 +18,11 @@
     } @else if (session.status() === 'loading') {
     <h1>Préparation de votre espace…</h1>
     } @else {
-    <section class="landing-hero" aria-labelledby="welcome-title">
-      <div class="hero-copy">
-        <div class="eyebrow">Planification d’équipes</div>
-        <h1 id="welcome-title">Relier les tâches.<br /><span>Composer l’équipe.</span></h1>
-        <a class="action hero-action" href="#diagnostic-start"
-          >Voir le premier diagnostic <span aria-hidden="true">↘</span></a
-        >
-        <p class="hero-note">En construction · Diagnostic réel sur compte</p>
-      </div>
-      <img class="hero-mark" src="/trame-mark.svg" width="120" height="120" alt="" />
-    </section>
-    <section class="discovery" aria-labelledby="discovery-title">
-      <div>
-        <div class="eyebrow">Le point de départ</div>
-        <h2 id="discovery-title">Trois tâches.<br />Trois postes. Un résultat.</h2>
-      </div>
-      <p>
-        Le moteur répartit trois tâches fictives entre trois postes. Connectez-vous pour lancer le
-        calcul, suivre sa progression et retrouver son résultat.
-      </p>
-    </section>
-    <section class="login-layout" aria-label="Accéder au diagnostic">
-      <div class="login-copy">
-        <h2>Du lancement au résultat</h2>
-        <p>Une demande enregistrée, un calcul exécuté, une affectation lisible.</p>
-        <h2>Reprenez le fil</h2>
-        <p>
-          Le résultat reste disponible après une déconnexion. La génération de plannings d’équipe
-          est la prochaine étape.
-        </p>
-        <a
-          class="source-link"
-          href="https://github.com/hachwilliam89-spec/trame"
-          target="_blank"
-          rel="noopener noreferrer"
-          >Explorer le code et les choix du projet <span aria-hidden="true">↗</span></a
-        >
-      </div>
-      <div class="panel login-panel" id="diagnostic-start">
-        <div class="eyebrow">Bienvenue</div>
-        <h2>Accéder à votre espace</h2>
-        <p class="muted">Connectez-vous avec votre compte Trame pour lancer le test.</p>
-        @if (session.status() === 'expired') {
-        <div class="notice warning" role="status">
-          <strong>Votre session a expiré</strong>
-          <p>Reconnectez-vous pour retrouver le suivi de votre calcul.</p>
-        </div>
-        } @if (session.status() === 'unavailable') {
-        <div class="notice error" role="alert">
-          <strong>Connexion indisponible</strong>
-          <p>Rechargez la page pour réessayer.</p>
-        </div>
-        } @else {<button type="button" class="action" (click)="login()">Se connecter</button>}
-        <p class="small muted">La connexion ouvre votre page d’identification sécurisée.</p>
-      </div>
-    </section>
+    <tr-landing-page
+      [sessionExpired]="session.status() === 'expired'"
+      [connectionUnavailable]="session.status() === 'unavailable'"
+      (loginRequested)="login()"
+    />
     } @if (actionError()) {
     <p class="error" role="alert">{{ actionError() }}</p>
     }

@@ -1,10 +1,12 @@
-/* La vitrine emploie les couleurs du logo, indépendamment du thème système. */
+/* Accueil d'un visiteur : direction « atelier » du design system Trame (16 novembre 2026). */
+
+/* Bandeau : les couleurs du logo, indépendamment du thème système. */
 .landing-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(100px, 25%);
+  grid-template-columns: minmax(0, 1fr) minmax(100px, 22%);
   align-items: center;
-  gap: 36px;
-  padding: 40px;
+  gap: var(--space-7);
+  padding: 56px var(--space-7);
   background: var(--weave-ground);
   color: var(--weave-paper);
 }
@@ -12,123 +14,349 @@
   color: var(--weave-paper-muted);
 }
 .landing-hero h1 {
-  font-size: clamp(30px, 4.5vw, 50px);
-  line-height: 1.12;
+  margin: var(--space-4) 0;
+  font-size: clamp(32px, 4.6vw, 52px);
+  line-height: 1.08;
   letter-spacing: -0.03em;
-  margin: 28px 0;
   font-weight: 650;
 }
 .landing-hero h1 span {
   color: var(--weave-thread);
+}
+.hero-pitch {
+  max-width: 52ch;
+  margin: 0 0 var(--space-6);
+  font-size: 16px;
+  line-height: 26px;
+  color: var(--weave-paper-muted);
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+.landing-hero .hero-action {
+  padding: 12px 20px;
+  background: var(--weave-thread);
+  border-color: var(--weave-thread);
+  color: var(--weave-ink);
+  text-decoration: none;
+}
+.landing-hero .hero-action:hover {
+  background: var(--weave-paper);
+  border-color: var(--weave-paper);
+  color: var(--weave-ink);
+}
+.hero-secondary {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-4);
+  border: 1px solid var(--weave-thread);
+  border-radius: var(--radius-sm);
+  color: var(--weave-paper);
+  font-weight: 500;
+  text-decoration: none;
+}
+.hero-secondary:hover {
+  background: var(--weave-ground-deep);
+}
+.landing-hero :focus-visible {
+  outline-color: var(--weave-thread);
+}
+.hero-note {
+  margin: var(--space-4) 0 0;
+  font-size: 13px;
+  color: var(--weave-note);
 }
 .hero-mark {
   display: block;
   width: 100%;
   height: auto;
   transform: rotate(-7deg);
-  filter: drop-shadow(8px 8px 0 var(--weave-ground-deep));
+  filter: drop-shadow(var(--shadow-weave));
 }
-.landing-hero .hero-action {
-  background: var(--weave-thread);
-  color: var(--weave-ink);
-  border-color: var(--weave-thread);
-  text-decoration: none;
-  padding: 14px 20px;
+
+/* Les trois fils : la cible du produit, chacun avec son état réel. */
+.threads {
+  padding: 64px 0 var(--space-6);
 }
-.hero-note {
-  margin: 18px 0 0;
-  font-size: 13px;
-  color: var(--weave-note);
+.threads h2,
+.progress h2 {
+  margin: var(--space-2) 0 var(--space-6);
+  font-size: clamp(26px, 3.4vw, 40px);
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: -0.03em;
 }
-.discovery {
+.thread-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 40px;
-  padding: 32px 0;
+  grid-template-columns: 96px minmax(0, 1fr) minmax(0, 1.4fr);
+  gap: var(--space-5);
+  align-items: baseline;
+  padding: var(--space-5) 0;
+  border-top: 1px solid var(--line);
+}
+.threads h2 + .thread-row {
+  border-top: 2px solid var(--ink);
+}
+.thread-row:last-of-type {
   border-bottom: 1px solid var(--line);
-  align-items: center;
 }
-.discovery h2 {
-  font-size: 28px;
-  line-height: 1.25;
-  letter-spacing: -0.7px;
-  margin: 12px 0 0;
+.thread-number {
+  font: 700 48px/48px var(--font-display);
+  color: var(--brand-weft);
 }
-.discovery p {
+.thread-row h3 {
+  margin: 0 0 var(--space-2);
+  font: 600 20px/26px var(--font-display);
+}
+.thread-row p {
+  margin: 0;
   color: var(--muted);
+}
+.status.running {
+  color: var(--brand-warp);
+}
+.status.planned {
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  color: var(--muted);
+}
+.status.planned::before {
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+
+/* Aperçu : une maquette annoncée comme telle, toujours en thème sombre comme dans la direction. */
+.preview {
+  color-scheme: dark;
+  margin: var(--space-6) 0;
+  padding: var(--space-6);
+  background: var(--page);
+  color: var(--ink);
+  border-radius: var(--radius-md);
+}
+.preview-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+}
+.preview-heading h2 {
   margin: 0;
 }
+.preview-scroll {
+  overflow-x: auto;
+}
+.planning-grid {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}
+.planning-grid caption {
+  padding-bottom: var(--space-2);
+  text-align: left;
+  font-size: 12px;
+  color: var(--muted);
+}
+.planning-grid th,
+.planning-grid td {
+  height: 40px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  font-weight: 400;
+}
+.planning-grid thead th {
+  padding: 0 var(--space-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.planning-grid tbody th {
+  padding: 0 var(--space-3);
+  white-space: nowrap;
+}
+.planning-grid tbody th small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 14px;
+}
+.planning-grid td {
+  padding: 6px 4px;
+  border-left: 1px solid var(--line);
+}
+.planning-grid tr:last-child > * {
+  border-bottom: none;
+}
+/* Barres de créneau à angles droits, comme les fils du logo. */
+.shift-bar,
+.coverage-full,
+.coverage-gap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-1);
+  height: 28px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.shift-bar time {
+  font: 500 11px/14px var(--font-mono);
+}
+.shift-bar.morning {
+  background: var(--shift-matin);
+  color: var(--on-shift);
+}
+.shift-bar.afternoon {
+  background: var(--shift-aprem);
+  color: var(--on-shift);
+}
+.shift-bar.rest,
+.coverage-full {
+  justify-content: center;
+  color: var(--muted);
+}
+.coverage-row th {
+  color: var(--muted);
+  font-size: 12px;
+}
+.coverage-gap {
+  justify-content: center;
+  color: var(--warning);
+  background: repeating-linear-gradient(135deg, var(--warning-soft) 0 4px, var(--surface) 4px 8px);
+  border: 1px dashed var(--warning);
+  font-weight: 600;
+}
+
+/* Avancement : ce qui tourne, ce qui se construit, ce qui suit. */
+.progress {
+  padding: var(--space-8) 0 var(--space-6);
+  scroll-margin-top: 24px;
+}
+.progress-columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-6);
+  padding-top: var(--space-5);
+  border-top: 2px solid var(--ink);
+}
+.progress-columns h3 {
+  margin-bottom: var(--space-2);
+}
+.progress-columns p {
+  margin: 0;
+  color: var(--muted);
+}
+.progress-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  margin: var(--space-6) 0 0;
+}
+.progress-sources a,
+.login-panel a {
+  color: var(--brand-warp);
+  text-underline-offset: 4px;
+}
+
+/* Accès */
 .login-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 40px;
   align-items: start;
-  padding: 32px 0;
-}
-.login-copy {
-  max-width: 350px;
-  padding-top: 8px;
+  padding: var(--space-6) 0 var(--space-8);
+  border-top: 2px solid var(--ink);
 }
 .login-copy h2 {
-  font-size: 17px;
-  margin-bottom: 8px;
+  margin: var(--space-2) 0;
+  font-size: 32px;
+  line-height: 36px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
 }
 .login-copy p {
+  max-width: 44ch;
   color: var(--muted);
-  margin-bottom: 24px;
-}
-.source-link {
-  color: var(--brand-warp);
-  text-underline-offset: 4px;
-  display: inline-block;
-  padding: 10px 0;
 }
 .login-panel {
   scroll-margin-top: 24px;
 }
-.login-panel h2 {
-  margin-top: 12px;
+.login-panel h3 {
+  margin-top: var(--space-3);
 }
 .login-panel .action {
   width: 100%;
   margin: 10px 0 14px;
 }
+.landing-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6);
+  background: var(--weave-ground-deep);
+  color: var(--weave-paper-muted);
+  font-size: 12px;
+}
+.landing-footer-rules {
+  font-family: var(--font-mono);
+}
+
 @media (max-width: 650px) {
   .landing-hero {
-    padding: 26px 22px;
-    gap: 20px;
     grid-template-columns: minmax(0, 1fr) 76px;
+    gap: var(--space-5);
+    padding: 28px 22px;
   }
   .hero-copy {
     display: contents;
   }
   .landing-hero .eyebrow,
-  .hero-action,
+  .hero-pitch,
+  .hero-actions,
   .hero-note {
     grid-column: 1 / -1;
   }
   .landing-hero h1 {
-    font-size: clamp(28px, 6vw, 38px);
     margin: 0;
-    letter-spacing: -1px;
   }
   .hero-mark {
     grid-column: 2;
     grid-row: 2;
   }
-  .hero-action {
-    justify-self: start;
-  }
+  .hero-pitch,
   .hero-note {
     margin: 0;
   }
-  .discovery,
+  .thread-row {
+    grid-template-columns: 56px minmax(0, 1fr);
+  }
+  .thread-row p {
+    grid-column: 2;
+  }
+  .thread-number {
+    font-size: 32px;
+    line-height: 32px;
+  }
+  .preview {
+    padding: var(--space-4);
+  }
+  .progress-columns,
   .login-layout {
     grid-template-columns: 1fr;
-    gap: 20px;
-    padding: 24px 0;
-  }
-  .login-copy {
-    max-width: none;
+    gap: var(--space-5);
   }
 }
