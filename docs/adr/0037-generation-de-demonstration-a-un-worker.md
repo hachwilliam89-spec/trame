@@ -1,0 +1,21 @@
+# ADR-0037 — Génération de démonstration : un worker CP-SAT et une graine fixe
+
+- **Statut** : Proposé (2026-11-16). Exception à ADR-0020 (« mode déterministe réservé aux tests et aux benchmarks ») pour la génération du jalon 1 (US-061, PR 6a).
+- **Contexte** :
+  - ADR-0020 garantit la reproductibilité par le stockage du problème, des paramètres et de la solution. Une nouvelle résolution identique n'y est attendue qu'avec un seul worker, réservé aux tests et aux benchmarks.
+  - La démo du jalon 1 planifie douze salariés sur une semaine : CP-SAT conclut en moins d'une seconde, loin de la limite de 30 s du cadrage.
+  - Au staging, le worker est plafonné à un CPU et à un worker CP-SAT (`ENGINE_MAX_WORKERS`, cadrage §12).
+- **Décision** :
+  - L'API demande à chaque génération du jalon 1 un worker, la graine 0 et une limite de 30 s (`DEMO_SOLVE_PARAMETERS`), et les stocke avec la génération.
+  - Le résultat stocké se restitue exactement. Un nouveau calcul n'est pas promis identique : une résolution coupée par la limite de temps dépend du temps réel.
+  - Le spike US-064 mesure l'intérêt de passer à quatre workers, sur 40 salariés et avec le mode strict.
+- **Conséquences** :
+  - (+) Le même problème rend en pratique le même planning d'un calcul à l'autre, ce qui facilite la démo et le diagnostic d'un écart.
+  - (+) Le paramètre demandé est celui appliqué au staging, où le plafond est déjà d'un worker.
+  - (−) En production, la génération n'utilise pas les quatre workers disponibles tant que US-064 n'a pas tranché.
+- **Alternatives écartées** :
+  - demander quatre workers, plafonnés à un au staging : le paramètre stocké ne serait pas celui appliqué, et aucun gain n'est mesurable sur douze salariés ;
+  - rendre le nombre de workers configurable par l'API : une variable de plus sans besoin rencontré (AGENTS.md, « Mesure dans l'infrastructure »).
+- **Références** :
+  - ADR-0020 ; `docs/cadrage.md` §12 (ressources) et « Reproductibilité » ;
+  - [Paramètres de CP-SAT 9.15](https://raw.githubusercontent.com/google/or-tools/v9.15/ortools/sat/sat_parameters.proto).

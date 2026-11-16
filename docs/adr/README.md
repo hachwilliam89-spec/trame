@@ -42,3 +42,4 @@ Les ADR 0018, 0020, 0021 et 0022 ont été amendées le 2026-11-01 après la rev
 | [0034](0034-realm-master-a-l-adresse-du-tunnel.md)             | Realm `master` de Keycloak à l'adresse du tunnel d'administration           | Proposé                                   |
 | [0035](0035-livraison-continue-du-staging.md)                  | Livraison continue du staging : à la demande, répétée, approuvée            | Proposé                                   |
 | [0036](0036-worker-un-calcul-a-la-fois.md)                     | Worker : un calcul à la fois, et un arrêt qui ne compte pas d'échec         | Proposé                                   |
+| [0037](0037-generation-de-demonstration-a-un-worker.md)        | Génération de démonstration : un worker CP-SAT et une graine fixe           | Proposé                                   |
