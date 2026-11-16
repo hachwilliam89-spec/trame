@@ -56,17 +56,70 @@ describe('Premier parcours Guidé', () => {
     (element.querySelector('button') as HTMLButtonElement).click();
     expect(session.login).toHaveBeenCalledOnce();
   });
-  it('guide le visiteur vers la connexion sans simuler un résultat', async () => {
+  it('dit le but de Trame et mène vers l’avancement et la connexion', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const element = fixture.nativeElement as HTMLElement;
-    const link = element.querySelector<HTMLAnchorElement>('a[href="#diagnostic-start"]');
-    expect(link?.textContent).toContain('Voir le premier diagnostic');
+
+    expect(element.querySelector('h1')?.textContent).toContain('Relier les tâches.');
+    expect(element.querySelector('a[href="#avancement"]')).not.toBeNull();
+    expect(element.querySelector('a[href="#diagnostic-start"]')).not.toBeNull();
     expect(element.querySelector('#diagnostic-start')?.textContent).toContain('Se connecter');
-    expect(element.textContent).toContain('Diagnostic réel sur compte');
-    expect(element.querySelector('tbody')).toBeNull();
+    expect(element.querySelectorAll('button').length).toBe(1);
+  });
+
+  it('donne l’état réel de chaque fil sans promettre ce qui n’existe pas', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const element = fixture.nativeElement as HTMLElement;
+
+    const threads = Array.from(element.querySelectorAll('.thread-row'));
+    const states = threads.map((thread) => thread.querySelector('.status')?.textContent?.trim());
+    expect(states).toEqual(['En cours', 'Bientôt', 'Bientôt']);
+  });
+
+  it('présente l’aperçu du planning comme une maquette aux données fictives', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const element = fixture.nativeElement as HTMLElement;
+
+    const caption = element.querySelector('.preview table caption')?.textContent ?? '';
+    expect(caption).toContain('Maquette');
+    expect(caption).toContain('données fictives');
+    expect(element.querySelector('.preview')?.textContent).toContain('06:00–13:20');
     expect(diagnostic.start).not.toHaveBeenCalled();
   });
+
+  it('montre l’avancement du projet et ses sources', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const element = fixture.nativeElement as HTMLElement;
+
+    const progress = element.querySelector('#avancement');
+    const headings = Array.from(progress?.querySelectorAll('h3') ?? []).map((heading) =>
+      heading.textContent?.trim(),
+    );
+    expect(headings).toEqual(['Déjà en service', 'En cours', 'Ensuite']);
+    const sources = Array.from(progress?.querySelectorAll<HTMLAnchorElement>('a') ?? []);
+    expect(sources.map((link) => link.getAttribute('href'))).toEqual([
+      'https://github.com/hachwilliam89-spec/trame',
+      'https://github.com/hachwilliam89-spec/trame/tree/main/docs/adr',
+    ]);
+  });
+
+  it('propose de demander un accès par le portfolio, sans exposer d’adresse e-mail', async () => {
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const element = fixture.nativeElement as HTMLElement;
+
+    const request = Array.from(element.querySelectorAll<HTMLAnchorElement>('a')).find((link) =>
+      link.textContent?.includes('Demander un accès de démonstration'),
+    );
+    expect(request?.getAttribute('href')).toBe('https://www.wkhach.dev/#contact');
+    expect(request?.getAttribute('rel')).toBe('noopener noreferrer');
+    expect(element.innerHTML).not.toMatch(/mailto:|@[a-z0-9-]+\.[a-z]{2,}/i);
+  });
+
   it('propose le test au manager et déclenche le vrai état sans animation simulée', async () => {
     session.identity.set(identity);
     session.status.set('authenticated');

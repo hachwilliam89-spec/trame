@@ -1,7 +1,7 @@
 /*
  * Jetons du design system « Trame » (révision du 16 novembre 2026).
- * Seuls les jetons déjà employés sont déclarés ; les teintes des créneaux et le statut « conforme »
- * arriveront avec la grille du planning. Une seule action principale par vue ; un statut porte
+ * Seuls les jetons déjà employés sont déclarés ; le créneau de nuit et le statut « conforme » arriveront
+ * avec la grille du planning. Une seule action principale par vue ; un statut porte
  * toujours un mot, jamais la couleur seule.
  */
 :root {
@@ -28,6 +28,11 @@
   --warning-soft: light-dark(#f6ecd6, #352a17);
   --error: light-dark(#9d332c, #ffb4ac);
   --error-soft: light-dark(#f9e4e1, #3b2220);
+
+  /* Créneaux, du plus clair au plus sombre : réservés aux barres de créneau. */
+  --shift-matin: light-dark(#f2c661, #e2b552);
+  --shift-aprem: light-dark(#7fcdd5, #4fb8c4);
+  --on-shift: #0d3a41;
 
   /* Les bandeaux de vitrine gardent les couleurs du logo, quel que soit le thème système. */
   --weave-ground: #0f4f58;

@@ -1,0 +1,274 @@
+<section class="landing-hero" aria-labelledby="welcome-title">
+  <div class="hero-copy">
+    <div class="eyebrow">Planification d’équipes · entrepôts logistiques</div>
+    <h1 id="welcome-title">Relier les tâches.<br /><span>Composer l’équipe.</span></h1>
+    <p class="hero-pitch">
+      Trame génère le planning de la semaine sous les règles du Code du travail et des contrats,
+      puis explique chaque choix. Ex-responsable logistique, j’ai construit l’outil qui me manquait.
+    </p>
+    <div class="hero-actions">
+      <a class="action hero-action" href="#avancement">Voir où en est le projet</a>
+      <a class="hero-secondary" href="#diagnostic-start">Accéder à votre espace</a>
+    </div>
+    <p class="hero-note">En construction · version de démonstration</p>
+  </div>
+  <img class="hero-mark" src="/trame-mark.svg" width="180" height="180" alt="" />
+</section>
+
+<section class="threads" aria-labelledby="threads-title">
+  <div class="eyebrow">Le principe</div>
+  <h2 id="threads-title">Trois fils, un planning qui tient.</h2>
+  <div class="thread-row">
+    <span class="thread-number" aria-hidden="true">01</span>
+    <div>
+      <h3>Générer sans enfreindre</h3>
+      <span class="status running">En cours</span>
+    </div>
+    <p>
+      Repos de 11 h, durées maximales, habilitations, volume des contrats : les règles dures sont
+      des murs. Les besoins de couverture viennent ensuite, et chaque manque est chiffré.
+    </p>
+  </div>
+  <div class="thread-row">
+    <span class="thread-number" aria-hidden="true">02</span>
+    <div>
+      <h3>Dire pourquoi</h3>
+      <span class="status planned">Bientôt</span>
+    </div>
+    <p>
+      Chaque manque sera expliqué par créneau et par compétence, avec la règle qui bloque et son
+      article. Quand aucun planning n’existe, Trame dira quel fil casse.
+    </p>
+  </div>
+  <div class="thread-row">
+    <span class="thread-number" aria-hidden="true">03</span>
+    <div>
+      <h3>Ajuster en direct</h3>
+      <span class="status planned">Bientôt</span>
+    </div>
+    <p>
+      Déplacer un créneau le fera évaluer aussitôt : conforme, à surveiller ou bloqué, avant même de
+      valider la modification.
+    </p>
+  </div>
+</section>
+
+<section class="preview" aria-labelledby="preview-title">
+  <div class="preview-heading">
+    <h2 id="preview-title">Une semaine type</h2>
+    <span class="status planned">Maquette de l’écran en construction</span>
+  </div>
+  <!-- Sur mobile, la grille défile : le clavier doit pouvoir l’atteindre. -->
+  <div
+    class="preview-scroll"
+    tabindex="0"
+    role="region"
+    aria-label="Grille de la maquette, défilante"
+  >
+    <table class="planning-grid">
+      <caption>
+        Maquette : planning d’une semaine type de l’entrepôt de démonstration, données fictives.
+      </caption>
+      <thead>
+        <tr>
+          <th scope="col">Équipe</th>
+          <th scope="col">Lun.</th>
+          <th scope="col">Mar.</th>
+          <th scope="col">Mer.</th>
+          <th scope="col">Jeu.</th>
+          <th scope="col">Ven.</th>
+          <th scope="col">Sam.</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <th scope="row">Cariste 1<small>CACES 3 et 5</small></th>
+          <td>
+            <span class="shift-bar morning"
+              ><span aria-hidden="true">M</span><span class="sr-only">Matin</span>
+              <time>06:00–13:20</time></span
+            >
+          </td>
+          <td>
+            <span class="shift-bar morning"
+              ><span aria-hidden="true">M</span><span class="sr-only">Matin</span>
+              <time>06:00–13:20</time></span
+            >
+          </td>
+          <td>
+            <span class="shift-bar morning"
+              ><span aria-hidden="true">M</span><span class="sr-only">Matin</span>
+              <time>06:00–13:20</time></span
+            >
+          </td>
+          <td>
+            <span class="shift-bar morning"
+              ><span aria-hidden="true">M</span><span class="sr-only">Matin</span>
+              <time>06:00–13:20</time></span
+            >
+          </td>
+          <td><span class="shift-bar rest">Repos</span></td>
+          <td>
+            <span class="shift-bar morning"
+              ><span aria-hidden="true">M</span><span class="sr-only">Matin</span>
+              <time>06:00–13:20</time></span
+            >
+          </td>
+        </tr>
+        <tr>
+          <th scope="row">Cariste 2<small>CACES 3</small></th>
+          <td>
+            <span class="shift-bar afternoon"
+              ><span aria-hidden="true">AM</span><span class="sr-only">Après-midi</span>
+              <time>13:30–20:50</time></span
+            >
+          </td>
+          <td>
+            <span class="shift-bar afternoon"
+              ><span aria-hidden="true">AM</span><span class="sr-only">Après-midi</span>
+              <time>13:30–20:50</time></span
+            >
+          </td>
+          <td>
+            <span class="shift-bar afternoon"
+              ><span aria-hidden="true">AM</span><span class="sr-only">Après-midi</span>
+              <time>13:30–20:50</time></span
+            >
+          </td>
+          <td>
+            <span class="shift-bar afternoon"
+              ><span aria-hidden="true">AM</span><span class="sr-only">Après-midi</span>
+              <time>13:30–20:50</time></span
+            >
+          </td>
+          <td>
+            <span class="shift-bar afternoon"
+              ><span aria-hidden="true">AM</span><span class="sr-only">Après-midi</span>
+              <time>13:30–20:50</time></span
+            >
+          </td>
+          <td><span class="shift-bar rest">Repos</span></td>
+        </tr>
+        <tr>
+          <th scope="row">Préparateur 1<small>CACES 1A</small></th>
+          <td>
+            <span class="shift-bar morning"
+              ><span aria-hidden="true">M</span><span class="sr-only">Matin</span>
+              <time>06:00–13:20</time></span
+            >
+          </td>
+          <td>
+            <span class="shift-bar morning"
+              ><span aria-hidden="true">M</span><span class="sr-only">Matin</span>
+              <time>06:00–13:20</time></span
+            >
+          </td>
+          <td><span class="shift-bar rest">Repos</span></td>
+          <td>
+            <span class="shift-bar morning"
+              ><span aria-hidden="true">M</span><span class="sr-only">Matin</span>
+              <time>06:00–13:20</time></span
+            >
+          </td>
+          <td>
+            <span class="shift-bar morning"
+              ><span aria-hidden="true">M</span><span class="sr-only">Matin</span>
+              <time>06:00–13:20</time></span
+            >
+          </td>
+          <td>
+            <span class="shift-bar morning"
+              ><span aria-hidden="true">M</span><span class="sr-only">Matin</span>
+              <time>06:00–13:20</time></span
+            >
+          </td>
+        </tr>
+        <tr class="coverage-row">
+          <th scope="row">Caristes du matin</th>
+          <td><span class="coverage-full">Couvert</span></td>
+          <td><span class="coverage-full">Couvert</span></td>
+          <td><span class="coverage-full">Couvert</span></td>
+          <td><span class="coverage-full">Couvert</span></td>
+          <td><span class="coverage-full">Couvert</span></td>
+          <td><span class="coverage-gap">1 manquant</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="progress" id="avancement" aria-labelledby="progress-title">
+  <div class="eyebrow">Avancement</div>
+  <h2 id="progress-title">Où en est le projet</h2>
+  <div class="progress-columns">
+    <div>
+      <h3>Déjà en service</h3>
+      <p>
+        La chaîne complète : API, file de messages et moteur CP-SAT, déployés sur ce serveur.
+        Intégration continue, images signées et répétition avant chaque mise en ligne.
+      </p>
+    </div>
+    <div>
+      <h3>En cours</h3>
+      <p>
+        La génération d’un planning de semaine sous six règles du Code du travail et des contrats :
+        habilitations, repos de 11 h, durées maximales, volume contractuel.
+      </p>
+    </div>
+    <div>
+      <h3>Ensuite</h3>
+      <p>
+        L’explication des manques, la modification avec évaluation instantanée, puis un accès
+        visiteur à un entrepôt de démonstration.
+      </p>
+    </div>
+  </div>
+  <p class="progress-sources">
+    <a href="https://github.com/hachwilliam89-spec/trame" target="_blank" rel="noopener noreferrer"
+      >Le code sur GitHub <span aria-hidden="true">↗</span></a
+    >
+    <a
+      href="https://github.com/hachwilliam89-spec/trame/tree/main/docs/adr"
+      target="_blank"
+      rel="noopener noreferrer"
+      >Les décisions d’architecture <span aria-hidden="true">↗</span></a
+    >
+  </p>
+</section>
+
+<section class="login-layout" aria-labelledby="access-title">
+  <div class="login-copy">
+    <h2 id="access-title">Reprenez le fil.</h2>
+    <p>Votre dernier calcul et son résultat vous attendent, même après une déconnexion.</p>
+  </div>
+  <div class="panel login-panel" id="diagnostic-start">
+    <div class="eyebrow">Bienvenue</div>
+    <h3>Accéder à votre espace</h3>
+    <p class="muted">Connectez-vous avec votre compte Trame pour tester le moteur.</p>
+    @if (sessionExpired()) {
+    <div class="notice warning" role="status">
+      <strong>Votre session a expiré</strong>
+      <p>Reconnectez-vous pour retrouver le suivi de votre calcul.</p>
+    </div>
+    } @if (connectionUnavailable()) {
+    <div class="notice error" role="alert">
+      <strong>Connexion indisponible</strong>
+      <p>Rechargez la page pour réessayer.</p>
+    </div>
+    } @else {<button type="button" class="action" (click)="requestLogin()">Se connecter</button>}
+    <p class="small muted">La connexion ouvre votre page d’identification sécurisée.</p>
+    <p class="small">
+      Pas encore de compte ?
+      <a href="https://www.wkhach.dev/#contact" target="_blank" rel="noopener noreferrer"
+        >Demander un accès de démonstration <span aria-hidden="true">↗</span></a
+      >
+    </p>
+  </div>
+</section>
+
+<footer class="landing-footer">
+  <span>Trame · v0.1 · William Hach</span>
+  <span class="landing-footer-rules"
+    >Code du travail · règles par défaut, paramétrables par site</span
+  >
+</footer>

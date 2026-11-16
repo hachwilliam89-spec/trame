@@ -1,6 +1,6 @@
 # Marque Trame
 
-Jetons du design system « Trame » : couleurs clair/sombre, polices, espacements, angles et ombre du symbole (`src/tokens.css`). La référence visuelle est l'artefact Design System « Trame » de Kim (révision du 16 novembre 2026) : règles d'usage, composants et maquettes des écrans clés. Seuls les jetons déjà employés par l'application sont déclarés ici ; les teintes des créneaux et le statut « conforme » arriveront avec la grille du planning.
+Jetons du design system « Trame » : couleurs clair/sombre, polices, espacements, angles et ombre du symbole (`src/tokens.css`). La référence visuelle est l'artefact Design System « Trame » de Kim (révision du 16 novembre 2026) : règles d'usage, composants et maquettes des écrans clés. Seuls les jetons déjà employés par l'application sont déclarés ici ; le créneau de nuit et le statut « conforme » arriveront avec la grille du planning.
 
 ## Logo
 
