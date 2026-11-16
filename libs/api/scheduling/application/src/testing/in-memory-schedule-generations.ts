@@ -1,13 +1,18 @@
 import { hasSchedule, type ScheduleGeneration } from '@trame/api/scheduling/domain';
 import type { IdempotencyKey } from '@trame/platform/idempotency';
-import type { ScheduleOutcomeV1 } from '@trame/shared/contracts';
+import type { ScheduleOutcomeV1, ScheduleReportedV1 } from '@trame/shared/contracts';
+import {
+  type ScheduleReports,
+  UnmatchedScheduleReportError,
+} from '../lib/generation/receive-schedule-report';
 import type {
   ScheduleGenerationRequest,
   ScheduleGenerations,
 } from '../lib/generation/schedule-generations';
 
-export class InMemoryScheduleGenerations implements ScheduleGenerations {
+export class InMemoryScheduleGenerations implements ScheduleGenerations, ScheduleReports {
   private readonly requests = new Map<string, ScheduleGenerationRequest>();
+  private readonly receipts = new Set<string>();
 
   async register(request: ScheduleGenerationRequest): Promise<ScheduleGeneration> {
     const key = keyOf(request.generation.organizationId, request.key);
@@ -50,6 +55,30 @@ export class InMemoryScheduleGenerations implements ScheduleGenerations {
     weekStartsOn: Temporal.PlainDate,
   ): Promise<ScheduleGeneration | undefined> {
     return this.ofWeek(organizationId, siteId, weekStartsOn).filter(hasSchedule).at(-1);
+  }
+
+  async accept(
+    message: ScheduleReportedV1,
+    decide: (generation: ScheduleGeneration) => ScheduleGeneration | undefined,
+  ): Promise<void> {
+    const request = [...this.requests.values()].find(
+      (candidate) =>
+        candidate.message.id === message.payload.requestId &&
+        candidate.message.organizationId === message.organizationId &&
+        candidate.generation.id === message.payload.generationId,
+    );
+    if (request === undefined) {
+      throw new UnmatchedScheduleReportError();
+    }
+    if (this.receipts.has(message.id)) {
+      return;
+    }
+    // Comme en base : la décision échoue avant l'écriture du reçu et de la génération.
+    const updated = decide(request.generation);
+    this.receipts.add(message.id);
+    if (updated !== undefined) {
+      request.generation = updated;
+    }
   }
 
   /** Messages confiés à l'outbox, dans l'ordre d'enregistrement. */

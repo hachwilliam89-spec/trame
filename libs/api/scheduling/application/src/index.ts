@@ -30,3 +30,8 @@ export {
   type GetWeekScheduleGenerationsQuery,
   type WeekScheduleGenerations,
 } from './lib/generation/get-week-schedule-generations';
+export {
+  ReceiveScheduleReport,
+  UnmatchedScheduleReportError,
+  type ScheduleReports,
+} from './lib/generation/receive-schedule-report';

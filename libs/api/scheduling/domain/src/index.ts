@@ -22,3 +22,4 @@ export { advanceDiagnostic } from './lib/advance-diagnostic';
 export * from './lib/generation/schedule-generation';
 export * from './lib/generation/week-planning';
 export * from './lib/generation/compose-scheduling-problem';
+export * from './lib/generation/advance-generation';
