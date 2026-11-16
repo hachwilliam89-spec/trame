@@ -339,13 +339,15 @@ describe('Génération : PostgreSQL, RabbitMQ et vrai moteur Python', () => {
 
   it('Une file de génération saturée n’interrompt ni la session ni le diagnostic', async () => {
     // File de génération de test limitée à un message, déjà remplie : la publication est refusée.
+    // File classique : sa limite est exacte ; celle d'une file quorum s'applique avec un léger
+    // retard et laisserait passer ce message. Le refus reçu par le relais est le même.
     const saturated = {
       ...topology,
       exchange: 'trame.schedule.saturated-test',
       requests: {
         name: 'trame.schedule.saturated-test.requests',
         routingKey: 'requests',
-        arguments: { 'x-queue-type': 'quorum', 'x-max-length': 1, 'x-overflow': 'reject-publish' },
+        arguments: { 'x-queue-type': 'classic', 'x-max-length': 1, 'x-overflow': 'reject-publish' },
       },
     };
     await session.declare(saturated.exchange, [saturated.requests]);
