@@ -10,6 +10,7 @@ export * from './lib/diagnostic-progress';
 export {
   IdempotencyKeyReusedError,
   ScheduleGenerationNotFoundError,
+  ScheduleRequestTooLargeError,
   SiteNotFoundError,
 } from './lib/generation/generation.errors';
 export type {

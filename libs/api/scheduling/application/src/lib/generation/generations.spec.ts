@@ -12,6 +12,7 @@ import { InMemoryScheduleGenerations, InMemoryWeekPlanningSource } from '../../t
 import {
   IdempotencyKeyReusedError,
   ScheduleGenerationNotFoundError,
+  ScheduleRequestTooLargeError,
   SiteNotFoundError,
 } from './generation.errors';
 import { GetScheduleGeneration } from './get-schedule-generation';
@@ -155,6 +156,30 @@ describe('Lancer la génération du planning d’une semaine', () => {
 
     await expect(launch('request-1')).rejects.toThrow(NoCoverageNeedError);
     expect(generations.messages()).toHaveLength(0);
+  });
+
+  it('refuse une demande au-delà de 1 Mio, sans génération ni message', async () => {
+    // 2 000 shifts de 20 compétences : conforme au contrat, mais plus de 2 Mio une fois publié.
+    const [shift] = weekPlanning(SITE_ID).shifts;
+    if (shift === undefined) {
+      throw new Error('Semaine sans shift.');
+    }
+    const skills = Array.from(
+      { length: 20 },
+      (_, index) => `0190f0a0-0000-7000-8000-${String(index).padStart(12, '0')}`,
+    );
+    const shifts = Array.from({ length: 2_000 }, (_, index) => ({
+      ...shift,
+      positionId: `0190f0a0-0000-7000-8000-${String(index).padStart(12, '0')}`,
+      requiredSkillIds: skills,
+    }));
+    planning.define(organizationId, { ...weekPlanning(SITE_ID), shifts });
+
+    await expect(launch('too-large')).rejects.toThrow(ScheduleRequestTooLargeError);
+    expect(generations.messages()).toHaveLength(0);
+    expect(await generations.findByKey(organizationId, IdempotencyKey.of('too-large'))).toBe(
+      undefined,
+    );
   });
 
   it('Semaine qui ne commence pas un lundi : refusée', async () => {

@@ -21,7 +21,8 @@ from trame_engine.solver.scheduling import (
 from trame_engine.worker.clock import Clock
 from trame_engine.worker.deadline import PublicationDeadlineExceededError
 
-# Une semaine de 2 000 shifts tient en moins d'un mégaoctet ; au-delà, la demande est écartée.
+# Même limite que SCHEDULE_MESSAGE_MAX_BYTES (contrats) : l'API refuse une demande plus grande
+# avant de l'écrire ; au-delà, la demande est écartée.
 MAX_REQUEST_BYTES = 1024 * 1024
 # Limite de l'API pour un rapport de génération : au-delà, il serait refusé et jamais rattaché.
 MAX_REPORT_BYTES = 1024 * 1024

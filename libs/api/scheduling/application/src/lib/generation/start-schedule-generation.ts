@@ -9,8 +9,12 @@ import type { Clock } from '@trame/platform/clock';
 import type { IdGenerator } from '@trame/platform/ids';
 import type { IdempotencyKey } from '@trame/platform/idempotency';
 import { prepareOutboxMessage } from '@trame/platform/outbox';
-import type { ScheduleRequestedV1 } from '@trame/shared/contracts';
-import { IdempotencyKeyReusedError, SiteNotFoundError } from './generation.errors';
+import { SCHEDULE_MESSAGE_MAX_BYTES, type ScheduleRequestedV1 } from '@trame/shared/contracts';
+import {
+  IdempotencyKeyReusedError,
+  ScheduleRequestTooLargeError,
+  SiteNotFoundError,
+} from './generation.errors';
 import type { ScheduleGenerations } from './schedule-generations';
 import type { WeekPlanningSource } from './week-planning-source';
 
@@ -52,6 +56,10 @@ export class StartScheduleGeneration {
       this.clock,
       this.ids,
     );
+    // Vérifié avant d'écrire : une demande que le moteur refuserait resterait en attente.
+    if (publishedBytes(message) > SCHEDULE_MESSAGE_MAX_BYTES) {
+      throw new ScheduleRequestTooLargeError();
+    }
     const registered = await this.generations.register({ generation, key: command.key, message });
     // Deux demandes simultanées sur la même clé : la gagnante doit porter la même semaine.
     return sameRequestOrThrow(registered, command);
@@ -79,6 +87,11 @@ export class StartScheduleGeneration {
       createdAt: this.clock.now(),
     };
   }
+}
+
+/** Le relais publie le message tel qu'il est enregistré, sérialisé en JSON. */
+function publishedBytes(message: unknown): number {
+  return new TextEncoder().encode(JSON.stringify(message)).length;
 }
 
 function sameRequestOrThrow(
