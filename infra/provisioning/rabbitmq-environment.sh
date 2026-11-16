@@ -1,7 +1,7 @@
 #!/bin/sh
 # Provisionne la messagerie d'un environnement déployé de Trame (US-005 B2a, #47) : le vhost
 # trame-<environnement>, et les utilisateurs trame_<environnement>_relay et
-# trame_<environnement>_worker, limités à ce vhost et aux ressources de la topologie de diagnostic.
+# trame_<environnement>_worker, limités à ce vhost et aux ressources du diagnostic et de la génération.
 #
 # Lancé dans le conteneur RabbitMQ, le script arrivant sur l'entrée standard :
 #   docker compose exec -T -e TRAME_ENVIRONMENT=staging -e TRAME_RELAY_PASSWORD \
@@ -30,10 +30,10 @@ esac
 
 vhost="trame-$environment"
 
-# Le relay et le worker déclarent chacun toute la topologie (infra/rabbitmq/diagnostic-topology.json).
+# Le relay et le worker déclarent chacun toutes les topologies (infra/rabbitmq/*-topology.json).
 # RabbitMQ exige la lecture d'une file créée avec une file de rebut, et c'est le premier démarré qui
-# la crée : les deux reçoivent donc les mêmes droits, sur les seules ressources de diagnostic.
-diagnostic_resources='^trame\.diagnostic\.'
+# la crée : les deux reçoivent donc les mêmes droits, sur les seules ressources de Trame.
+trame_resources='^trame\.(diagnostic|schedule)\.'
 
 # Une liste de `rabbitmqctl` est d'abord capturée seule (`liste="$(ctl …)"`) : en tête d'un tube,
 # son échec serait masqué par la commande suivante, et `set -e` ne l'arrêterait pas. Elle n'est
@@ -84,7 +84,7 @@ ensure_service_user() {
   ctl set_user_tags "$user"
   revoke_other_vhosts "$user"
   ctl set_permissions -p "$vhost" "$user" \
-    "$diagnostic_resources" "$diagnostic_resources" "$diagnostic_resources"
+    "$trame_resources" "$trame_resources" "$trame_resources"
 }
 
 ensure_vhost
