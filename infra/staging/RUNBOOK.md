@@ -303,6 +303,8 @@ gh workflow run deploy-staging.yml -f version=$(git rev-parse origin/main)
 
 Le workflow vérifie que le commit est sur `main`, joue la répétition sur cette version, puis attend l'approbation : sur la page du run, « Review deployments », cocher `staging`, « Approve and deploy ». Il se termine par le contrôle de l'adresse publique. Pour revenir à la version précédente : `gh workflow run rollback-staging.yml`, avec la même approbation.
 
+Si la version change les droits RabbitMQ (`infra/provisioning/rabbitmq-environment.sh`), rejouer d'abord le provisionnement RabbitMQ (procédure suivante) : sinon le worker n'atteint pas ses files, reste malsain, et le déploiement revient en arrière.
+
 À la main, si GitHub est indisponible :
 
 1. Sur le poste : répétition verte sur le nouveau `SHA` (étape 1), obligatoire si la version ajoute une migration ou touche `infra/`.
@@ -310,6 +312,39 @@ Le workflow vérifie que le commit est sur `main`, joue la répétition sur cett
 3. `/opt/trame/source/infra/staging/deploy.sh "$SHA"`
 
 En cas d'échec, le script revient seul à la version en service et le dit. Code 4 : la version restaurée ne répond pas, intervention requise (README, « Codes de sortie »).
+
+### Rejouer le provisionnement RabbitMQ avant un déploiement
+
+Sur le VPS, en root. Le script vient de `origin/main`, la version à déployer, sans changer le clone en service. Les mots de passe sont relus dans les fichiers de secrets, sans s'afficher ni changer. Le bloc PostgreSQL de l'étape 6 n'est pas concerné.
+
+```bash
+(
+  set -euo pipefail
+  cd /opt/trame/source
+  git fetch --quiet origin main
+  export TRAME_SECRETS_DIR=/opt/trame/shared/secrets KEYCLOAK_ADMIN_URL=http://127.0.0.1:18080
+  amqp_password() { sed -n 's|^AMQP_URL=amqp://[^:]*:\([0-9a-f]\{64\}\)@.*|\1|p' "/opt/trame/staging/secrets/$1.env"; }
+  TRAME_RELAY_PASSWORD="$(amqp_password relay)" TRAME_WORKER_PASSWORD="$(amqp_password worker)"
+  : "${TRAME_RELAY_PASSWORD:?absente}" "${TRAME_WORKER_PASSWORD:?absente}"
+  export TRAME_RELAY_PASSWORD TRAME_WORKER_PASSWORD
+  git show origin/main:infra/provisioning/rabbitmq-environment.sh |
+    docker compose -f infra/compose/shared.yml exec -T \
+      -e TRAME_ENVIRONMENT=staging -e TRAME_RELAY_PASSWORD -e TRAME_WORKER_PASSWORD rabbitmq sh -s
+  echo "RabbitMQ provisionné"
+)
+```
+
+Contrôle :
+
+```bash
+cd /opt/trame/source
+TRAME_SECRETS_DIR=/opt/trame/shared/secrets KEYCLOAK_ADMIN_URL=http://127.0.0.1:18080 \
+  docker compose -f infra/compose/shared.yml exec -T rabbitmq rabbitmqctl -q list_permissions -p trame-staging
+```
+
+Attendu : `RabbitMQ provisionné`, puis `trame_staging_relay` et `trame_staging_worker`, chacun avec `^trame\.(diagnostic|schedule)\.` trois fois.
+
+Retour arrière : inutile. Les droits sont seulement élargis, et la version en service n'utilise que les ressources du diagnostic, toujours permises.
 
 ### Livraison continue : mise en place (une fois)
 

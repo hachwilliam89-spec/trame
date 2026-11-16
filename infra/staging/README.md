@@ -89,7 +89,7 @@ Après un code 4 : `docker compose --project-name trame-staging ps --all` et `lo
 
 ## Limites connues
 
-- `relay` et `worker` n'ont pas de sonde : `--wait` ne détecte pas leur échec. Un diagnostic lancé depuis le front couvre cette chaîne : la répétition le joue, et c'est un critère de réussite de B2b.
+- `relay` n'a pas de sonde : `--wait` ne détecte pas son échec. Un diagnostic lancé depuis le front couvre cette chaîne : la répétition le joue, et c'est un critère de réussite de B2b. Le `worker` est sondé depuis la PR 5b : sans boucle connectée à RabbitMQ, il devient malsain, et `deploy.sh` revient en arrière.
 - Sauvegardes et dossiers de versions ne sont pas purgés. La rotation viendra avec la sauvegarde hors du VPS (US-008).
 - Les adresses publiques sont fixes. La répétition les fait pointer vers le runner par `/etc/hosts`, avec une autorité de test (voir « Répétition »).
 
@@ -112,7 +112,7 @@ Après un code 4 : `docker compose --project-name trame-staging ps --all` et `lo
   - **dans un navigateur** :
     - la console d'administration s'ouvre et se connecte par le tunnel, sans aucune requête vers l'adresse publique (ADR-0034) ;
     - un compte créé par l'API d'administration, avec un mot de passe temporaire et le rôle `manager`, se connecte depuis `https://staging.trame.wkhach.dev` : Keycloak impose l'enrôlement du TOTP et le changement du mot de passe ;
-    - un diagnostic lancé depuis le front aboutit, ce qui couvre `relay` et `worker`, sans sonde ;
+    - un diagnostic lancé depuis le front aboutit, ce qui couvre `relay`, sans sonde, et `worker` ;
     - le navigateur ne joint que les deux noms publics, et Traefik ne refuse aucune requête par sa limite de débit ;
   - mémoire relevée toutes les 2 secondes, diagnostic compris, et aucun conteneur tué ni redémarré.
 - **Preuve** : l'artefact `repetition-staging` et le résumé du job donnent le SHA du script, ceux des deux versions, leurs digests vérifiés, les versions d'`oras` et de `cosign`, le maximum de mémoire de chaque conteneur, et les requêtes que Traefik a reçues pendant la connexion et le diagnostic (nombre, pic sur une seconde, refus), lues dans son journal d'accès.

@@ -48,7 +48,7 @@ d'un ancien `.env`, ajouter `AMQP_URL` depuis `.env.example` et adapter son port
 `RABBITMQ_PORT` a changé. Lancer ensuite `relay:serve` et `engine:worker`
 (voir [leur procédure](../apps/relay/README.md)).
 
-`rabbitmq/diagnostic-topology.json` est commun à Node et Python, validé par les contrats.
+`rabbitmq/diagnostic-topology.json` et `rabbitmq/schedule-topology.json` sont communs à Node et Python, validés par les contrats.
 Les noms des quatre files et leur politique sont détaillés dans l'ADR-0032. Le parking
 n'est pas consommé automatiquement : il conserve les messages isolés pour examen manuel.
 La DLQ attend la finalisation persistée d'un échec avant de l'y envoyer ; une indisponibilité
