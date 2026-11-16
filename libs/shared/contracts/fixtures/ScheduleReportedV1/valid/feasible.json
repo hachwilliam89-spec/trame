@@ -1,0 +1,46 @@
+{
+  "id": "0190f0a0-0000-7000-8000-000000000071",
+  "organizationId": "0190f0a0-0000-7000-8000-000000000001",
+  "type": "scheduling.schedule-reported.v1",
+  "occurredAt": "2026-11-16T18:30:04.200+00:00",
+  "payload": {
+    "generationId": "0190f0a0-0000-7000-8000-000000000051",
+    "requestId": "0190f0a0-0000-7000-8000-000000000061",
+    "report": {
+      "kind": "RESULT",
+      "outcome": {
+        "result": {
+          "status": "FEASIBLE",
+          "schedule": {
+            "assignments": [
+              {
+                "shiftId": "2026-11-23/matin/cariste",
+                "employeeId": "0190f0a0-0000-7000-8000-000000000041"
+              },
+              {
+                "shiftId": "2026-11-23/apres-midi/cariste",
+                "employeeId": "0190f0a0-0000-7000-8000-000000000042"
+              }
+            ],
+            "shortfalls": [
+              {
+                "shiftId": "2026-11-23/matin/cariste",
+                "requiredCount": 2,
+                "assignedCount": 1
+              }
+            ]
+          }
+        },
+        "checkedRules": [
+          "HABILITATION_REQUISE",
+          "UN_SEUL_SHIFT",
+          "REPOS_QUOTIDIEN_MIN",
+          "DUREE_QUOTIDIENNE_MAX",
+          "DUREE_HEBDOMADAIRE_MAX",
+          "VOLUME_CONTRACTUEL"
+        ],
+        "solveSeconds": 3.4
+      }
+    }
+  }
+}

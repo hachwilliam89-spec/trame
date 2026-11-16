@@ -1,7 +1,11 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
-import { engineContracts, engineContractsJsonSchema } from './engine-contracts';
+import {
+  engineContractParts,
+  engineContracts,
+  engineContractsJsonSchema,
+} from './engine-contracts';
 
 const fixturesDir = join(import.meta.dirname, '..', 'fixtures');
 
@@ -19,8 +23,17 @@ describe('contrats API ↔ moteur', () => {
     const document = engineContractsJsonSchema();
 
     expect(Object.keys(document['$defs'] as object).sort()).toEqual(
-      contracts.map(([id]) => id).sort(),
+      [...contracts.map(([id]) => id), ...Object.keys(engineContractParts)].sort(),
     );
+  });
+
+  it('a un contrat enregistré pour chaque dossier de fixtures', () => {
+    const fixtureContracts = readdirSync(fixturesDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name)
+      .sort();
+
+    expect(fixtureContracts).toEqual(contracts.map(([id]) => id).sort());
   });
 
   it.each(contracts.map(([id]) => id))('%s a des fixtures valides et invalides', (id) => {
