@@ -1,0 +1,48 @@
+name: Retour arrière du staging
+
+# Revient à la version précédente du staging (US-005, ADR-0035) :
+#   gh workflow run rollback-staging.yml
+# deploy.sh --rollback la vérifie de nouveau, puis la redéploie sans migration. Pas de répétition :
+# la version visée a déjà tourné. L'approbation de Kim reste exigée par l'environnement.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staging
+  cancel-in-progress: false
+
+jobs:
+  rollback:
+    name: Retour arrière sur le VPS
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    environment:
+      name: staging
+      url: https://staging.trame.wkhach.dev
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Revenir par la commande imposée
+        env:
+          DEPLOY_KEY: ${{ secrets.STAGING_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.STAGING_KNOWN_HOSTS }}
+        run: infra/staging/remote/ci-ssh.sh rollback
+
+  public-check:
+    name: Contrôle de l'adresse publique
+    needs: rollback
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Vérifier le staging et la fermeture de master
+        run: infra/staging/remote/public-check.sh

@@ -4,7 +4,7 @@ Mise en service du staging sur le VPS, pas à pas : chaque commande, ce qu'elle 
 
 **Règles**
 
-- Kim approuve et lance chaque commande. Aucun agent n'agit sur le VPS.
+- Kim approuve et lance chaque commande. Aucun agent n'agit sur le VPS. Seule exception : le déploiement et le retour arrière par GitHub, approuvés par Kim à chaque fois (« Livraison continue », ADR-0035).
 - Une sortie différente de l'attendu arrête le déroulé : on diagnostique avant de continuer.
 - Sauf mention « sur le poste », les commandes se lancent sur le VPS, en root (`sudo -i`), dans une session `tmux` (`tmux new -s trame`) : une coupure SSH n'interrompt rien, et les variables de l'étape 4 y restent disponibles jusqu'à l'étape 7. `echo "tmux : ${TMUX:-ABSENT}"` dit si l'on y est, `tmux attach -t trame` y revient.
 - Les blocs se collent un par un, sur une ligne vide (Ctrl+C la vide), et chaque sortie attendue se vérifie avant le bloc suivant. Un collage long a été tronqué pendant la mise en service : les blocs longs sont découpés.
@@ -295,11 +295,83 @@ Attendu : `tué=false relances=0` sur chaque ligne.
 
 ### Déployer une nouvelle version
 
+Par GitHub, une fois la livraison continue en place (section suivante) :
+
+```bash
+gh workflow run deploy-staging.yml -f version=$(git rev-parse origin/main)
+```
+
+Le workflow vérifie que le commit est sur `main`, joue la répétition sur cette version, puis attend l'approbation : sur la page du run, « Review deployments », cocher `staging`, « Approve and deploy ». Il se termine par le contrôle de l'adresse publique. Pour revenir à la version précédente : `gh workflow run rollback-staging.yml`, avec la même approbation.
+
+À la main, si GitHub est indisponible :
+
 1. Sur le poste : répétition verte sur le nouveau `SHA` (étape 1), obligatoire si la version ajoute une migration ou touche `infra/`.
 2. `git -C /opt/trame/source fetch origin main && git -C /opt/trame/source checkout --detach "$SHA"`
 3. `/opt/trame/source/infra/staging/deploy.sh "$SHA"`
 
 En cas d'échec, le script revient seul à la version en service et le dit. Code 4 : la version restaurée ne répond pas, intervention requise (README, « Codes de sortie »).
+
+### Livraison continue : mise en place (une fois)
+
+Une clé SSH réservée à GitHub, qui ne peut lancer que `deploy <commit>` ou `rollback` (ADR-0035). Prérequis : cette procédure est fusionnée sur `main`, et le clone du VPS est sur un commit qui la contient (`/opt/trame/source/infra/staging/remote/` existe).
+
+**Sur le poste**, la clé, sans phrase de passe puisque GitHub l'utilise seul :
+
+```bash
+ssh-keygen -t ed25519 -N '' -C trame-deploy-github -f ~/.ssh/trame-deploy-github
+scp ~/.ssh/trame-deploy-github.pub ubuntu@staging.trame.wkhach.dev:/tmp/trame-deploy-github.pub
+```
+
+**Sur le VPS**, en root : l'utilisateur, sans mot de passe, et sa clé limitée à la commande imposée.
+
+```bash
+useradd --create-home --shell /bin/bash trame-deploy
+install -d -m 700 -o trame-deploy -g trame-deploy /home/trame-deploy/.ssh
+printf 'restrict,command="/usr/local/sbin/trame-deploy-ssh" %s\n' "$(cat /tmp/trame-deploy-github.pub)" > /home/trame-deploy/.ssh/authorized_keys
+chown trame-deploy:trame-deploy /home/trame-deploy/.ssh/authorized_keys
+chmod 600 /home/trame-deploy/.ssh/authorized_keys
+rm /tmp/trame-deploy-github.pub
+```
+
+Les deux scripts, copiés hors du clone, et le seul droit `sudo` de cet utilisateur :
+
+```bash
+install -o root -g root -m 755 /opt/trame/source/infra/staging/remote/trame-deploy-ssh /usr/local/sbin/trame-deploy-ssh
+install -o root -g root -m 755 /opt/trame/source/infra/staging/remote/trame-deploy /usr/local/sbin/trame-deploy
+echo 'trame-deploy ALL=(root) NOPASSWD: /usr/local/sbin/trame-deploy' > /etc/sudoers.d/trame-deploy
+chmod 440 /etc/sudoers.d/trame-deploy
+visudo -cf /etc/sudoers.d/trame-deploy
+sshd -T | grep -i -E '^(allowusers|allowgroups) '
+```
+
+Attendu : `parsed OK`, et aucune ligne `allowusers` ni `allowgroups`. Si l'une apparaît, y ajouter `trame-deploy` avant de continuer. L'empreinte du serveur, à comparer plus bas :
+
+```bash
+ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub
+```
+
+**Sur le poste**, la clé refusée hors de sa commande, puis l'empreinte du VPS lue par le réseau :
+
+```bash
+ssh -i ~/.ssh/trame-deploy-github -o IdentitiesOnly=yes trame-deploy@staging.trame.wkhach.dev bash
+ssh-keyscan -t ed25519 staging.trame.wkhach.dev 2>/dev/null > /tmp/trame-known-hosts
+ssh-keygen -lf /tmp/trame-known-hosts
+```
+
+Attendu : `Commande refusée : seules « deploy <commit complet> » et « rollback » sont acceptées.`, puis la même empreinte `SHA256:` que sur le VPS. Une empreinte différente arrête tout.
+
+L'environnement `staging`, approuvé par Kim seul et réservé à `main`, puis ses deux secrets :
+
+```bash
+gh api -X PUT repos/hachwilliam89-spec/trame/environments/staging -F "reviewers[][type]=User" -F "reviewers[][id]=$(gh api user --jq .id)" -F "deployment_branch_policy[protected_branches]=true" -F "deployment_branch_policy[custom_branch_policies]=false"
+gh secret set STAGING_DEPLOY_KEY --env staging < ~/.ssh/trame-deploy-github
+gh secret set STAGING_KNOWN_HOSTS --env staging < /tmp/trame-known-hosts
+rm /tmp/trame-known-hosts
+```
+
+Premier usage : un déploiement (« Déployer une nouvelle version »). `rollback-staging.yml` n'est pas un essai : il change la version en service. Viser la version déjà en service est sans surprise : `deploy.sh` la redéploie (sauvegarde, aucune migration, mêmes images) et `previous` ne change pas (README, « Succès »).
+
+Retour arrière, sur le VPS : `userdel -r trame-deploy`, `rm /usr/local/sbin/trame-deploy-ssh /usr/local/sbin/trame-deploy /etc/sudoers.d/trame-deploy`. Sur le poste : `gh secret delete STAGING_DEPLOY_KEY --env staging`, `gh secret delete STAGING_KNOWN_HOSTS --env staging`, `rm ~/.ssh/trame-deploy-github ~/.ssh/trame-deploy-github.pub`.
 
 ### Revenir à la version précédente
 

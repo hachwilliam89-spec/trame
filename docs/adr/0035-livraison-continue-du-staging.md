@@ -1,0 +1,25 @@
+# ADR-0035 — Livraison continue du staging : à la demande, répétée, approuvée
+
+- **Statut** : Proposé (2026-11-16). Précise US-005 (livraison continue sur staging).
+- **Contexte** :
+  - Chaque mise en service du staging demande une demi-heure de commandes : vérification des images, répétition, connexion au VPS en root, mise à jour du clone, `deploy.sh`. Les PR du jalon 1 vont en demander plusieurs.
+  - Le VPS héberge aussi d'autres projets. Jusqu'ici, aucune intervention n'y avait lieu sans que Kim lance lui-même chaque commande.
+  - `deploy.sh` vérifie déjà la signature et les digests des images d'un commit de main, sauvegarde la base, migre, bascule, contrôle l'adresse publique et revient seul en arrière en cas d'échec.
+- **Décision** :
+  - Un workflow lancé à la demande (`deploy-staging.yml`, entrée : un commit complet de main) vérifie que le commit est sur main, joue la répétition du staging sur cette même version, puis attend l'**approbation de Kim** sur l'environnement GitHub `staging` avant de toucher le VPS. Un second workflow (`rollback-staging.yml`) lance `deploy.sh --rollback`, avec la même approbation. Chacun finit par le contrôle de l'adresse publique (staging et realm ouverts, `master` et console fermés).
+  - Pas de déploiement à chaque fusion : une PR de documentation ne déclenche ni répétition ni approbation. Le geste utile reste « choisir une version signée, la répéter, l'approuver ».
+  - La clé de déploiement ne sert qu'à l'utilisateur `trame-deploy`, sans mot de passe. Dans `authorized_keys`, `restrict,command="/usr/local/sbin/trame-deploy-ssh"` n'accepte que `deploy <commit complet>` ou `rollback` : la commande imposée remplace toute demande, aucun shell ne s'ouvre. `sudo` ne permet à cet utilisateur que `/usr/local/sbin/trame-deploy`, qui vérifie de nouveau la demande et le fait que le commit soit sur main, met le clone sur ce commit, puis lance son `deploy.sh`. Ces deux scripts sont installés hors du clone par Kim : les changer demande une intervention sur le VPS, pas une fusion.
+  - L'empreinte du VPS est épinglée dans les secrets de l'environnement (`STAGING_KNOWN_HOSTS`), avec la clé privée (`STAGING_DEPLOY_KEY`). Seuls les workflows de main peuvent utiliser cet environnement, et ses secrets ne sont lus qu'après l'approbation.
+  - Toute autre intervention sur le VPS (stack partagée, Traefik, Keycloak, sauvegardes) reste manuelle, commande par commande.
+- **Conséquences** :
+  - (+) Un déploiement se résume à une commande et un clic, toujours précédé d'une répétition sur la version exacte.
+  - (+) Une fuite de la clé ne donnerait ni shell ni accès aux autres projets : seulement le déploiement d'une version de main, publiée et signée, ou un retour arrière.
+  - (−) Le journal du déploiement est public, le dépôt l'étant : `deploy.sh` n'y écrit que des étapes et des chemins, ses journaux de conteneurs restent dans des fichiers root sur le VPS.
+  - (−) La version de `deploy.sh` exécutée est celle du commit déployé, comme dans la procédure manuelle : une erreur dans ce script passe d'abord par la répétition.
+- **Alternatives écartées** :
+  - déployer à chaque fusion sur main : répétition et approbation pour des PR sans effet sur le staging ;
+  - un agent sur le VPS qui interroge les versions publiées : aucune clé entrante, mais un service de plus à maintenir et une approbation moins visible ;
+  - la clé de l'utilisateur `ubuntu` : `sudo` sans mot de passe, donc tout le serveur.
+- **Références** :
+  - [GitHub, environnements et réviseurs requis](https://docs.github.com/en/actions/reference/workflows-and-actions/deployments-and-environments#required-reviewers) ;
+  - `infra/staging/RUNBOOK.md` (« Livraison continue ») ; `infra/staging/remote/` ; `infra/src/staging-remote-deploy.spec.ts`.

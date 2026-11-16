@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Déploiement du staging lancé par la livraison continue (ADR-0035), en root par sudo.
+#
+#   trame-deploy deploy <commit>   met le clone sur ce commit de main, puis lance son deploy.sh
+#   trame-deploy rollback          revient à la version précédente (deploy.sh --rollback)
+#
+# Installé hors du clone (/usr/local/sbin), par Kim : le changer demande une intervention sur le
+# VPS, pas une fusion. Il refait les mêmes gestes que la procédure manuelle du runbook.
+set -euo pipefail
+
+# TRAME_ROOT ne sert qu'aux tests : sudo efface l'environnement, et le VPS utilise /opt/trame.
+readonly source_clone="${TRAME_ROOT:-/opt/trame}/source"
+
+refuse() {
+  echo "Demande refusée : « deploy <commit complet> » ou « rollback »." >&2
+  exit 64
+}
+
+deploy() {
+  local commit="$1"
+  git -C "$source_clone" fetch --quiet origin main
+  # Seule une version fusionnée sur main, donc publiée et signée par la CI, peut être déployée.
+  if ! git -C "$source_clone" merge-base --is-ancestor "$commit" origin/main 2>/dev/null; then
+    echo "Commit $commit absent de main : rien n'est déployé." >&2
+    exit 65
+  fi
+  git -C "$source_clone" checkout --quiet --detach "$commit"
+  exec "$source_clone/infra/staging/deploy.sh" "$commit"
+}
+
+if [ "$#" -eq 2 ] && [ "$1" = 'deploy' ] && [[ "$2" =~ ^[0-9a-f]{40}$ ]]; then
+  deploy "$2"
+fi
+if [ "$#" -eq 1 ] && [ "$1" = 'rollback' ]; then
+  exec "$source_clone/infra/staging/deploy.sh" --rollback
+fi
+refuse

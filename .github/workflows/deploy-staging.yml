@@ -1,0 +1,90 @@
+name: Déploiement du staging
+
+# Livraison continue du staging (US-005, ADR-0035), lancée à la demande :
+#   gh workflow run deploy-staging.yml -f version=<commit de main>
+# Le commit est vérifié, la répétition joue deploy.sh sur cette même version publiée et signée,
+# puis Kim approuve l'environnement « staging » avant que la clé de déploiement ne touche le VPS.
+# Cette clé n'ouvre qu'une commande imposée (infra/staging/remote/trame-deploy-ssh).
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Commit complet de main à mettre en service (40 caractères)
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+# Un seul déploiement à la fois ; une demande en attente n'en annule pas une autre en cours.
+concurrency:
+  group: staging
+  cancel-in-progress: false
+
+jobs:
+  version:
+    name: Commit de main
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Vérifier que la version est un commit complet de main
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [[ ! "$VERSION" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::La version doit être un commit complet (40 caractères hexadécimaux)."
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$VERSION" origin/main; then
+            echo "::error::$VERSION n'est pas sur main : seule une version fusionnée est publiée."
+            exit 1
+          fi
+
+  rehearsal:
+    name: Répétition
+    needs: version
+    permissions:
+      contents: read
+    uses: $/.github/workflows/rehearsal.yml
+    with:
+      version: ${{ inputs.version }}
+
+  deploy:
+    name: Déploiement sur le VPS
+    needs: rehearsal
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # Approbation de Kim exigée par l'environnement ; ses secrets ne sont lus qu'après elle.
+    environment:
+      name: staging
+      url: https://staging.trame.wkhach.dev
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Déployer par la commande imposée
+        env:
+          VERSION: ${{ inputs.version }}
+          DEPLOY_KEY: ${{ secrets.STAGING_DEPLOY_KEY }}
+          KNOWN_HOSTS: ${{ secrets.STAGING_KNOWN_HOSTS }}
+        run: infra/staging/remote/ci-ssh.sh "deploy $VERSION"
+
+  public-check:
+    name: Contrôle de l'adresse publique
+    needs: deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Vérifier le staging et la fermeture de master
+        run: infra/staging/remote/public-check.sh

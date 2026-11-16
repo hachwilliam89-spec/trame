@@ -40,3 +40,4 @@ Les ADR 0018, 0020, 0021 et 0022 ont été amendées le 2026-11-01 après la rev
 | [0032](0032-transport-diagnostic-et-reprises.md)               | Transport du diagnostic et séparation des reprises                          | Proposé                                   |
 | [0033](0033-front-guide-authentification-et-suivi.md)          | Premier front : authentification et suivi du diagnostic                     | Proposé                                   |
 | [0034](0034-realm-master-a-l-adresse-du-tunnel.md)             | Realm `master` de Keycloak à l'adresse du tunnel d'administration           | Proposé                                   |
+| [0035](0035-livraison-continue-du-staging.md)                  | Livraison continue du staging : à la demande, répétée, approuvée            | Proposé                                   |
