@@ -46,8 +46,9 @@ RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 FROM base AS relay
 COPY --from=relay-dependencies /runtime/node_modules ./node_modules
 COPY --from=builder /workspace/dist/apps/relay/main.js ./main.js
-COPY infra/rabbitmq/diagnostic-topology.json ./topology.json
-ENV DIAGNOSTIC_TOPOLOGY_FILE=/app/topology.json
+COPY infra/rabbitmq/diagnostic-topology.json infra/rabbitmq/schedule-topology.json ./
+ENV DIAGNOSTIC_TOPOLOGY_FILE=/app/diagnostic-topology.json \
+    SCHEDULE_TOPOLOGY_FILE=/app/schedule-topology.json
 USER node
 CMD ["node", "main.js"]
 

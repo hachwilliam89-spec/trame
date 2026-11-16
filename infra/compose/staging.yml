@@ -74,6 +74,20 @@ services:
       migrator: { condition: service_completed_successfully }
     networks: [staging, data]
     mem_limit: 256m
+    # La boucle du relais touche ce fichier toutes les 5 s quand elle tourne connectée
+    # (apps/relay/src/liveness.ts) : sans RabbitMQ ni PostgreSQL, `deploy.sh` revient en arrière.
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "process.exit(Date.now() - require('node:fs').statSync('/tmp/trame-relay-alive').mtimeMs < 20000 ? 0 : 1)",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
 
   engine:
     <<: *application

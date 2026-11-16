@@ -1,7 +1,7 @@
-# Transport du diagnostic (US-009 A2)
+# Transport du diagnostic et de la génération (US-009 A2, US-061)
 
 Processus Node distinct de l'API HTTP : il transmet l'outbox puis reçoit les rapports du
-worker Python. Son arrêt laisse les demandes persistées en attente ; aucun traitement
+worker Python, pour le diagnostic et pour la génération d'un planning, sur une même connexion. Son arrêt laisse les demandes persistées en attente ; aucun traitement
 n'est lancé dans le processus HTTP.
 
 ```bash
@@ -16,9 +16,19 @@ pnpm nx run engine:worker
 Ajouter `AMQP_URL` de `.env.example` à un `.env` existant. Nx charge l'environnement de
 la racine. Le transport exige `DATABASE_URL` et `AMQP_URL`. Il valide les protocoles au
 démarrage ; ses erreurs ne journalisent ni valeur de configuration, ni URL, ni corps.
-`LOG_LEVEL` vaut `info` par défaut. Le fichier commun de topologie est
-`infra/rabbitmq/diagnostic-topology.json` ; `DIAGNOSTIC_TOPOLOGY_FILE` peut désigner un
-autre fichier **par chemin absolu** (les cibles Node et Python ont des cwd différents).
+`LOG_LEVEL` vaut `info` par défaut. Les fichiers communs de topologie sont
+`infra/rabbitmq/diagnostic-topology.json` et `infra/rabbitmq/schedule-topology.json` ;
+`DIAGNOSTIC_TOPOLOGY_FILE` et `SCHEDULE_TOPOLOGY_FILE` peuvent désigner d'autres fichiers
+**par chemin absolu** (les cibles Node et Python ont des cwd différents).
+
+Chaque flux a son relais d'outbox, qui ne prend que ses propres types de message, filtrés dans
+la sélection SQL : une demande d'un flux ne bloque jamais l'autre. Un rapport de génération est
+borné à 1 Mio, et son planning contrôlé contre l'instantané stocké avant d'être enregistré.
+Une demande ou un rapport de génération en rebut, rattaché à sa demande publiée, fait échouer
+la génération si elle n'est pas terminée (`RETRIES_EXHAUSTED` ou `PROCESSING_FAILED`).
+
+La boucle touche `trame-relay-alive`, dans le dossier temporaire, au plus toutes les 5 s :
+c'est la sonde du conteneur au staging, qui le juge vivant s'il a moins de 20 s.
 
 Le processus utilise une connexion/une requête SQL bornées à 5 secondes, et des publications
 AMQP confirmées en 5 secondes au maximum. Une publication retournée (`mandatory`),
