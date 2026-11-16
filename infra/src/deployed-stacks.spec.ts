@@ -239,6 +239,16 @@ describe('stacks des environnements déployés (US-005 B2a)', () => {
     }
   });
 
+  it('sonde le worker du staging : sans boucle connectée à RabbitMQ, le déploiement échoue', () => {
+    // `deploy.sh` attend la santé de chaque service (--wait) : un worker sans sonde passerait.
+    expect(service('staging', 'worker').healthcheck?.test).toEqual([
+      'CMD',
+      'python',
+      '-m',
+      'trame_engine.worker.health',
+    ]);
+  });
+
   it('configure l’OIDC du staging : émetteur public, clés lues sur le réseau interne', () => {
     expect(service('staging', 'api').environment).toMatchObject({
       OIDC_ISSUER_URL: 'https://auth.trame.wkhach.dev/realms/trame-staging',
