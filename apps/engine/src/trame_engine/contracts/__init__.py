@@ -201,62 +201,6 @@ class DiagnosticRequestedV1(BaseModel):
     payload: Payload1
 
 
-class Arguments(RootModel[int]):
-    root: Annotated[int, Field(ge=-9007199254740991, le=9007199254740991)]
-
-
-class Requests(BaseModel):
-    model_config = ConfigDict(
-        extra="ignore",
-        populate_by_name=True,
-    )
-    name: Annotated[str, Field(min_length=1)]
-    routing_key: Annotated[str, Field(alias="routingKey", min_length=1)]
-    arguments: dict[str, str | Arguments | bool]
-
-
-class Reports(BaseModel):
-    model_config = ConfigDict(
-        extra="ignore",
-        populate_by_name=True,
-    )
-    name: Annotated[str, Field(min_length=1)]
-    routing_key: Annotated[str, Field(alias="routingKey", min_length=1)]
-    arguments: dict[str, str | Arguments | bool]
-
-
-class DeadLetters(BaseModel):
-    model_config = ConfigDict(
-        extra="ignore",
-        populate_by_name=True,
-    )
-    name: Annotated[str, Field(min_length=1)]
-    routing_key: Annotated[str, Field(alias="routingKey", min_length=1)]
-    arguments: dict[str, str | Arguments | bool]
-
-
-class Parking(BaseModel):
-    model_config = ConfigDict(
-        extra="ignore",
-        populate_by_name=True,
-    )
-    name: Annotated[str, Field(min_length=1)]
-    routing_key: Annotated[str, Field(alias="routingKey", min_length=1)]
-    arguments: dict[str, str | Arguments | bool]
-
-
-class DiagnosticTopologyV1(BaseModel):
-    model_config = ConfigDict(
-        extra="ignore",
-        populate_by_name=True,
-    )
-    exchange: Annotated[str, Field(min_length=1)]
-    requests: Requests
-    reports: Reports
-    dead_letters: Annotated[DeadLetters, Field(alias="deadLetters")]
-    parking: Parking
-
-
 class EngineHealthV1(BaseModel):
     """
     État du moteur d'optimisation.
@@ -296,6 +240,20 @@ class MinimumDailyRestRuleV1(BaseModel):
     )
     id: Literal["REPOS_QUOTIDIEN_MIN"]
     minimum_minutes: Annotated[int, Field(alias="minimumMinutes", ge=1, le=1440)]
+
+
+class Arguments(RootModel[int]):
+    root: Annotated[int, Field(ge=-9007199254740991, le=9007199254740991)]
+
+
+class QueueDeclarationV1(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,
+    )
+    name: Annotated[str, Field(min_length=1)]
+    routing_key: Annotated[str, Field(alias="routingKey", min_length=1)]
+    arguments: dict[str, str | Arguments | bool]
 
 
 class RequiredQualificationRuleV1(BaseModel):
@@ -477,6 +435,18 @@ class Parameters1(BaseModel):
     seed: Annotated[int, Field(ge=0, le=2147483647)]
 
 
+class ScheduleTopologyV1(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,
+    )
+    exchange: Annotated[str, Field(min_length=1)]
+    requests: QueueDeclarationV1
+    reports: QueueDeclarationV1
+    dead_letters: Annotated[QueueDeclarationV1, Field(alias="deadLetters")]
+    parking: QueueDeclarationV1
+
+
 class RequiredSkillId(RootModel[UUID]):
     root: UUID
 
@@ -545,6 +515,18 @@ class SingleShiftRuleV1(BaseModel):
         populate_by_name=True,
     )
     id: Literal["UN_SEUL_SHIFT"]
+
+
+class DiagnosticTopologyV1(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,
+    )
+    exchange: Annotated[str, Field(min_length=1)]
+    requests: QueueDeclarationV1
+    reports: QueueDeclarationV1
+    dead_letters: Annotated[QueueDeclarationV1, Field(alias="deadLetters")]
+    parking: QueueDeclarationV1
 
 
 class SchedulingProblemV1(BaseModel):

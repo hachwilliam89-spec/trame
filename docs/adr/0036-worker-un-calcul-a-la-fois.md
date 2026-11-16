@@ -1,0 +1,26 @@
+# ADR-0036 — Worker : un calcul à la fois, et un arrêt qui ne compte pas d'échec
+
+- **Statut** : Proposé (2026-11-16). Précise ADR-0021 (messagerie) pour la génération d'un planning (US-061, PR 5b).
+- **Contexte** :
+  - Le worker consomme deux files : les diagnostics, bornés à 5 s, et les générations, jusqu'à 300 s. Au staging, il dispose d'un seul CPU.
+  - `prefetch=1` limite les livraisons détenues par consommateur, pas pour le worker entier : avec deux consommateurs, deux calculs pourraient se chevaucher.
+  - Pika n'est pas sûr entre threads. Un calcul qui bloque le thread de la connexion plus de deux battements de cœur (60 s) la fait couper par RabbitMQ.
+  - Sur RabbitMQ 4.3, une livraison rendue par `basic.reject`, ou perdue avec la connexion, compte dans la limite de livraisons des files quorum ; `basic.nack` avec remise en file ne compte pas. `BlockingChannel.basic_cancel` de Pika rejette par `basic.reject` les livraisons reçues mais pas encore distribuées.
+- **Décision** :
+  - Les livraisons des deux files attendent dans une file locale (`Intake`) et sont traitées une à une, dans l'ordre d'arrivée : un diagnostic attend la fin d'une génération.
+  - Seul le thread principal touche Pika. Une génération calcule dans un second thread ; le principal sert la connexion (battements de cœur, nouvelles livraisons) jusqu'à la fin du calcul.
+  - Arrêt normal : le calcul est interrompu (`stop_search`), les consommateurs sont annulés tant que chaque file a encore sa livraison détenue, puis les livraisons détenues sont rendues par `basic.nack`, avant la fermeture. Aucun rapport n'est publié pour un calcul interrompu ; `CANCELLED` reste réservé à une demande du manager.
+  - La boucle touche un fichier à chaque tour, calcul compris ; la sonde du conteneur le juge vivant s'il a moins de 20 s. `deploy.sh` attend cette santé.
+- **Conséquences** :
+  - (+) Un seul CP-SAT à la fois, quelle que soit la file ; le plafond de workers de l'environnement suffit à borner le CPU.
+  - (+) Un redéploiement pendant un calcul ne rapproche pas la demande de sa quarantaine.
+  - (+) Un worker qui ne joint pas RabbitMQ fait échouer le déploiement, qui revient en arrière.
+  - (−) Un diagnostic peut attendre jusqu'à la fin d'une génération (300 s au plus). Acceptable au jalon 1 ; un second worker, ou une priorité, se décidera sur un besoin mesuré.
+  - (−) Une demande publiée dans les millisecondes de l'annulation, sur une file vide, peut encore être rejetée par Pika et compter un échec : un seul, loin de la limite.
+- **Alternatives écartées** :
+  - un processus par file : deux CP-SAT sur un CPU, et deux connexions à surveiller ;
+  - un verrou partagé entre deux boucles de consommation : la seconde boucle détiendrait quand même sa livraison, et Pika resterait partagé entre threads ;
+  - calculer dans le thread de Pika en espaçant les battements de cœur : une connexion muette n'est plus détectée, et 300 s dépassent tout réglage raisonnable.
+- **Références** :
+  - [RabbitMQ, files quorum et messages empoisonnés](https://www.rabbitmq.com/docs/quorum-queues#poison-message-handling) ;
+  - `apps/engine/src/trame_engine/worker/` ; `apps/engine/tests_integration/test_worker_rabbitmq.py`.

@@ -106,6 +106,14 @@ services:
     networks: [staging, data]
     cpus: 1
     mem_limit: 512m
+    # La boucle du worker touche un fichier à chaque tour, calcul compris. Sans connexion à
+    # RabbitMQ, il vieillit : le conteneur devient malsain et `deploy.sh` revient en arrière.
+    healthcheck:
+      test: ['CMD', 'python', '-m', 'trame_engine.worker.health']
+      interval: 5s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
 
   web:
     <<: *application

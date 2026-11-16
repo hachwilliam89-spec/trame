@@ -13,6 +13,7 @@ import { devStackImage } from './lib/pinned-images';
  */
 const PROVISIONING_SCRIPT = join(__dirname, '../provisioning/rabbitmq-environment.sh');
 const TOPOLOGY_FILE = join(__dirname, '../rabbitmq/diagnostic-topology.json');
+const SCHEDULE_TOPOLOGY_FILE = join(__dirname, '../rabbitmq/schedule-topology.json');
 const MANAGEMENT_PORT = 15672;
 const FAULT_DIRECTORY = '/tmp/trame-fault';
 const UNREADABLE_PERMISSIONS_RABBITMQCTL = join(
@@ -48,6 +49,7 @@ interface BrokerAccount {
 describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
   let broker: StartedRabbitMQContainer;
   let topology: DiagnosticTopology;
+  let scheduleTopology: DiagnosticTopology;
   const testRun = String(process.pid);
   const staging = { relay: `staging-relay-${testRun}`, worker: `staging-worker-${testRun}` };
   const production = { relay: `prod-relay-${testRun}`, worker: `prod-worker-${testRun}` };
@@ -65,6 +67,9 @@ describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
 
   beforeAll(async () => {
     topology = JSON.parse(await readFile(TOPOLOGY_FILE, 'utf8')) as DiagnosticTopology;
+    scheduleTopology = JSON.parse(
+      await readFile(SCHEDULE_TOPOLOGY_FILE, 'utf8'),
+    ) as DiagnosticTopology;
     broker = await new RabbitMQContainer(devStackImage('rabbitmq'))
       .withEnvironment({
         RABBITMQ_DEFAULT_USER: administrator.user,
@@ -166,12 +171,15 @@ describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
   }
 
   /** Les mêmes déclarations que le transport (TypeScript) et le worker (Python), dans le même ordre. */
-  async function declareTopology(channel: ConfirmChannel): Promise<void> {
-    await channel.assertExchange(topology.exchange, 'direct', { durable: true });
-    const queues = [topology.parking, topology.deadLetters, topology.requests, topology.reports];
+  async function declareTopology(
+    channel: ConfirmChannel,
+    declared: DiagnosticTopology = topology,
+  ): Promise<void> {
+    await channel.assertExchange(declared.exchange, 'direct', { durable: true });
+    const queues = [declared.parking, declared.deadLetters, declared.requests, declared.reports];
     for (const queue of queues) {
       await channel.assertQueue(queue.name, { durable: true, arguments: queue.arguments });
-      await channel.bindQueue(queue.name, topology.exchange, queue.routingKey);
+      await channel.bindQueue(queue.name, declared.exchange, queue.routingKey);
     }
   }
 
@@ -179,8 +187,9 @@ describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
     channel: ConfirmChannel,
     queue: QueueTopology,
     body: string,
+    exchange: string = topology.exchange,
   ): Promise<void> {
-    channel.publish(topology.exchange, queue.routingKey, Buffer.from(body), { persistent: true });
+    channel.publish(exchange, queue.routingKey, Buffer.from(body), { persistent: true });
     await channel.waitForConfirms();
   }
 
@@ -273,6 +282,16 @@ describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
     await exchangeDiagnostic(relay, worker);
   });
 
+  it('Messagerie : le worker déclare aussi les files de la génération (PR 5b)', async () => {
+    const worker = await open(account('staging', 'worker', staging.worker));
+    await declareTopology(worker, scheduleTopology);
+    const relay = await open(account('staging', 'relay', staging.relay));
+    await declareTopology(relay, scheduleTopology);
+
+    await publish(relay, scheduleTopology.requests, 'génération', scheduleTopology.exchange);
+    expect(await receive(worker, scheduleTopology.requests)).toBe('génération');
+  });
+
   it('Messagerie : le worker démarre avant le relay, et chacun fait son travail', async () => {
     const worker = await open(account('production', 'worker', production.worker));
     await declareTopology(worker);
@@ -296,16 +315,16 @@ describe('provisionnement RabbitMQ d’un environnement (US-005 B2a)', () => {
         /ConnectionClose/,
       );
     }
-    const onlyDiagnosticResources = '^trame\\.diagnostic\\.';
+    const onlyTrameResources = '^trame\\.(diagnostic|schedule)\\.';
     for (const environment of ['staging', 'production']) {
       for (const service of ['relay', 'worker']) {
         const user = `trame_${environment}_${service}`;
         expect(await rabbitmqctlList('list_user_permissions', user)).toEqual([
           {
             vhost: `trame-${environment}`,
-            configure: onlyDiagnosticResources,
-            write: onlyDiagnosticResources,
-            read: onlyDiagnosticResources,
+            configure: onlyTrameResources,
+            write: onlyTrameResources,
+            read: onlyTrameResources,
           },
         ]);
       }
