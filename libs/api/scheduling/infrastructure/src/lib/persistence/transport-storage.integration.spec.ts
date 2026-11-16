@@ -38,7 +38,7 @@ describe('Transport persistant et inbox (PostgreSQL)', () => {
     runs = new PrismaDiagnosticRuns(prisma);
     start = new StartDiagnostic(runs, clock, new SequentialIdGenerator());
     receive = new ReceiveDiagnosticReport(new PrismaDiagnosticReports(prisma, clock), clock);
-    store = new PrismaOutboxStore(prisma, clock);
+    store = new PrismaOutboxStore(prisma, clock, ['scheduling.diagnostic-requested.v1']);
   });
   beforeEach(async () => {
     await prisma.diagnosticEvent.deleteMany();
@@ -73,6 +73,29 @@ describe('Transport persistant et inbox (PostgreSQL)', () => {
         throw new Error('déjà publié');
       }),
     ).toBe(false);
+  });
+  it('ignore un type qu’il ne sait pas router, sans bloquer les diagnostics derrière lui', async () => {
+    await prisma.outboxMessage.create({
+      data: {
+        id: '00000000-0000-7000-8000-000000000000',
+        organizationId,
+        type: 'scheduling.schedule-requested.v1',
+        occurredAt: new Date('2026-11-04T09:00:00Z'),
+        body: { type: 'scheduling.schedule-requested.v1' },
+      },
+    });
+    await requestAndReport();
+    const published: string[] = [];
+
+    expect(await store.publishNext(async (message) => void published.push(message.type))).toBe(
+      true,
+    );
+    expect(await store.publishNext(async (message) => void published.push(message.type))).toBe(
+      false,
+    );
+
+    expect(published).toEqual(['scheduling.diagnostic-requested.v1']);
+    expect(await prisma.outboxMessage.count({ where: { publishedAt: null } })).toBe(1);
   });
   it('deux relais concurrents ne publient pas la même ligne verrouillée', async () => {
     await requestAndReport();

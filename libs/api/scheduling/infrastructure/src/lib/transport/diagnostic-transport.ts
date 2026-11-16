@@ -39,7 +39,10 @@ export class DiagnosticTransport {
       new PrismaDiagnosticReports(options.prisma, options.clock),
       options.clock,
     );
-    this.relay = new OutboxRelay(new PrismaOutboxStore(options.prisma, options.clock), {
+    const store = new PrismaOutboxStore(options.prisma, options.clock, [
+      'scheduling.diagnostic-requested.v1',
+    ]);
+    this.relay = new OutboxRelay(store, {
       publish: async (message) => {
         const body = diagnosticRequestedV1.parse(message.body);
         await options.session.publish(
