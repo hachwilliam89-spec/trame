@@ -43,7 +43,6 @@ const secondsFormat = new Intl.NumberFormat('fr-FR', {
   selector: 'tr-diagnostic-page',
   imports: [AssignmentWeave],
   templateUrl: './diagnostic-page.html',
-  styleUrl: './diagnostic-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DiagnosticPage {

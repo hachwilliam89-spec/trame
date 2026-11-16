@@ -37,40 +37,6 @@ const THREAD_MIDDLE_X = 180;
       }
     </svg>
   `,
-  styles: `
-    :host {
-      display: block;
-      max-width: 520px;
-      margin: 18px 0 6px;
-    }
-    svg {
-      display: block;
-      width: 100%;
-      height: auto;
-    }
-    .thread {
-      fill: none;
-      stroke: var(--brand-weft);
-      stroke-width: 3;
-      stroke-linecap: round;
-    }
-    .knot {
-      fill: var(--soft);
-      stroke: var(--line);
-    }
-    .knot.task {
-      fill: var(--brand-warp);
-      stroke: var(--brand-warp);
-    }
-    .label {
-      font-size: 13px;
-      text-anchor: middle;
-      fill: var(--ink);
-    }
-    .label.on-task {
-      fill: var(--action-ink);
-    }
-  `,
 })
 export class AssignmentWeave {
   readonly assignments = input.required<readonly WovenAssignment[]>();

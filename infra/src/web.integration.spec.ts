@@ -117,6 +117,25 @@ describe('Front Guidé construit et chaîne réelle', () => {
           .getByRole('heading', { name: 'Les trois tâches ont été affectées.', exact: true })
           .waitFor({ timeout: 25_000 });
         expect(await page.getByRole('cell', { name: 'Poste 2', exact: true }).count()).toBe(1);
+        const rendering = await page.locator('tr-assignment-weave').evaluate((element) => {
+          const thread = element.querySelector('path');
+          if (!thread) throw new Error('Affectation sans fil visible');
+          const style = getComputedStyle(thread);
+          return {
+            fill: style.fill,
+            stroke: style.stroke,
+            width: element.getBoundingClientRect().width,
+          };
+        });
+        expect(rendering.fill).toBe('none');
+        expect(rendering.stroke).not.toBe('none');
+        expect(rendering.width).toBeLessThanOrEqual(520);
+        expect(
+          await page
+            .locator('.fact dd')
+            .first()
+            .evaluate((element) => getComputedStyle(element).textAlign),
+        ).toBe('left');
         await noViolations(page);
         const stored = await page.evaluate(() => ({ ...sessionStorage, ...localStorage }));
         expect(JSON.stringify(stored)).not.toMatch(/eyJ[a-zA-Z0-9_-]+\.eyJ/);

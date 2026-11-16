@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 @import '../../../libs/web/brand/src/tokens.css';
 @import './landing.css';
+@import '../../../libs/web/scheduling/feature-diagnostic/src/lib/diagnostic-page.css';
+@import '../../../libs/web/scheduling/feature-diagnostic/src/lib/assignment-weave.css';
 * {
   box-sizing: border-box;
 }
