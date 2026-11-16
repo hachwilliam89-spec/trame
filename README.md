@@ -38,6 +38,14 @@ la prochaine étape est le [staging de la chaîne complète](docs/deploiement.md
 
 Prérequis : Docker avec Compose v2, Node 26 et pnpm 12. Le moteur demande aussi uv 0.13.
 
+La version de Node est fixée dans `.nvmrc` et `.node-version` ; pnpm refuse d'installer avec une autre version. Avec nvm, pnpm s'installe séparément pour chaque version de Node : l'installer après avoir activé Node 26. Avec fnm ou mise, `.node-version` donne la même version.
+
+```bash
+nvm install            # lit .nvmrc : Node 26.13
+nvm alias default 26   # les nouveaux terminaux s'ouvrent en Node 26
+npm install -g pnpm@12 # le dépôt passe ensuite de lui-même à la version de packageManager
+```
+
 ```bash
 cp .env.example .env
 pnpm install
