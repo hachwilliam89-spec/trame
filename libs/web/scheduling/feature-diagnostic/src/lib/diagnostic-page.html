@@ -63,7 +63,7 @@
     <p>Le résultat enregistré reste disponible ci-dessous.</p>
   </div>
   } @if (diagnostic.run() && diagnostic.phase() !== 'forbidden') {
-  <ol class="steps" aria-label="Étapes du diagnostic">
+  <ol class="steps" [class.completed]="complete()" aria-label="Étapes du diagnostic">
     <li class="done">
       <span aria-hidden="true">✓</span>
       <div>Demande enregistrée<small>Votre calcul est conservé.</small></div>
@@ -116,7 +116,7 @@
     }
     <dl class="facts">
       <div class="fact">
-        <dt>Issue du solveur</dt>
+        <dt>Résultat du calcul</dt>
         <dd>{{ issueLabel() }}</dd>
       </div>
       @if (durationLabel(); as duration) {

@@ -1,0 +1,32 @@
+tr-assignment-weave {
+  display: block;
+  max-width: 520px;
+  margin: 18px 0 6px;
+}
+tr-assignment-weave svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+tr-assignment-weave .thread {
+  fill: none;
+  stroke: var(--brand-weft);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+tr-assignment-weave .knot {
+  fill: var(--soft);
+  stroke: var(--line);
+}
+tr-assignment-weave .knot.task {
+  fill: var(--brand-warp);
+  stroke: var(--brand-warp);
+}
+tr-assignment-weave .label {
+  font-size: 13px;
+  text-anchor: middle;
+  fill: var(--ink);
+}
+tr-assignment-weave .label.on-task {
+  fill: var(--action-ink);
+}

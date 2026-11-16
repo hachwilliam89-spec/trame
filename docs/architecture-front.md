@@ -38,6 +38,7 @@ Organiser par fonctionnalité. Un composant propre à un écran reste près de c
 Angular apporte la composition et les interactions ; la direction visuelle appartient à Trame. Conserver le logo bicolore et la direction Tissage validée.
 
 - HTML sémantique et contrôles natifs d’abord. Composants petits, nommés par leur rôle, avec des états cohérents. Les styles propres à un composant restent près de lui ; les tokens réutilisés vont dans `brand`.
+- Avec la CSP actuelle (`style-src 'self'`), les styles sont émis dans une feuille externe : conserver les CSS près des composants, les importer depuis `apps/web/src/styles.css` et préfixer leurs sélecteurs par le composant. Ne pas utiliser `styles`/`styleUrl` sans une prise en charge CSP adaptée : Angular les injecte dans la page. Vérifier le rendu de la version construite, pas seulement le DOM des tests.
 - CDK pour les besoins concrets de focus, dialogues/overlays, drag-and-drop ou listes virtualisées. Son utilisation n’impose pas le style Material. Vérifier clavier, lecteur d’écran et alternative au glisser-déposer : le CDK ne remplace pas les tests du parcours.
 - `@if`, `@switch` et `@for` avec une identité `track` stable. Une liste dynamique ne se suit pas par son index si ses éléments se déplacent.
 - Charger les futures routes métier à la demande. `@defer` seulement pour une partie secondaire coûteuse, avec un emplacement réservé stable ; jamais pour retarder le hero ou l’action principale sans mesure qui le justifie.
