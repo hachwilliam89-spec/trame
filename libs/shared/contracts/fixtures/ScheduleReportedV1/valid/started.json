@@ -1,0 +1,13 @@
+{
+  "id": "0190f0a0-0000-7000-8000-000000000071",
+  "organizationId": "0190f0a0-0000-7000-8000-000000000001",
+  "type": "scheduling.schedule-reported.v1",
+  "occurredAt": "2026-11-16T18:30:04.200+00:00",
+  "payload": {
+    "generationId": "0190f0a0-0000-7000-8000-000000000051",
+    "requestId": "0190f0a0-0000-7000-8000-000000000061",
+    "report": {
+      "kind": "STARTED"
+    }
+  }
+}

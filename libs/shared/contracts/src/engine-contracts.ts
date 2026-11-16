@@ -3,6 +3,17 @@ import { diagnosticTopologyV1 } from './scheduling/diagnostic-topology.v1';
 import { z } from 'zod';
 import { diagnosticRequestedV1 } from './scheduling/diagnostic-requested.v1';
 import { engineHealthV1 } from './engine/engine-health.v1';
+import { scheduleReportedV1 } from './scheduling/schedule-reported.v1';
+import { scheduleRequestedV1 } from './scheduling/schedule-requested.v1';
+import {
+  contractualVolumeRuleV1,
+  maximumDailyDurationRuleV1,
+  maximumWeeklyDurationRuleV1,
+  minimumDailyRestRuleV1,
+  requiredQualificationRuleV1,
+  schedulingProblemV1,
+  singleShiftRuleV1,
+} from './scheduling/scheduling-problem.v1';
 
 /**
  * Registre des contrats échangés entre l'API et le moteur Python.
@@ -16,10 +27,27 @@ export const engineContracts = {
   DiagnosticRequestedV1: diagnosticRequestedV1,
   DiagnosticReportedV1: diagnosticReportedV1,
   DiagnosticTopologyV1: diagnosticTopologyV1,
+  ScheduleRequestedV1: scheduleRequestedV1,
+  ScheduleReportedV1: scheduleReportedV1,
+} as const satisfies Record<string, z.ZodType>;
+
+/**
+ * Sous-schémas nommés : ils deviennent des classes Pydantic à leur nom, au lieu de noms déduits
+ * des champs (`Rule3`, `Problem1`). Le moteur les manipule directement. Ce ne sont pas des messages :
+ * leurs exemples vivent dans les fixtures des contrats qui les contiennent.
+ */
+export const engineContractParts = {
+  SchedulingProblemV1: schedulingProblemV1,
+  RequiredQualificationRuleV1: requiredQualificationRuleV1,
+  SingleShiftRuleV1: singleShiftRuleV1,
+  MinimumDailyRestRuleV1: minimumDailyRestRuleV1,
+  MaximumDailyDurationRuleV1: maximumDailyDurationRuleV1,
+  MaximumWeeklyDurationRuleV1: maximumWeeklyDurationRuleV1,
+  ContractualVolumeRuleV1: contractualVolumeRuleV1,
 } as const satisfies Record<string, z.ZodType>;
 
 const registry = z.registry<{ id: string }>();
-for (const [id, schema] of Object.entries(engineContracts)) {
+for (const [id, schema] of Object.entries({ ...engineContracts, ...engineContractParts })) {
   registry.add(schema, { id });
 }
 
