@@ -11,6 +11,7 @@ import { acknowledgeAfterCommit } from '@trame/platform/inbox';
 import type { AmqpSession } from '@trame/platform/messaging';
 import { OutboxRelay } from '@trame/platform/outbox';
 import {
+  SCHEDULE_MESSAGE_MAX_BYTES,
   type ScheduleReportedV1,
   type ScheduleTopologyV1,
   scheduleReportedV1,
@@ -19,10 +20,13 @@ import {
 import { z, ZodError } from 'zod';
 import { PrismaOutboxStore } from '../persistence/prisma-outbox-store';
 import { PrismaScheduleReports } from '../persistence/prisma-schedule-reports';
-import { DatabaseRecovery, errorTypeOf, parseJsonBody } from './transport-support';
+import {
+  DatabaseRecovery,
+  RefusedPublicationPause,
+  errorTypeOf,
+  parseJsonBody,
+} from './transport-support';
 
-/** Une demande comme un rapport de génération tiennent en 1 Mio : le worker borne les deux. */
-const MAX_SCHEDULE_MESSAGE_BYTES = 1024 * 1024;
 const SCHEDULE_REQUESTED = 'scheduling.schedule-requested.v1';
 
 /**
@@ -58,9 +62,15 @@ export class ScheduleTransport {
   private readonly relay: OutboxRelay;
   private readonly receive: ReceiveScheduleReport;
   private readonly recovery: DatabaseRecovery;
+  private readonly publication: RefusedPublicationPause;
 
   constructor(private readonly options: ScheduleTransportOptions) {
     this.recovery = new DatabaseRecovery(options);
+    this.publication = new RefusedPublicationPause(
+      options.clock,
+      options.session,
+      options.logError,
+    );
     this.receive = new ReceiveScheduleReport(
       new PrismaScheduleReports(options.prisma, options.clock),
       options.clock,
@@ -87,16 +97,18 @@ export class ScheduleTransport {
     if (!this.options.session.isOpen) {
       throw new Error('Connexion AMQP fermée.');
     }
-    await this.recovery.commit(async () => {
-      await this.relay.deliverOne();
-    });
+    await this.publication.relay(() =>
+      this.recovery.commit(async () => {
+        await this.relay.deliverOne();
+      }),
+    );
   }
 
   private async handleReport(message: Message): Promise<void> {
     const { session } = this.options;
     try {
       const report = scheduleReportedV1.parse(
-        parseJsonBody(message.content, MAX_SCHEDULE_MESSAGE_BYTES),
+        parseJsonBody(message.content, SCHEDULE_MESSAGE_MAX_BYTES),
       );
       await acknowledgeAfterCommit(
         () => this.recovery.commit(() => this.receive.execute(report)),
@@ -147,7 +159,7 @@ export class ScheduleTransport {
   private failureFor(body: Buffer): ScheduleReportedV1 | undefined {
     let content: unknown;
     try {
-      content = parseJsonBody(body, MAX_SCHEDULE_MESSAGE_BYTES);
+      content = parseJsonBody(body, SCHEDULE_MESSAGE_MAX_BYTES);
     } catch {
       return undefined;
     }

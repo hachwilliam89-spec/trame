@@ -197,17 +197,21 @@ describe('Aller-retour RabbitMQ ↔ vrai moteur Python', () => {
     expect(await prisma.diagnosticEvent.count()).toBe(2);
   });
 
-  it('laisse une publication non routée rejouable, puis termine la demande', async () => {
+  it('laisse une publication non routée rejouable, sans fermer la session, puis termine la demande', async () => {
     const run = await createRun('unrouted');
+    const errors: string[] = [];
     const broken = new DiagnosticTransport({
       prisma,
       session,
       clock,
       ids: new UuidV7Generator(clock),
-      logError: () => undefined,
+      logError: (errorType) => errors.push(errorType),
       topology: { ...topology, requests: { ...topology.requests, routingKey: 'unbound-test' } },
     });
-    await expect(broken.tick()).rejects.toThrow();
+    // Le flux refusé attend ; la session et l'autre flux continuent (PR 6b).
+    await broken.tick();
+    expect(errors).toEqual(['PublicationRefused']);
+    expect(session.isOpen).toBe(true);
     expect(await prisma.outboxMessage.count({ where: { publishedAt: null } })).toBe(1);
     await completed(run.id);
   });

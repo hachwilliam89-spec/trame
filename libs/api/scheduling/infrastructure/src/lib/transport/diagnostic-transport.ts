@@ -18,7 +18,12 @@ import {
 import { ZodError } from 'zod';
 import { PrismaDiagnosticReports } from '../persistence/prisma-diagnostic-reports';
 import { PrismaOutboxStore } from '../persistence/prisma-outbox-store';
-import { DatabaseRecovery, errorTypeOf, parseJsonBody } from './transport-support';
+import {
+  DatabaseRecovery,
+  RefusedPublicationPause,
+  errorTypeOf,
+  parseJsonBody,
+} from './transport-support';
 
 const MAX_DIAGNOSTIC_REPORT_BYTES = 65_536;
 
@@ -37,8 +42,14 @@ export class DiagnosticTransport {
   private readonly relay: OutboxRelay;
   private readonly receive: ReceiveDiagnosticReport;
   private readonly recovery: DatabaseRecovery;
+  private readonly publication: RefusedPublicationPause;
   constructor(private readonly options: DiagnosticTransportOptions) {
     this.recovery = new DatabaseRecovery(options);
+    this.publication = new RefusedPublicationPause(
+      options.clock,
+      options.session,
+      options.logError,
+    );
     this.receive = new ReceiveDiagnosticReport(
       new PrismaDiagnosticReports(options.prisma, options.clock),
       options.clock,
@@ -67,9 +78,11 @@ export class DiagnosticTransport {
     if (!this.options.session.isOpen) {
       throw new Error('Connexion AMQP fermée.');
     }
-    await this.recovery.commit(async () => {
-      await this.relay.deliverOne();
-    });
+    await this.publication.relay(() =>
+      this.recovery.commit(async () => {
+        await this.relay.deliverOne();
+      }),
+    );
   }
 
   private async handleReport(message: Message): Promise<void> {

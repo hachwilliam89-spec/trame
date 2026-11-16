@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { PrismaService } from '@trame/api/database';
 import { type TestDatabase, startTestDatabase } from '@trame/api/database/testing';
-import { StartScheduleGeneration } from '@trame/api/scheduling/application';
+import { StartDiagnostic, StartScheduleGeneration } from '@trame/api/scheduling/application';
 import { InMemoryWeekPlanningSource } from '@trame/api/scheduling/application/testing';
 import type { ScheduleGeneration, WeekPlanning } from '@trame/api/scheduling/domain';
 import { SystemClock } from '@trame/platform/clock';
@@ -14,15 +14,22 @@ import { type TestBroker, startTestBroker } from '@trame/platform/messaging/test
 import {
   type ScheduleOutcomeV1,
   type ScheduleReportV1,
+  diagnosticTopologyV1,
   scheduleRequestedV1,
   scheduleTopologyV1,
 } from '@trame/shared/contracts';
+import { PrismaDiagnosticRuns } from '../persistence/prisma-diagnostic-runs';
 import { PrismaScheduleGenerations } from '../persistence/prisma-schedule-generations';
+import { DiagnosticTransport } from './diagnostic-transport';
 import { ScheduleTransport } from './schedule-transport';
 
 const root = resolve(import.meta.dirname, '../../../../../../..');
 const topologyFile = resolve(root, 'infra/rabbitmq/schedule-topology.json');
 const topology = scheduleTopologyV1.parse(JSON.parse(readFileSync(topologyFile, 'utf8')));
+const diagnosticTopologyFile = resolve(root, 'infra/rabbitmq/diagnostic-topology.json');
+const diagnosticTopology = diagnosticTopologyV1.parse(
+  JSON.parse(readFileSync(diagnosticTopologyFile, 'utf8')),
+);
 
 const organizationId = '0190f0a0-0000-7000-8000-00000000000a';
 const SITE_ID = '0190f0a0-0000-7000-8000-0000000000d1';
@@ -89,7 +96,7 @@ describe('Génération : PostgreSQL, RabbitMQ et vrai moteur Python', () => {
       env: {
         ...process.env,
         AMQP_URL: broker.url,
-        DIAGNOSTIC_TOPOLOGY_FILE: resolve(root, 'infra/rabbitmq/diagnostic-topology.json'),
+        DIAGNOSTIC_TOPOLOGY_FILE: diagnosticTopologyFile,
         SCHEDULE_TOPOLOGY_FILE: topologyFile,
       },
       stdio: ['ignore', 'pipe', 'pipe'],
@@ -328,5 +335,71 @@ describe('Génération : PostgreSQL, RabbitMQ et vrai moteur Python', () => {
     await expect
       .poll(async () => (await session.receiver.checkQueue(topology.parking.name)).messageCount)
       .toBe(2);
+  });
+
+  it('Une file de génération saturée n’interrompt ni la session ni le diagnostic', async () => {
+    // File de génération de test limitée à un message, déjà remplie : la publication est refusée.
+    const saturated = {
+      ...topology,
+      exchange: 'trame.schedule.saturated-test',
+      requests: {
+        name: 'trame.schedule.saturated-test.requests',
+        routingKey: 'requests',
+        arguments: { 'x-queue-type': 'quorum', 'x-max-length': 1, 'x-overflow': 'reject-publish' },
+      },
+    };
+    await session.declare(saturated.exchange, [saturated.requests]);
+    await session.receiver.purgeQueue(saturated.requests.name);
+    await session.publish(
+      { exchange: saturated.exchange, routingKey: saturated.requests.routingKey },
+      Buffer.from('{}'),
+    );
+    await session.declare(diagnosticTopology.exchange, [
+      diagnosticTopology.parking,
+      diagnosticTopology.deadLetters,
+      diagnosticTopology.requests,
+      diagnosticTopology.reports,
+    ]);
+    const refusals: string[] = [];
+    const schedules = new ScheduleTransport({
+      prisma,
+      session,
+      topology: saturated,
+      clock,
+      ids,
+      logError: (errorType) => refusals.push(errorType),
+    });
+    const diagnostics = new DiagnosticTransport({
+      prisma,
+      session,
+      topology: diagnosticTopology,
+      clock,
+      ids,
+      logError: () => undefined,
+    });
+    await diagnostics.startConsumers();
+    await launch('saturated');
+    const run = await new StartDiagnostic(new PrismaDiagnosticRuns(prisma), clock, ids).execute({
+      organizationId,
+      key: IdempotencyKey.of('next-to-saturated'),
+    });
+
+    await expect
+      .poll(
+        async () => {
+          await schedules.tick();
+          await diagnostics.tick();
+          return (await prisma.diagnosticRun.findUniqueOrThrow({ where: { id: run.id } })).status;
+        },
+        { timeout: 30_000, interval: 100 },
+      )
+      .toBe('SUCCEEDED');
+
+    expect(refusals).toContain('PublicationRefused');
+    expect(session.isOpen).toBe(true);
+    const waiting = await prisma.outboxMessage.count({
+      where: { type: 'scheduling.schedule-requested.v1', publishedAt: null },
+    });
+    expect(waiting).toBe(1);
   });
 });

@@ -1,6 +1,9 @@
 import { setTimeout } from 'node:timers/promises';
 import type { PrismaService } from '@trame/api/database';
-import type { AmqpSession } from '@trame/platform/messaging';
+import type { Clock } from '@trame/platform/clock';
+import { type AmqpSession, PublicationNotConfirmedError } from '@trame/platform/messaging';
+
+const REFUSED_PUBLICATION_PAUSE_SECONDS = 5;
 
 export interface DatabaseRecoveryOptions {
   prisma: PrismaService;
@@ -39,6 +42,44 @@ export class DatabaseRecovery {
     } catch {
       return false;
     }
+  }
+}
+
+/**
+ * Une file pleine refuse la publication (`x-overflow: reject-publish`) sans fermer la session. Le
+ * flux concerné attend 5 s avant de réessayer ; l'autre flux et les consommateurs continuent.
+ * Une session fermée ou une autre erreur remonte : la boucle du relais reconnecte.
+ */
+export class RefusedPublicationPause {
+  private resumeAt: Temporal.Instant | undefined;
+
+  constructor(
+    private readonly clock: Clock,
+    private readonly session: Pick<AmqpSession, 'isOpen'>,
+    private readonly logError: (errorType: string) => void,
+  ) {}
+
+  async relay(deliver: () => Promise<void>): Promise<void> {
+    if (this.isPaused()) {
+      return;
+    }
+    try {
+      await deliver();
+      this.resumeAt = undefined;
+    } catch (error) {
+      if (!(error instanceof PublicationNotConfirmedError) || !this.session.isOpen) {
+        throw error;
+      }
+      this.logError('PublicationRefused');
+      this.resumeAt = this.clock.now().add({ seconds: REFUSED_PUBLICATION_PAUSE_SECONDS });
+    }
+  }
+
+  private isPaused(): boolean {
+    if (this.resumeAt === undefined) {
+      return false;
+    }
+    return Temporal.Instant.compare(this.clock.now(), this.resumeAt) < 0;
   }
 }
 
