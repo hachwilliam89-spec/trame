@@ -266,7 +266,7 @@ describe('Aller-retour RabbitMQ ↔ vrai moteur Python', () => {
           { timeout: 20_000, interval: 100 },
         )
         .toBe('SUCCEEDED');
-      expect(logs).toContain('diagnostic_transport_ready');
+      expect(logs).toContain('transport_ready');
       expect(logs).not.toContain('local-test-only');
     } finally {
       await stopChild(service);
