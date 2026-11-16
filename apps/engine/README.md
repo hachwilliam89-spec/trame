@@ -15,6 +15,16 @@ src/trame_engine/
 
 Les couches sont vérifiées par import-linter : `api` → `solver` → `contracts`.
 
+## Planification d'une semaine (jalon 1)
+
+`solver/scheduling/` résout le planning d'une semaine reçu au format `SchedulingProblemV1` (issue #69) :
+
+- `read_week` lit le contrat et refuse un problème incohérent (`InvalidProblemError`) : identifiants en double, shift qui finit avant de commencer, minimum de contrat supérieur au maximum, règle en double.
+- Une variable par couple (salarié, shift), et jamais plus de personnes qu'un shift n'en demande. Les six règles du jalon 1 sont des contraintes dures ; la couverture est l'objectif (mode standard, cadrage §8) : maximiser les affectations, c'est minimiser les places non pourvues.
+- Chaque règle est une classe de `rules/` avec `add_to_model()` et `evaluate()` (ADR-0020). `evaluate_schedule` (PE) juge un planning donné : règles enfreintes, et manques chiffrés par shift.
+- Le repos se mesure en temps écoulé entre deux instants ; la durée quotidienne se compte par jour civil local du début du shift, convention à revoir avant les créneaux de nuit.
+- `tests/scheduling/test_coherence.py` vérifie, pour chaque règle et pour les six ensemble, sur des semaines tirées au hasard (Hypothesis), que toute solution du solveur est conforme pour la PE, et que le modèle accepte un planning si et seulement si la PE le juge conforme.
+
 ## Commandes
 
 ```bash
