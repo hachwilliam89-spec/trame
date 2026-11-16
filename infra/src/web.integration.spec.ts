@@ -261,7 +261,14 @@ describe('Front Guidé construit et chaîne réelle', () => {
         .waitFor({ timeout: 20_000 });
       await page.clock.fastForward(6 * 60 * 1000);
       await page.getByText('Votre session a expiré', { exact: true }).waitFor();
-      expect(await page.getByRole('table').count()).toBe(0);
+      // L'accueil ne garde que sa maquette annoncée : aucun tableau ni titre du calcul ne reste.
+      expect(await page.getByRole('table').count()).toBe(1);
+      expect(await page.getByRole('table', { name: /^Maquette/ }).count()).toBe(1);
+      expect(
+        await page
+          .getByRole('heading', { name: 'Les trois tâches ont été affectées.', exact: true })
+          .count(),
+      ).toBe(0);
       await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
       await page
         .getByRole('heading', { name: 'Les trois tâches ont été affectées.', exact: true })
