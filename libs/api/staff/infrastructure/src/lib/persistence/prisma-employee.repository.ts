@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { type Prisma, PrismaService, dateToInstant, instantToDate } from '@trame/api/database';
+import { type Prisma, DatabaseContext, dateToInstant, instantToDate } from '@trame/api/database';
 import type { EmployeeRepository } from '@trame/api/staff/application';
 import { Employee } from '@trame/api/staff/domain';
 import { type Page, type PageRequest, pageFrom } from '@trame/platform/pagination';
@@ -13,7 +13,7 @@ type EmployeeRecord = Prisma.EmployeeModel & {
 /** Employés dans `staff.employees`, et leurs habilitations dans `employee_qualifications`. */
 @Injectable()
 export class PrismaEmployeeRepository implements EmployeeRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly database: DatabaseContext) {}
 
   async add(employee: Employee): Promise<void> {
     const qualifications = employee.qualifications.map((qualification) => ({
@@ -22,9 +22,9 @@ export class PrismaEmployeeRepository implements EmployeeRepository {
       skillId: qualification.skillId,
       expiresOn: optionalPlainDateToDate(qualification.expiresOn),
     }));
-    // Les identifiants sont déjà attribués : les deux écritures partagent la même transaction.
-    await this.prisma.$transaction([
-      this.prisma.employee.create({
+    // L'employé et ses habilitations sont enregistrés ensemble, ou pas du tout.
+    await this.database.transaction(async (transaction) => {
+      await transaction.employee.create({
         data: {
           id: employee.id,
           organizationId: employee.organizationId,
@@ -33,13 +33,13 @@ export class PrismaEmployeeRepository implements EmployeeRepository {
           lastName: employee.lastName,
           createdAt: instantToDate(employee.createdAt),
         },
-      }),
-      this.prisma.employeeQualification.createMany({ data: qualifications }),
-    ]);
+      });
+      await transaction.employeeQualification.createMany({ data: qualifications });
+    });
   }
 
   async findById(organizationId: string, employeeId: string): Promise<Employee | undefined> {
-    const record = await this.prisma.employee.findFirst({
+    const record = await this.database.client.employee.findFirst({
       where: { id: employeeId, organizationId },
       include: qualificationsOf(organizationId),
     });
@@ -54,7 +54,7 @@ export class PrismaEmployeeRepository implements EmployeeRepository {
     siteId: string,
     page: PageRequest,
   ): Promise<Page<Employee>> {
-    const records = await this.prisma.employee.findMany({
+    const records = await this.database.client.employee.findMany({
       where: { organizationId, siteId, id: afterCursor(page.after) },
       include: qualificationsOf(organizationId),
       orderBy: { id: 'asc' },

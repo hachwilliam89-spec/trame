@@ -1,0 +1,30 @@
+# ADR-0038 — Unité de travail entre contextes, portée par la transaction courante
+
+- **Statut** : Proposé (2026-11-17), pour le chargement du jeu de démonstration (US-061, PR 7a).
+- **Contexte** :
+  - Le jeu de démonstration se charge par les use cases publics d'`organization`, `staff` et `demand` : site, compétences, postes, créneaux types, salariés, contrats et besoins. Interrompu à mi-chemin, il laisserait une organisation à moitié remplie.
+  - Chaque dépôt Prisma ouvrait sa propre transaction, ou écrivait sans transaction. Aucune ne pouvait englober un chargement.
+  - Les use cases se relisent à travers les contextes : la création d'un salarié vérifie son site et ses compétences par les use cases d'`organization` ; un contrat verrouille et relit son salarié. Si une lecture passait par une autre connexion qu'une écriture en attente, elle ne la verrait pas, et un verrou attendrait une transaction qui ne se termine pas.
+  - ADR-0022 sépare les contextes par schéma, sans jointure ni clé étrangère entre eux, dans une seule base PostgreSQL.
+- **Décision** :
+  - `DatabaseContext` (`@trame/api/database`) donne aux dépôts leur client :
+    - `client` : la transaction de l'unité de travail en cours, sinon le client Prisma ;
+    - `transaction(work)` : les écritures qu'un dépôt doit faire ensemble rejoignent l'unité de travail en cours, ou ouvrent leur propre transaction ;
+    - `atomically(work)` : ouvre une transaction et la range dans un `AsyncLocalStorage` le temps du travail. Une unité ouverte dans une autre la rejoint.
+  - Les dépôts d'`organization`, `staff` et `demand` passent par `DatabaseContext`. Leurs écritures groupées (`$transaction([...])`) deviennent des `transaction(...)`, car le client d'une transaction interactive n'a pas de `$transaction`.
+  - Les dépôts de `scheduling` gardent leurs propres transactions : aucun travail ne les fait encore rejoindre une unité. Ils passeront par `DatabaseContext` le jour où l'un d'eux en aura besoin.
+- **Conséquences** :
+  - (+) Un chargement par les use cases de trois contextes est validé en entier, ou annulé en entier, sans recopier leur assemblage.
+  - (+) Hors unité de travail, le comportement ne change pas : les tests d'intégration des sept dépôts passent tels quels.
+  - (−) La transaction est implicite. Un dépôt qui utiliserait `PrismaService` directement sortirait de l'unité sans erreur. Garde-fou : le test d'assemblage réel des trois contextes vérifie que leurs relectures restent invisibles au-dehors avant la validation, et qu'une erreur tardive annule tout.
+  - (−) Une écriture groupée devient une transaction interactive : quelques allers-retours de plus pour un poste ou un salarié, sans effet mesurable à cette taille.
+  - (−) L'unité suppose que les contextes concernés partagent une base. Un contexte déplacé dans sa propre base ne pourrait plus y entrer ; il communiquerait par événement (ADR-0021).
+  - (−) Une unité tient une connexion et ses verrous jusqu'à la fin du travail, dans le délai de transaction interactive de Prisma (5 s par défaut). Elle reste réservée à des travaux courts ; la PR 7b mesure la durée du chargement de la démo.
+- **Alternatives écartées** :
+  - **Assemblage explicite avec le client de la transaction** : ouvrir la transaction dans le chargement, puis construire avec son client les sept dépôts, les use cases d'écriture, les use cases de lecture et les deux adaptateurs entre contextes. La transaction serait visible dans le code, sans contexte implicite. Mais l'assemblage de trois contextes serait recopié hors de leurs modules, à tenir à jour à chaque nouvelle dépendance d'un use case. Les dépôts devraient changer quand même, pour rejoindre une transaction au lieu d'en ouvrir une.
+  - **Annuler à la main ce qui a été écrit**, en cas d'échec : un arrêt du processus pendant le chargement laisserait les données partielles.
+  - **Un événement par étape** (ADR-0021) : un chargement local à une organisation n'a pas besoin de cohérence à terme, et l'attente de chaque étape compliquerait la démo.
+- **Références** :
+  - ADR-0021, ADR-0022 ;
+  - [`AsyncLocalStorage`, Node.js](https://nodejs.org/api/async_context.html#class-asynclocalstorage) ;
+  - [Transactions interactives, Prisma](https://www.prisma.io/docs/orm/prisma-client/queries/transactions#interactive-transactions).
