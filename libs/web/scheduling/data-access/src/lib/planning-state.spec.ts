@@ -164,6 +164,68 @@ describe('État du planning d’une semaine', () => {
     expect(usedKeys).toEqual(['clé-1', 'clé-1', 'clé-2']);
   });
 
+  it('retente avec la même clé après un délai dépassé côté passerelle', async () => {
+    const previous = generation('A', 'SUCCEEDED', 'OPTIMAL');
+    gateway.week.mockResolvedValue({ latestAttempt: previous, latestSchedule: previous });
+    gateway.start.mockRejectedValueOnce(new PlanningHttpError(504));
+    gateway.start.mockResolvedValue(generation('B', 'SUCCEEDED', 'OPTIMAL'));
+    await state.open(SITE, MONDAY);
+
+    await state.generate();
+
+    expect(state.request()).toBe('lost');
+    expect(state.latestSchedule()).toBe(previous);
+    await state.generate();
+    expect(gateway.start.mock.calls.map((call) => call[1])).toEqual(['clé-1', 'clé-1']);
+    expect(state.latestSchedule()?.id).toBe('B');
+  });
+
+  it('attend le résultat complet avant d’afficher une issue reçue par le flux', async () => {
+    const previous = generation('A', 'SUCCEEDED', 'OPTIMAL');
+    gateway.week.mockResolvedValue({ latestAttempt: previous, latestSchedule: previous });
+    gateway.start.mockResolvedValue(generation('B', 'RUNNING'));
+    gateway.follow.mockImplementation(async (_id, receive) => receive(progress('B', 'SUCCEEDED')));
+    const result = Promise.withResolvers<ScheduleGenerationV1>();
+    gateway.generation.mockReturnValue(result.promise);
+    await state.open(SITE, MONDAY);
+
+    const generated = state.generate();
+    await vi.waitFor(() => expect(gateway.generation).toHaveBeenCalledOnce());
+
+    expect(state.request()).toBe('reading-result');
+    expect(state.latestAttempt()?.status).toBe('RUNNING');
+    expect(state.latestSchedule()).toBe(previous);
+    await state.generate();
+    expect(gateway.start).toHaveBeenCalledOnce();
+
+    result.resolve(generation('B', 'SUCCEEDED', 'INFEASIBLE'));
+    await generated;
+    expect(state.latestAttempt()?.outcome?.result.status).toBe('INFEASIBLE');
+    expect(state.request()).toBe('idle');
+    expect(state.latestSchedule()).toBe(previous);
+  });
+
+  it('garde le planning sur un 503 du résultat et reprend le suivi sans recréer de calcul', async () => {
+    const previous = generation('A', 'SUCCEEDED', 'OPTIMAL');
+    gateway.week.mockResolvedValue({ latestAttempt: previous, latestSchedule: previous });
+    gateway.start.mockResolvedValue(generation('B', 'RUNNING'));
+    gateway.follow.mockImplementation(async (_id, receive) => receive(progress('B', 'SUCCEEDED')));
+    gateway.generation.mockRejectedValueOnce(new PlanningHttpError(503));
+    gateway.generation.mockResolvedValue(generation('B', 'SUCCEEDED', 'OPTIMAL'));
+    await state.open(SITE, MONDAY);
+
+    await state.generate();
+
+    expect(state.phase()).toBe('ready');
+    expect(state.request()).toBe('interrupted');
+    expect(state.latestSchedule()).toBe(previous);
+
+    await state.resume();
+    expect(gateway.start).toHaveBeenCalledOnce();
+    expect(state.request()).toBe('idle');
+    expect(state.latestSchedule()?.id).toBe('B');
+  });
+
   it('signale un calcul dont le suivi s’est coupé avant son issue', async () => {
     gateway.start.mockResolvedValue(generation('A', 'QUEUED'));
     gateway.generation.mockResolvedValue(generation('A', 'RUNNING'));

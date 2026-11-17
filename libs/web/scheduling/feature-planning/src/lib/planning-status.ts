@@ -21,10 +21,13 @@ export function attemptMessage(
   switch (request) {
     case 'sending':
       return message('neutral', 'Calcul demandé…');
+    case 'reading-result':
+      return message('neutral', 'Récupération du résultat…' + kept);
     case 'lost':
       return message(
         'warning',
-        'La demande n’a pas reçu de réponse. Réessayez : le calcul ne sera pas lancé deux fois.',
+        'Le lancement n’a pas pu être confirmé. Réessayez : le calcul ne sera pas lancé deux fois.' +
+          kept,
         'generate',
         'Réessayer',
       );
@@ -71,8 +74,15 @@ function attemptOutcome(attempt: ScheduleGenerationV1, kept: string): AttemptMes
       );
     case 'UNKNOWN':
       return message('warning', 'Délai atteint sans solution.' + kept, 'generate', RELAUNCH);
-    default:
+    case 'CANCELLED':
       return message('warning', 'Le calcul a été annulé.' + kept, 'generate', RELAUNCH);
+    default:
+      return message(
+        'error',
+        'Le résultat du calcul est indisponible.' + kept,
+        'generate',
+        RELAUNCH,
+      );
   }
 }
 

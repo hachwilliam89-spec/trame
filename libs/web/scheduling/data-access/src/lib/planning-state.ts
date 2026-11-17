@@ -13,12 +13,11 @@ export type PlanningPhase =
   'idle' | 'loading' | 'ready' | 'forbidden' | 'missing' | 'expired' | 'unavailable';
 
 /**
- * Commande du manager : `sending` pendant le lancement, `following` pendant le suivi. `lost` : la
- * réponse au lancement s'est perdue, à retenter avec la même clé. `interrupted` : le suivi s'est
- * coupé avant l'issue, à reprendre sans relancer. `rejected` : l'API refuse cette semaine.
+ * `reading-result` : relecture de la génération après le flux. `lost` : réponse au lancement
+ * incertaine, à retenter avec la même clé. `interrupted` : suivi à reprendre sans relancer.
  */
 export type PlanningRequest =
-  'idle' | 'sending' | 'following' | 'lost' | 'interrupted' | 'rejected';
+  'idle' | 'sending' | 'following' | 'reading-result' | 'lost' | 'interrupted' | 'rejected';
 
 /** Libellés du site : la génération ne porte que des identifiants (aucun nom n'est copié). */
 export interface PlanningCatalog {
@@ -112,28 +111,25 @@ export class PlanningState {
     const pending = this.pendingFor(week.siteId, week.weekStartsOn);
     const operation = this.begin();
     this.requestState.set('sending');
+    let generation: ScheduleGenerationV1;
     try {
-      const generation = await this.api.start(week, pending.key, operation.signal);
-      if (!this.current(operation)) return;
-      this.pending = undefined;
-      this.apply(generation);
-      if (isFinished(generation)) this.requestState.set('idle');
-      else await this.follow(generation.id, operation);
+      generation = await this.api.start(week, pending.key, operation.signal);
     } catch (error) {
       if (this.current(operation)) this.failStarting(error);
+      return;
     }
+    if (!this.current(operation)) return;
+    this.pending = undefined;
+    this.apply(generation);
+    if (isFinished(generation)) this.requestState.set('idle');
+    else await this.follow(generation.id, operation);
   }
 
   /** Reprend le suivi coupé du dernier calcul, puis relit son état. */
   async resume(): Promise<void> {
     const attempt = this.latestAttempt();
     if (this.request() !== 'interrupted' || attempt === null) return;
-    const operation = this.begin();
-    try {
-      await this.follow(attempt.id, operation);
-    } catch (error) {
-      if (this.current(operation)) this.failReading(error);
-    }
+    await this.follow(attempt.id, this.begin());
   }
 
   /** Arrête le suivi en cours, par exemple à la déconnexion. */
@@ -151,17 +147,20 @@ export class PlanningState {
         operation.signal,
       );
     } catch (error) {
-      if (error instanceof AuthenticationRequired) throw error;
+      if (error instanceof AuthenticationRequired) {
+        if (this.current(operation)) this.failReading(error);
+        return;
+      }
     }
     if (!this.current(operation)) return;
+    this.requestState.set('reading-result');
     let generation: ScheduleGenerationV1;
     try {
       generation = await this.api.generation(generationId, operation.signal);
     } catch (error) {
-      // Une coupure réseau garde l'écran ; un refus ou une session expirée remonte.
-      if (error instanceof AuthenticationRequired || error instanceof PlanningHttpError)
-        throw error;
-      if (this.current(operation)) this.requestState.set('interrupted');
+      if (!this.current(operation)) return;
+      if (canRetry(error)) this.requestState.set('interrupted');
+      else this.failReading(error);
       return;
     }
     if (!this.current(operation)) return;
@@ -172,7 +171,9 @@ export class PlanningState {
   private receive(event: ScheduleGenerationProgressV1, operation: AbortController): void {
     const attempt = this.attemptState();
     if (!this.current(operation) || attempt?.id !== event.generationId) return;
-    this.attemptState.set({ ...attempt, status: event.status });
+    // Le flux signale la fin, mais seul le GET fournit le résultat complet.
+    if (event.status === 'RUNNING') this.attemptState.set({ ...attempt, status: event.status });
+    else this.requestState.set('reading-result');
   }
 
   private apply(generation: ScheduleGenerationV1): void {
@@ -200,7 +201,7 @@ export class PlanningState {
 
   private isBusy(): boolean {
     const request = this.request();
-    return request === 'sending' || request === 'following';
+    return request === 'sending' || request === 'following' || request === 'reading-result';
   }
 
   private failReading(error: unknown): void {
@@ -208,20 +209,17 @@ export class PlanningState {
   }
 
   private failStarting(error: unknown): void {
-    if (error instanceof PlanningHttpError) {
-      // L'API a répondu : la demande n'est pas à retenter avec cette clé.
-      this.pending = undefined;
-      if (error.status === 422) {
-        this.requestState.set('rejected');
-        return;
-      }
-    }
-    const phase = phaseOf(error);
-    if (phase === 'unavailable' && !(error instanceof PlanningHttpError)) {
+    if (canRetry(error)) {
+      // Une passerelle peut répondre 504 alors que l'API a déjà créé la génération.
       this.requestState.set('lost');
       return;
     }
-    this.clear(phase);
+    this.pending = undefined;
+    if (error instanceof PlanningHttpError && error.status === 422) {
+      this.requestState.set('rejected');
+      return;
+    }
+    this.clear(phaseOf(error));
   }
 
   private clear(phase: PlanningPhase): void {
@@ -251,6 +249,14 @@ function isFinished(generation: ScheduleGenerationV1): boolean {
 function hasSchedule(generation: ScheduleGenerationV1): boolean {
   const status = generation.outcome?.result.status;
   return status === 'OPTIMAL' || status === 'FEASIBLE';
+}
+
+function canRetry(error: unknown): boolean {
+  if (error instanceof AuthenticationRequired) return false;
+  if (!(error instanceof PlanningHttpError)) return true;
+  return (
+    error.status === 408 || error.status === 429 || (error.status >= 500 && error.status < 600)
+  );
 }
 
 function phaseOf(error: unknown): PlanningPhase {
