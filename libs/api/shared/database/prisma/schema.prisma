@@ -228,14 +228,37 @@ model ScheduleGeneration {
   excludedEmployees Json     @map("excluded_employees") @db.JsonB
   createdAt         DateTime @map("created_at") @db.Timestamptz(3)
 
-  outcome    Json?     @db.JsonB
-  failure    String?   @db.VarChar(32)
-  finishedAt DateTime? @map("finished_at") @db.Timestamptz(3)
+  outcome      Json?     @db.JsonB
+  failure      String?   @db.VarChar(32)
+  finishedAt   DateTime? @map("finished_at") @db.Timestamptz(3)
+  /// Numéro du dernier événement de progression (PR 6c) ; 0 en attente.
+  lastSequence Int       @default(0) @map("last_sequence")
+
+  events ScheduleGenerationEvent[]
 
   @@unique([id, organizationId])
   @@unique([organizationId, idempotencyKey])
   @@index([organizationId, siteId, weekStartsOn, createdAt], map: "schedule_generations_week_idx")
   @@map("schedule_generations")
+  @@schema("scheduling")
+}
+
+/// Progression d'une génération pour le flux SSE : l'état atteint, sans le planning. Trois
+/// événements au plus par génération, gardés avec elle.
+model ScheduleGenerationEvent {
+  id             String             @id @db.Uuid
+  organizationId String             @map("organization_id") @db.Uuid
+  generationId   String             @map("generation_id") @db.Uuid
+  sequence       Int
+  status         String             @db.VarChar(16)
+  resultStatus   String?            @map("result_status") @db.VarChar(16)
+  failure        String?            @db.VarChar(32)
+  occurredAt     DateTime           @map("occurred_at") @db.Timestamptz(3)
+  generation     ScheduleGeneration @relation(fields: [generationId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@unique([generationId, sequence])
+  @@index([organizationId, generationId, sequence], map: "schedule_generation_events_progress_idx")
+  @@map("schedule_generation_events")
   @@schema("scheduling")
 }
 
