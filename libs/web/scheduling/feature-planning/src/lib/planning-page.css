@@ -294,6 +294,10 @@ tr-planning-page .week-grid .shift {
   font-size: 12px;
   font-weight: 600;
 }
+tr-planning-page .week-grid .shift + .shift,
+tr-planning-page .employee-assignment + .employee-assignment {
+  margin-block-start: 4px;
+}
 tr-planning-page .week-grid .shift:hover {
   box-shadow: inset 0 -2px var(--on-shift);
 }

@@ -37,14 +37,18 @@ const shifts = [
   shift('2026-11-28', MORNING, FORKLIFT, 3),
 ];
 
-function generation(id: string, result: 'OPTIMAL' | 'INFEASIBLE'): ScheduleGenerationV1 {
+function generation(
+  id: string,
+  result: 'OPTIMAL' | 'INFEASIBLE',
+  problemShifts = shifts,
+): ScheduleGenerationV1 {
   const schedule = {
     assignments: [
-      { shiftId: shifts[0]?.id, employeeId: NADIA },
-      { shiftId: shifts[1]?.id, employeeId: NADIA },
-      { shiftId: shifts[2]?.id, employeeId: CAMILLE },
+      { shiftId: problemShifts[0]?.id, employeeId: NADIA },
+      { shiftId: problemShifts[1]?.id, employeeId: NADIA },
+      { shiftId: problemShifts[2]?.id, employeeId: CAMILLE },
     ],
-    shortfalls: [{ shiftId: shifts[2]?.id, requiredCount: 3, assignedCount: 1 }],
+    shortfalls: [{ shiftId: problemShifts[2]?.id, requiredCount: 3, assignedCount: 1 }],
   };
   return {
     id,
@@ -54,7 +58,7 @@ function generation(id: string, result: 'OPTIMAL' | 'INFEASIBLE'): ScheduleGener
     problem: {
       weekStartsOn: '2026-11-23',
       timeZone: 'Europe/Paris',
-      shifts,
+      shifts: problemShifts,
       employees: [
         {
           id: CAMILLE,
@@ -188,6 +192,58 @@ describe('Page Planning', () => {
     expect(text(page.querySelector('.legend'))).toBe(
       'Matin 06 h–13 h 20 Après-midi 13 h 30–20 h 50',
     );
+  });
+
+  it('affiche et distingue deux affectations du même salarié sur une journée', async () => {
+    const monday = '2026-11-23';
+    const morning = {
+      ...shift(monday, MORNING, RECEIVING, 1),
+      endsAt: `${monday}T08:00:00+01:00`,
+      effectiveMinutes: 100,
+    };
+    const evening = {
+      ...shift(monday, AFTERNOON, PICKING, 1),
+      startsAt: `${monday}T19:00:00+01:00`,
+      endsAt: `${monday}T21:00:00+01:00`,
+      effectiveMinutes: 100,
+    };
+    const saturday = shift('2026-11-28', MORNING, FORKLIFT, 3);
+    planning.latestSchedule.set(generation('A', 'OPTIMAL', [morning, evening, saturday]));
+
+    const fixture = TestBed.createComponent(PlanningPage);
+    await fixture.whenStable();
+    const page = fixture.nativeElement as HTMLElement;
+    const row = rowOf(page, 'Nadia Guérin');
+    assert.isDefined(row);
+    const mondayCell = row.cells.item(1);
+    assert.isNotNull(mondayCell);
+    const buttons = Array.from(mondayCell.querySelectorAll<HTMLButtonElement>('button.shift'));
+    expect(buttons.map(text)).toEqual([
+      'Matin Réceptionnaire',
+      'Après-midi Préparateur de commandes',
+    ]);
+    expect(text(row.querySelector('.weekly-hours strong'))).toBe('3 h 20');
+
+    buttons[1]?.click();
+    await fixture.whenStable();
+    expect(buttons.map((button) => button.getAttribute('aria-pressed'))).toEqual(['false', 'true']);
+    expect(text(page.querySelector('.assignment-detail'))).toContain('19 h–21 h');
+
+    const selection = page.querySelector<HTMLSelectElement>('.day-control select');
+    assert.isNotNull(selection);
+    selection.value = monday;
+    selection.dispatchEvent(new Event('change'));
+    await fixture.whenStable();
+    expect(rowOf(page, 'Nadia Guérin')?.querySelectorAll('button.shift')).toHaveLength(2);
+
+    row.querySelector<HTMLButtonElement>('.employee-link')?.click();
+    await fixture.whenStable();
+    const employeeDay = page.querySelector('.employee-week tbody tr');
+    const assignments = Array.from(employeeDay?.querySelectorAll('.employee-assignment') ?? []);
+    expect(assignments.map((entry) => Array.from(entry.children).map(text))).toEqual([
+      ['Matin · Réceptionnaire', '06 h–08 h'],
+      ['Après-midi · Préparateur de commandes', '19 h–21 h'],
+    ]);
   });
 
   it('Couverture par créneau : le manque du samedi matin est mis en évidence', async () => {

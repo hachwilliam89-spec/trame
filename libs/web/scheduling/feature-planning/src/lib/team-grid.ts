@@ -22,6 +22,7 @@ const WEEK = 'week';
 interface SelectedCell {
   employeeId: string;
   date: string;
+  shiftId: string;
 }
 
 /**
@@ -65,7 +66,8 @@ export class TeamGrid {
     const selected = this.selectedCell();
     if (selected === undefined) return undefined;
     const row = this.view().team.find((candidate) => candidate.employeeId === selected.employeeId);
-    return row?.week.find((entry) => entry.date === selected.date)?.cell?.detail;
+    const day = row?.week.find((entry) => entry.date === selected.date);
+    return day?.cells.find((cell) => cell.shiftId === selected.shiftId)?.detail;
   });
 
   constructor() {
@@ -77,13 +79,13 @@ export class TeamGrid {
     this.selectedCell.set(undefined);
   }
 
-  protected inspect(row: TeamRow, date: string): void {
-    this.selectedCell.set({ employeeId: row.employeeId, date });
+  protected inspect(row: TeamRow, date: string, cell: TeamCell): void {
+    this.selectedCell.set({ employeeId: row.employeeId, date, shiftId: cell.shiftId });
   }
 
-  protected isInspected(row: TeamRow, date: string): boolean {
+  protected isInspected(row: TeamRow, cell: TeamCell): boolean {
     const selected = this.selectedCell();
-    return selected?.employeeId === row.employeeId && selected.date === date;
+    return selected?.employeeId === row.employeeId && selected.shiftId === cell.shiftId;
   }
 
   protected cellLabel(row: TeamRow, day: DisplayedDay, cell: TeamCell): string {

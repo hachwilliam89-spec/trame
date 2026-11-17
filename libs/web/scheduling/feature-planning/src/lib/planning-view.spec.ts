@@ -158,8 +158,8 @@ describe('modèle d’affichage du planning', () => {
 
   it('montre le poste du jour dans la case seulement pour qui alterne entre deux postes', () => {
     const [camille, , nadia] = view.team;
-    const camilleMonday = camille?.cells[0];
-    const nadiaMonday = nadia?.cells[0];
+    const camilleMonday = camille?.cells[0]?.[0];
+    const nadiaMonday = nadia?.cells[0]?.[0];
 
     expect(camilleMonday).toMatchObject({
       shiftLabel: 'Matin',
@@ -167,9 +167,9 @@ describe('modèle d’affichage du planning', () => {
       positionName: 'Cariste',
       showsPosition: false,
     });
-    expect(camille?.cells[1]).toBeNull();
+    expect(camille?.cells[1]).toEqual([]);
     expect(nadiaMonday).toMatchObject({ positionName: 'Réceptionnaire', showsPosition: true });
-    expect(nadia?.cells[1]).toMatchObject({
+    expect(nadia?.cells[1]?.[0]).toMatchObject({
       shiftLabel: 'Après-midi',
       tone: 2,
       positionName: 'Préparateur de commandes',
@@ -183,7 +183,7 @@ describe('modèle d’affichage du planning', () => {
     const camille = view.team[0];
 
     expect(
-      camille?.week.map((entry) => [entry.dayLabel, entry.cell?.shiftLabel ?? entry.note]),
+      camille?.week.map((entry) => [entry.dayLabel, entry.cells[0]?.shiftLabel ?? entry.note]),
     ).toEqual([
       ['Lundi 23', 'Matin'],
       ['Mardi 24', 'Non planifié'],

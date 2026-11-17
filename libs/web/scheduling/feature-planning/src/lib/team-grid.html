@@ -53,19 +53,19 @@
       </th>
       @for (entry of visibleDays(); track entry.day.date) {
       <td>
-        @if (row.cells[entry.index]; as cell) {
+        @for (cell of row.cells[entry.index]; track cell.shiftId) {
         <button
           type="button"
           [class]="'shift tone-' + cell.tone"
-          [attr.aria-pressed]="isInspected(row, entry.day.date)"
+          [attr.aria-pressed]="isInspected(row, cell)"
           [attr.aria-label]="cellLabel(row, entry.day, cell)"
-          (click)="inspect(row, entry.day.date)"
+          (click)="inspect(row, entry.day.date, cell)"
         >
           {{ cell.shiftLabel }} @if (cell.showsPosition) {
           <span class="shift-position">{{ cell.positionName }}</span>
           }
         </button>
-        } @else {
+        } @empty {
         <span class="rest meta" aria-hidden="true">—</span>
         <span class="visually-hidden">Non planifié</span>
         }
@@ -109,10 +109,12 @@
               <tr>
                 <th scope="row">{{ day.dayLabel }}</th>
                 <td>
-                  @if (day.cell; as cell) {
-                  <span>{{ cell.shiftLabel }} · {{ cell.positionName }}</span>
-                  <span class="meta">{{ cell.hours }}</span>
-                  } @else {
+                  @for (cell of day.cells; track cell.shiftId) {
+                  <div class="employee-assignment">
+                    <span>{{ cell.shiftLabel }} · {{ cell.positionName }}</span>
+                    <span class="meta">{{ cell.hours }}</span>
+                  </div>
+                  } @empty {
                   <span class="meta">{{ day.note }}</span>
                   }
                 </td>

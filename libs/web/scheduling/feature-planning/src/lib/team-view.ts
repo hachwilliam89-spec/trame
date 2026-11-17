@@ -4,8 +4,9 @@ import type { PlannedShift, PlanningFacts } from './planning-facts';
 
 type ProblemEmployee = SchedulingProblemV1['employees'][number];
 
-/** La case d'un salarié un jour donné. */
+/** Une affectation dans la case d'un salarié. */
 export interface TeamCell {
+  shiftId: string;
   shiftLabel: string;
   tone: number;
   hours: string;
@@ -22,19 +23,19 @@ export interface TeamRow {
   name: string;
   /** Postes tenus dans la semaine, dans l'ordre des postes du site. */
   positionsLabel: string;
-  /** Une case par jour affiché ; `null` : non planifié. */
-  cells: (TeamCell | null)[];
+  /** Les affectations de chaque jour affiché, dans l'ordre de la grille. */
+  cells: TeamCell[][];
   /** Les sept jours de la semaine, pour la vue Employé. */
   week: EmployeeDay[];
   plannedLabel: string;
   contractLabel: string;
 }
 
-/** Un jour de la vue Employé : la case, ou ce qui explique son absence. */
+/** Un jour de la vue Employé et ses affectations. */
 export interface EmployeeDay {
   date: string;
   dayLabel: string;
-  cell: TeamCell | null;
+  cells: TeamCell[];
   /** `Non planifié`, ou `Aucun besoin planifié` pour un jour sans besoin. */
   note: string;
 }
@@ -58,30 +59,34 @@ function teamRow(
   const worked = facts.shifts.filter((planned) => planned.employeeIds.includes(employee.id));
   const positionNames = positionsHeld(worked, facts);
   const showsPosition = positionNames.length > 1;
-  const cellOn = (day: WeekDay): TeamCell | null => {
-    const planned = worked.find((candidate) => candidate.day.date === day.date);
-    return planned === undefined ? null : teamCell(planned, name, showsPosition);
-  };
+  const cellsByDate = new Map<string, TeamCell[]>();
   let plannedMinutes = 0;
-  for (const planned of worked) plannedMinutes += planned.shift.effectiveMinutes;
+  for (const planned of worked) {
+    const date = planned.day.date;
+    const cells = cellsByDate.get(date) ?? [];
+    cells.push(teamCell(planned, name, showsPosition));
+    cellsByDate.set(date, cells);
+    plannedMinutes += planned.shift.effectiveMinutes;
+  }
+  const cellsOn = (day: WeekDay) => cellsByDate.get(day.date) ?? [];
   const { weeklyMinutesMin, weeklyMinutesMax } = employee.contract;
   return {
     employeeId: employee.id,
     name,
     positionsLabel: positionNames.length === 0 ? 'Non planifié' : positionNames.join(' · '),
-    cells: displayedDays.map(cellOn),
-    week: facts.days.map((day) => employeeDay(day, cellOn(day), displayedDays)),
+    cells: displayedDays.map(cellsOn),
+    week: facts.days.map((day) => employeeDay(day, cellsOn(day), displayedDays)),
     plannedLabel: durationLabel(plannedMinutes),
     contractLabel: `Contrat ${contractRange(weeklyMinutesMin, weeklyMinutesMax)}`,
   };
 }
 
-function employeeDay(day: WeekDay, cell: TeamCell | null, displayedDays: WeekDay[]): EmployeeDay {
+function employeeDay(day: WeekDay, cells: TeamCell[], displayedDays: WeekDay[]): EmployeeDay {
   const hasNeeds = displayedDays.some((displayed) => displayed.date === day.date);
   return {
     date: day.date,
     dayLabel: `${day.name} ${day.dayOfMonth}`,
-    cell,
+    cells,
     note: hasNeeds ? 'Non planifié' : 'Aucun besoin planifié',
   };
 }
@@ -90,6 +95,7 @@ function teamCell(planned: PlannedShift, name: string, showsPosition: boolean): 
   const effectiveHours = durationLabel(planned.shift.effectiveMinutes);
   const dayLabel = `${planned.day.name} ${planned.day.dayOfMonth}`;
   return {
+    shiftId: planned.shift.id,
     shiftLabel: planned.kind.label,
     tone: planned.kind.tone,
     hours: planned.kind.hours,
