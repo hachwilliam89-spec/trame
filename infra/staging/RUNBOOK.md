@@ -346,6 +346,29 @@ Attendu : `RabbitMQ provisionné`, puis `trame_staging_relay` et `trame_staging_
 
 Retour arrière : inutile. Les droits sont seulement élargis, et la version en service n'utilise que les ressources du diagnostic, toujours permises.
 
+### Charger le jeu de démonstration
+
+Remplit l'organisation du compte de Kim avec un entrepôt fictif : un site, trois postes, deux créneaux, douze salariés et les besoins de la semaine qui suit le chargement (lundi suivant, à Paris). La semaine calculée donne un seul manque, le samedi matin : trois caristes demandés, deux encore habilités. Le chargement est tout ou rien (ADR-0038), et refusé si l'organisation a déjà un site.
+
+Les deux temps partiels du jeu (14 h à 21 h) sont sous le minimum supplétif de 24 h (C. trav., art. L3123-27) : dérogation fictive, demandée par écrit et motivée par chaque salarié (art. L3123-7).
+
+1. Relire l'organisation : par le tunnel, realm `trame-staging`, Users, compte de Kim, onglet Attributes, valeur de `organization_id` (étape 2 des critères de réussite).
+2. Sur le VPS, coller cette valeur à l'invite, puis charger :
+
+```bash
+read -r -p 'organization_id : ' ORGANIZATION_ID
+docker exec trame-staging-api-1 node load-demo.js --organization "$ORGANIZATION_ID"
+```
+
+La commande affiche `{"siteId":"…","weekStartsOn":"AAAA-MM-JJ"}`. L'écran Planning (PR 8) ouvrira cette semaine à l'adresse `https://staging.trame.wkhach.dev/planning?site=<siteId>&semaine=<weekStartsOn>`. Code 1 et message `… a déjà un site …` : rien n'a été écrit.
+
+Retour arrière (retire le jeu et les générations de l'organisation, dans une seule transaction) :
+
+```bash
+docker exec -i trame-shared-postgres-1 psql --no-psqlrc -v ON_ERROR_STOP=1 -U postgres -d trame_staging \
+  -v organization="$ORGANIZATION_ID" < /opt/trame/source/infra/staging/unload-demo.sql
+```
+
 ### Livraison continue : mise en place (une fois)
 
 Une clé SSH réservée à GitHub, qui ne peut lancer que `deploy <commit>` ou `rollback` (ADR-0035). Prérequis : cette procédure est fusionnée sur `main`, et le clone du VPS est sur un commit qui la contient (`/opt/trame/source/infra/staging/remote/` existe).
