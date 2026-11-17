@@ -1,4 +1,4 @@
-import type { ScheduleGeneration } from '@trame/api/scheduling/domain';
+import { ensureWeekStartsOnMonday, type ScheduleGeneration } from '@trame/api/scheduling/domain';
 import { SiteNotFoundError } from './generation.errors';
 import type { ScheduleGenerations } from './schedule-generations';
 import type { WeekPlanningSource } from './week-planning-source';
@@ -24,6 +24,7 @@ export class GetWeekScheduleGenerations {
   ) {}
 
   async execute(query: GetWeekScheduleGenerationsQuery): Promise<WeekScheduleGenerations> {
+    ensureWeekStartsOnMonday(query.weekStartsOn);
     if (!(await this.planning.hasSite(query.organizationId, query.siteId))) {
       throw new SiteNotFoundError();
     }

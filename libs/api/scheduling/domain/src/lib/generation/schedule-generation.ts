@@ -64,3 +64,24 @@ export function isSameWeek(
 ): boolean {
   return generation.siteId === siteId && generation.weekStartsOn.equals(weekStartsOn);
 }
+
+/** État annoncé dans le flux de progression, sans le planning. */
+export interface ProgressState {
+  readonly status: 'RUNNING' | 'SUCCEEDED' | 'FAILED';
+  readonly resultStatus?: ScheduleOutcomeV1['result']['status'];
+  readonly failure?: ScheduleFailureV1;
+}
+
+/** `undefined` en attente : seul un rapport du moteur produit un événement. */
+export function progressStateOf(generation: ScheduleGeneration): ProgressState | undefined {
+  switch (generation.status) {
+    case 'QUEUED':
+      return undefined;
+    case 'RUNNING':
+      return { status: 'RUNNING' };
+    case 'SUCCEEDED':
+      return { status: 'SUCCEEDED', resultStatus: generation.outcome?.result.status };
+    case 'FAILED':
+      return { status: 'FAILED', failure: generation.failure };
+  }
+}

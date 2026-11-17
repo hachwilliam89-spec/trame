@@ -4,7 +4,10 @@ import { SequentialIdGenerator } from '@trame/platform/ids';
 import { IdempotencyKey } from '@trame/platform/idempotency';
 import type { ScheduleReportedV1, ScheduleReportV1 } from '@trame/shared/contracts';
 import { InMemoryScheduleGenerations, InMemoryWeekPlanningSource } from '../../testing';
+import { InvalidProgressCursorError } from '../diagnostic-progress';
+import { ScheduleGenerationNotFoundError } from './generation.errors';
 import { ReceiveScheduleReport, UnmatchedScheduleReportError } from './receive-schedule-report';
+import { ReadScheduleGenerationProgress } from './schedule-generation-progress';
 import { StartScheduleGeneration } from './start-schedule-generation';
 
 const organizationId = '0190f0a0-0000-7000-8000-00000000000a';
@@ -72,9 +75,14 @@ describe('Recevoir le rapport d’une génération', () => {
     return { generation, requestId: request?.id ?? '' };
   }
 
-  function reported(generationId: string, requestId: string, report: ScheduleReportV1) {
+  function reported(
+    generationId: string,
+    requestId: string,
+    report: ScheduleReportV1,
+    id = '0190f0a0-0000-7000-8000-0000000000f1',
+  ) {
     const message: ScheduleReportedV1 = {
-      id: '0190f0a0-0000-7000-8000-0000000000f1',
+      id,
       organizationId,
       type: 'scheduling.schedule-reported.v1',
       occurredAt: '2026-11-16T21:00:01Z',
@@ -143,5 +151,55 @@ describe('Recevoir le rapport d’une génération', () => {
         reported(generation.id, '0190f0a0-0000-7000-8000-0000000000ff', { kind: 'STARTED' }),
       ),
     ).rejects.toThrow(UnmatchedScheduleReportError);
+  });
+
+  it('garde un événement par changement d’état, rejouable après un curseur', async () => {
+    const { generation, requestId } = await launched();
+    const startedId = '0190f0a0-0000-7000-8000-0000000000f1';
+    await receive.execute(reported(generation.id, requestId, { kind: 'STARTED' }, startedId));
+    await receive.execute(reported(generation.id, requestId, { kind: 'STARTED' }, startedId));
+    await receive.execute(
+      reported(
+        generation.id,
+        requestId,
+        { kind: 'FAILED', code: 'INVALID_MODEL' },
+        '0190f0a0-0000-7000-8000-0000000000f2',
+      ),
+    );
+    const progress = new ReadScheduleGenerationProgress(generations);
+
+    const all = await progress.execute({ organizationId, generationId: generation.id });
+    const afterStart = await progress.execute({
+      organizationId,
+      generationId: generation.id,
+      after: startedId,
+    });
+
+    expect(all.events.map((event) => [event.sequence, event.status])).toEqual([
+      [1, 'RUNNING'],
+      [2, 'FAILED'],
+    ]);
+    expect(all.events[1]?.failure).toBe('INVALID_MODEL');
+    expect(all.finishedAt).toBeDefined();
+    expect(afterStart.events.map((event) => event.status)).toEqual(['FAILED']);
+  });
+
+  it('refuse un curseur inconnu et la génération d’une autre organisation', async () => {
+    const { generation } = await launched();
+    const progress = new ReadScheduleGenerationProgress(generations);
+
+    await expect(
+      progress.execute({
+        organizationId,
+        generationId: generation.id,
+        after: '0190f0a0-0000-7000-8000-0000000000ee',
+      }),
+    ).rejects.toThrow(InvalidProgressCursorError);
+    await expect(
+      progress.execute({
+        organizationId: '0190f0a0-0000-7000-8000-00000000000b',
+        generationId: generation.id,
+      }),
+    ).rejects.toThrow(ScheduleGenerationNotFoundError);
   });
 });

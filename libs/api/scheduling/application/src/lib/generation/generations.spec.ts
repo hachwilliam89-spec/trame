@@ -272,5 +272,8 @@ describe('Retrouver les générations', () => {
     await expect(
       getWeek.execute({ ...query, organizationId: anotherOrganizationId }),
     ).rejects.toThrow(SiteNotFoundError);
+    await expect(
+      getWeek.execute({ ...query, weekStartsOn: MONDAY.add({ days: 2 }) }),
+    ).rejects.toThrow(WeekMustStartOnMondayError);
   });
 });

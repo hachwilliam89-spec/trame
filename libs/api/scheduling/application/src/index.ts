@@ -36,3 +36,9 @@ export {
   UnmatchedScheduleReportError,
   type ScheduleReports,
 } from './lib/generation/receive-schedule-report';
+export {
+  ReadScheduleGenerationProgress,
+  type ScheduleGenerationProgress,
+  type ScheduleGenerationProgressQuery,
+  type ScheduleGenerationProgressSnapshot,
+} from './lib/generation/schedule-generation-progress';

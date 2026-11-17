@@ -1,4 +1,9 @@
-import { hasSchedule, isSameWeek, type ScheduleGeneration } from './schedule-generation';
+import {
+  hasSchedule,
+  isSameWeek,
+  progressStateOf,
+  type ScheduleGeneration,
+} from './schedule-generation';
 
 const MONDAY = Temporal.PlainDate.from('2026-11-23');
 const SITE_ID = '0190f0a0-0000-7000-8000-0000000000d1';
@@ -61,5 +66,20 @@ describe('Même semaine qu’une génération', () => {
   it('distingue un autre site ou une autre semaine', () => {
     expect(isSameWeek(queued, '0190f0a0-0000-7000-8000-0000000000d2', MONDAY)).toBe(false);
     expect(isSameWeek(queued, SITE_ID, MONDAY.add({ weeks: 1 }))).toBe(false);
+  });
+});
+
+describe('État annoncé dans le flux de progression', () => {
+  it('n’annonce rien en attente, puis l’état atteint sans le planning', () => {
+    expect(progressStateOf(queued)).toBeUndefined();
+    expect(progressStateOf({ ...queued, status: 'RUNNING' })).toEqual({ status: 'RUNNING' });
+    expect(progressStateOf(finished({ status: 'OPTIMAL', schedule }))).toEqual({
+      status: 'SUCCEEDED',
+      resultStatus: 'OPTIMAL',
+    });
+    expect(progressStateOf({ ...queued, status: 'FAILED', failure: 'INVALID_MODEL' })).toEqual({
+      status: 'FAILED',
+      failure: 'INVALID_MODEL',
+    });
   });
 });

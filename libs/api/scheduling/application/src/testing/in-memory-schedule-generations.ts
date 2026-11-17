@@ -1,18 +1,34 @@
-import { hasSchedule, type ScheduleGeneration } from '@trame/api/scheduling/domain';
+import {
+  hasSchedule,
+  progressStateOf,
+  type ScheduleGeneration,
+} from '@trame/api/scheduling/domain';
 import type { IdempotencyKey } from '@trame/platform/idempotency';
-import type { ScheduleOutcomeV1, ScheduleReportedV1 } from '@trame/shared/contracts';
+import type {
+  ScheduleGenerationProgressV1,
+  ScheduleOutcomeV1,
+  ScheduleReportedV1,
+} from '@trame/shared/contracts';
 import {
   type ScheduleReports,
   UnmatchedScheduleReportError,
 } from '../lib/generation/receive-schedule-report';
 import type {
+  ScheduleGenerationProgress,
+  ScheduleGenerationProgressQuery,
+  ScheduleGenerationProgressSnapshot,
+} from '../lib/generation/schedule-generation-progress';
+import type {
   ScheduleGenerationRequest,
   ScheduleGenerations,
 } from '../lib/generation/schedule-generations';
 
-export class InMemoryScheduleGenerations implements ScheduleGenerations, ScheduleReports {
+export class InMemoryScheduleGenerations
+  implements ScheduleGenerations, ScheduleReports, ScheduleGenerationProgress
+{
   private readonly requests = new Map<string, ScheduleGenerationRequest>();
   private readonly receipts = new Set<string>();
+  private readonly events: ScheduleGenerationProgressV1[] = [];
 
   async register(request: ScheduleGenerationRequest): Promise<ScheduleGeneration> {
     const key = keyOf(request.generation.organizationId, request.key);
@@ -76,9 +92,38 @@ export class InMemoryScheduleGenerations implements ScheduleGenerations, Schedul
     // Comme en base : la décision échoue avant l'écriture du reçu et de la génération.
     const updated = decide(request.generation);
     this.receipts.add(message.id);
-    if (updated !== undefined) {
-      request.generation = updated;
+    if (updated === undefined) {
+      return;
     }
+    request.generation = updated;
+    const state = progressStateOf(updated);
+    if (state !== undefined) {
+      const sequence = this.eventsOf(updated.id).length + 1;
+      this.events.push({
+        id: message.id,
+        generationId: updated.id,
+        sequence,
+        occurredAt: message.occurredAt,
+        ...state,
+      });
+    }
+  }
+
+  async read(
+    query: ScheduleGenerationProgressQuery,
+  ): Promise<ScheduleGenerationProgressSnapshot | undefined> {
+    const generation = await this.findById(query.organizationId, query.generationId);
+    if (generation === undefined) {
+      return undefined;
+    }
+    const events = this.eventsOf(generation.id);
+    const cursor = events.find((event) => event.id === query.after);
+    const cursorKnown = query.after === undefined || cursor !== undefined;
+    return {
+      cursorKnown,
+      finishedAt: generation.finishedAt,
+      events: events.filter((event) => event.sequence > (cursor?.sequence ?? 0)),
+    };
   }
 
   /** Messages confiés à l'outbox, dans l'ordre d'enregistrement. */
@@ -99,6 +144,10 @@ export class InMemoryScheduleGenerations implements ScheduleGenerations, Schedul
       outcome: { result, checkedRules: ['UN_SEUL_SHIFT'], solveSeconds: 0.1 },
       finishedAt: generation.createdAt,
     }));
+  }
+
+  private eventsOf(generationId: string): ScheduleGenerationProgressV1[] {
+    return this.events.filter((event) => event.generationId === generationId);
   }
 
   private all(): ScheduleGeneration[] {
