@@ -67,8 +67,8 @@ export class PlanningState {
    * demandée par l'adresse est rouverte pour le nouveau compte, s'il peut la lire.
    */
   async identify(identity: WebIdentity | undefined): Promise<void> {
-    const scope = scopeOf(identity);
-    const canManage = managesPlanning(identity);
+    const scope = planningAccountScope(identity);
+    const canManage = canManagePlanning(identity);
     if (scope === this.scope && canManage === this.canManage) return;
     this.disconnect();
     this.scope = scope;
@@ -77,6 +77,11 @@ export class PlanningState {
     this.clear(identity !== undefined && !canManage ? 'forbidden' : 'idle');
     const week = this.week;
     if (canManage && week !== undefined) await this.open(week.siteId, week.weekStartsOn);
+  }
+
+  /** Sites que l'API autorise pour le compte connecté. */
+  listSites(signal: AbortSignal): Promise<SiteV1[]> {
+    return this.api.listSites(signal);
   }
 
   /** Ouvre la semaine ; avant que le compte soit connu, elle est seulement retenue. */
@@ -270,11 +275,11 @@ function phaseOf(error: unknown): PlanningPhase {
   return phases[error.status] ?? 'unavailable';
 }
 
-function scopeOf(identity: WebIdentity | undefined): string | undefined {
+export function planningAccountScope(identity: WebIdentity | undefined): string | undefined {
   if (identity === undefined) return undefined;
   return JSON.stringify([identity.organizationId, identity.subject]);
 }
 
-function managesPlanning(identity: WebIdentity | undefined): boolean {
+export function canManagePlanning(identity: WebIdentity | undefined): boolean {
   return identity?.roles.some((role) => role === 'admin' || role === 'manager') ?? false;
 }

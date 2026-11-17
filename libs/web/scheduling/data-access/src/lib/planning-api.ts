@@ -1,6 +1,7 @@
 import {
   positionPageV1,
   shiftTemplatePageV1,
+  sitePageV1,
   siteV1,
   type PositionV1,
   type ShiftTemplateV1,
@@ -29,6 +30,7 @@ export class PlanningHttpError extends Error {
 
 /** Ce que le planning lit dans l'API ; une doublure le remplace dans les tests de la façade. */
 export interface PlanningGateway {
+  listSites(signal: AbortSignal): Promise<SiteV1[]>;
   site(siteId: string, signal: AbortSignal): Promise<SiteV1>;
   positions(siteId: string, signal: AbortSignal): Promise<PositionV1[]>;
   shiftTemplates(siteId: string, signal: AbortSignal): Promise<ShiftTemplateV1[]>;
@@ -62,6 +64,10 @@ export class PlanningApi implements PlanningGateway {
     private readonly basePath = '/api/v1',
     private readonly request: typeof fetch = fetch,
   ) {}
+
+  listSites(signal: AbortSignal): Promise<SiteV1[]> {
+    return this.allPages('/sites', new URLSearchParams(), sitePageV1, signal);
+  }
 
   async site(siteId: string, signal: AbortSignal): Promise<SiteV1> {
     const response = await this.call(`/sites/${encodeURIComponent(siteId)}`, { signal });

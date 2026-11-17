@@ -8,8 +8,9 @@ import {
   DestroyRef,
 } from '@angular/core';
 import { WebSession } from '@trame/web/auth/data-access';
-import { RouterOutlet } from '@angular/router';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import {
+  canManagePlanning,
   DiagnosticState,
   PlanningState,
   rememberPlanningReturn,
@@ -18,7 +19,7 @@ import { browserStorage } from './browser-storage';
 import { LandingPage } from './landing/landing-page';
 @Component({
   selector: 'tr-root',
-  imports: [RouterOutlet, LandingPage],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, LandingPage],
   templateUrl: './app.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -27,6 +28,7 @@ export class App {
   private readonly diagnostic = inject(DiagnosticState);
   private readonly planning = inject(PlanningState);
   protected readonly actionError = signal('');
+  protected readonly canOpenPlanning = computed(() => canManagePlanning(this.session.identity()));
   protected readonly roleLabel = computed(() => {
     const roles = this.session.identity()?.roles ?? [];
     if (roles.includes('admin')) return 'Administrateur';
@@ -52,7 +54,6 @@ export class App {
   }
   protected async login(): Promise<void> {
     this.actionError.set('');
-    // Seuls le site et la semaine validés sont retenus, pour rouvrir le planning au retour.
     rememberPlanningReturn(browserStorage(), location.pathname, location.search);
     try {
       await this.session.login();

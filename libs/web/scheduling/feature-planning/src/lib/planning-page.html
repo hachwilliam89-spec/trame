@@ -1,11 +1,14 @@
-@if (address() === undefined) {
+@if (address() === undefined) { @if (hasRequestedWeek()) {
 <section class="planning-notice">
   <h1>Adresse du planning incomplète</h1>
-  <p>
-    Ouvrez le planning depuis le lien de sa semaine : il indique le site et le lundi de la semaine.
-  </p>
+  <p>Choisissez le site et la semaine à ouvrir.</p>
+  <a class="planning-change-week" routerLink="/planning">Choisir un site et une semaine</a>
 </section>
-} @else { @switch (planning.phase()) { @case ('ready') { @if (heading(); as heading) {
+} @else {
+<tr-planning-week-picker />
+} } @else {
+<a class="planning-change-week" routerLink="/planning">Changer de site ou de semaine</a>
+@switch (planning.phase()) { @case ('ready') { @if (heading(); as heading) {
 <header class="week-heading">
   <div class="week-number" aria-hidden="true">{{ heading.weekNumber }}</div>
   <div>

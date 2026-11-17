@@ -24,7 +24,18 @@ describe('Premier parcours Guidé', () => {
     start: ReturnType<typeof vi.fn>;
     resume: ReturnType<typeof vi.fn>;
   };
+  const demoSite = {
+    id: '0190f0a0-0000-7000-8000-0000000000d1',
+    code: 'DEMO',
+    name: 'Entrepôt de démonstration',
+    timeZone: 'Europe/Paris',
+    createdAt: '2026-11-17T08:00:00.000Z',
+  };
+  const listSites = vi.fn();
+  const openPlanning = vi.fn();
   beforeEach(async () => {
+    listSites.mockReset().mockResolvedValue([demoSite]);
+    openPlanning.mockReset();
     session = {
       identity: signal<typeof identity | undefined>(undefined),
       status: signal('anonymous'),
@@ -53,6 +64,12 @@ describe('Premier parcours Guidé', () => {
             phase: signal('idle'),
             identify: vi.fn(async () => undefined),
             disconnect: vi.fn(),
+            listSites,
+            open: openPlanning,
+            catalog: signal(undefined),
+            latestAttempt: signal(null),
+            latestSchedule: signal(null),
+            request: signal('idle'),
           },
         },
       ],
@@ -88,7 +105,7 @@ describe('Premier parcours Guidé', () => {
 
     const threads = Array.from(element.querySelectorAll('.thread-row'));
     const states = threads.map((thread) => thread.querySelector('.status')?.textContent?.trim());
-    expect(states).toEqual(['En cours', 'Bientôt', 'Bientôt']);
+    expect(states).toEqual(['Disponible sur compte', 'Bientôt', 'Bientôt']);
   });
 
   it('présente l’aperçu du planning comme une maquette aux données fictives', async () => {
@@ -112,7 +129,7 @@ describe('Premier parcours Guidé', () => {
     const headings = Array.from(progress?.querySelectorAll('h3') ?? []).map((heading) =>
       heading.textContent?.trim(),
     );
-    expect(headings).toEqual(['Déjà en service', 'En cours', 'Ensuite']);
+    expect(headings).toEqual(['Déjà en service', 'Planning de démonstration', 'Ensuite']);
     const sources = Array.from(progress?.querySelectorAll<HTMLAnchorElement>('a') ?? []);
     expect(sources.map((link) => link.getAttribute('href'))).toEqual([
       'https://github.com/hachwilliam89-spec/trame',
@@ -146,6 +163,57 @@ describe('Premier parcours Guidé', () => {
     launch?.click();
     expect(diagnostic.start).toHaveBeenCalledOnce();
   });
+  it('ouvre le planning depuis le diagnostic, puis revient à l’accueil par le logo', async () => {
+    session.identity.set(identity);
+    session.status.set('authenticated');
+    listSites.mockImplementationOnce(async () => {
+      // La lecture du jeton reconstruit l'identité avec les mêmes valeurs.
+      session.identity.set({ ...identity });
+      return [demoSite];
+    });
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const element = fixture.nativeElement as HTMLElement;
+    const router = TestBed.inject(Router);
+
+    const planning = element.querySelector<HTMLAnchorElement>('nav a[href="/planning"]');
+    assert.isNotNull(planning);
+    expect(planning.textContent?.trim()).toBe('Planning');
+    planning.click();
+    await fixture.whenStable();
+
+    expect(planning.getAttribute('aria-current')).toBe('page');
+    expect(listSites).toHaveBeenCalledOnce();
+    const site = element.querySelector<HTMLSelectElement>('select[name="site"]');
+    expect(site?.value).toBe(demoSite.id);
+    const day = element.querySelector<HTMLInputElement>('input[type="date"]');
+    assert.isNotNull(day);
+    day.value = '2026-11-25';
+    day.dispatchEvent(new Event('input', { bubbles: true }));
+    element.querySelector('form')?.dispatchEvent(new Event('submit', { cancelable: true }));
+    await fixture.whenStable();
+    expect(router.url).toBe(`/planning?site=${demoSite.id}&semaine=2026-11-23`);
+    expect(openPlanning).toHaveBeenCalledWith(demoSite.id, '2026-11-23');
+
+    const logo = element.querySelector<HTMLAnchorElement>('a[aria-label="Trame, accueil"]');
+    assert.isNotNull(logo);
+    expect(logo.getAttribute('href')).toBe('/');
+    logo.click();
+    await fixture.whenStable();
+    expect(element.querySelector('h1')?.textContent).toBe('Tester le moteur');
+  });
+
+  it('n’affiche aucun lien Planning à un employé', async () => {
+    session.identity.set({ ...identity, roles: ['employee'] });
+    session.status.set('authenticated');
+    const fixture = TestBed.createComponent(App);
+    await fixture.whenStable();
+    const element = fixture.nativeElement as HTMLElement;
+
+    expect(element.querySelector('nav a[href="/planning"]')).toBeNull();
+    expect(listSites).not.toHaveBeenCalled();
+  });
+
   it.each(['OPTIMAL', 'FEASIBLE', 'INFEASIBLE', 'UNKNOWN', 'CANCELLED'])(
     'présente honnêtement l’issue %s sans inventer de solution',
     async (status) => {
@@ -292,13 +360,10 @@ describe('Premier parcours Guidé', () => {
       );
     });
 
-    it('annonce la suite sans la présenter comme disponible', async () => {
+    it('présente le diagnostic sans bandeau annonçant un planning en construction', async () => {
       const element = await renderAsManager(undefined, 'ready');
 
-      const nextStep = element.querySelector('.next-step')?.textContent ?? '';
-      expect(nextStep).toContain('En construction');
-      expect(nextStep).toContain('planning d’une semaine');
-      expect(element.querySelector('.next-step a, .next-step button')).toBeNull();
+      expect(element.querySelector('.next-step')).toBeNull();
     });
   });
 });

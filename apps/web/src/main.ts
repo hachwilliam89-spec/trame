@@ -20,7 +20,7 @@ async function startApplication(): Promise<void> {
   );
   // Le SDK valide le callback et nettoie l'URL avant le démarrage du routeur Angular.
   await session.initialize();
-  // Keycloak revient toujours ici : la semaine retenue avant la connexion est rouverte.
+  // Keycloak revient toujours ici. On restaure la page Planning demandée avant connexion.
   if (location.pathname === '/oidc-callback') {
     history.replaceState(null, '', planningReturnAddress(browserStorage()));
   }

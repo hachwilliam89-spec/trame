@@ -8,11 +8,12 @@ import {
   untracked,
 } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { PlanningState, readPlanningAddress } from '@trame/web/scheduling/data-access';
 import { isoWeekNumber, weekRangeLabel } from './calendar';
 import { attemptMessage } from './planning-status';
 import { planningView } from './planning-view';
+import { PlanningWeekPicker } from './planning-week-picker';
 import { TeamGrid } from './team-grid';
 import { WeekCoverage } from './week-coverage';
 
@@ -22,7 +23,7 @@ import { WeekCoverage } from './week-coverage';
  */
 @Component({
   selector: 'tr-planning-page',
-  imports: [TeamGrid, WeekCoverage],
+  imports: [PlanningWeekPicker, RouterLink, TeamGrid, WeekCoverage],
   templateUrl: './planning-page.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -33,6 +34,10 @@ export class PlanningPage {
   protected readonly address = computed(() => {
     const query = this.query();
     return readPlanningAddress(query?.get('site') ?? null, query?.get('semaine') ?? null);
+  });
+  protected readonly hasRequestedWeek = computed(() => {
+    const query = this.query();
+    return query?.has('site') === true || query?.has('semaine') === true;
   });
   protected readonly heading = computed(() => {
     const address = this.address();

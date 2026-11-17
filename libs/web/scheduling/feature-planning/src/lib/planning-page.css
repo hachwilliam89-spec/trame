@@ -393,3 +393,47 @@ tr-planning-page .day-abbr {
     min-height: 44px;
   }
 }
+
+tr-planning-page .planning-change-week {
+  display: inline-block;
+  margin-bottom: var(--space-4);
+  color: var(--brand-warp);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+tr-planning-page .planning-picker {
+  padding: var(--space-6);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+tr-planning-page .planning-picker form {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  margin-top: var(--space-3);
+}
+tr-planning-page .planning-field {
+  display: grid;
+  flex: 1 1 12rem;
+  gap: var(--space-2);
+  min-width: 0;
+}
+tr-planning-page .planning-field label {
+  font-weight: 600;
+}
+tr-planning-page .planning-picker :is(select, input) {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  background: var(--page);
+  color: var(--ink);
+  font: inherit;
+}
+tr-planning-page .planning-picker input:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
