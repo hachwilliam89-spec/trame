@@ -2,6 +2,7 @@ import {
   IdempotencyKeyReusedError,
   InvalidProgressCursorError,
   ScheduleGenerationNotFoundError,
+  ScheduleRequestOutOfBoundsError,
   ScheduleRequestTooLargeError,
   SiteNotFoundError,
 } from '@trame/api/scheduling/application';
@@ -20,6 +21,7 @@ export const scheduleGenerationErrors = new ErrorMappingInterceptor([
   { error: IdempotencyKeyReusedError, status: 409 },
   { error: NoCoverageNeedError, status: 422 },
   { error: ScheduleRequestTooLargeError, status: 422 },
+  { error: ScheduleRequestOutOfBoundsError, status: 422 },
 ]);
 
 /** Un identifiant mal formé désigne une génération introuvable, comme pour le diagnostic. */

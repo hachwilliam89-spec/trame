@@ -62,6 +62,7 @@ export async function createSchedulingTestApp() {
 export const SITE_A = '0190f0a0-0000-7000-8000-0000000000d1';
 export const EMPTY_SITE_A = '0190f0a0-0000-7000-8000-0000000000d2';
 export const TOO_LARGE_SITE_A = '0190f0a0-0000-7000-8000-0000000000d3';
+export const OUT_OF_BOUNDS_SITE_A = '0190f0a0-0000-7000-8000-0000000000d4';
 export const GENERATION_MONDAY = Temporal.PlainDate.from('2026-11-23');
 
 function weekOf(siteId: string): WeekPlanning {
@@ -117,6 +118,20 @@ function tooLargeWeek(): WeekPlanning {
   return { ...week, shifts };
 }
 
+/** Un salarié à 51 habilitations : accepté par `staff`, au-delà des 50 du contrat du moteur. */
+function outOfBoundsWeek(): WeekPlanning {
+  const week = weekOf(OUT_OF_BOUNDS_SITE_A);
+  const [employee] = week.employees;
+  if (employee === undefined) {
+    throw new Error('Semaine sans salarié.');
+  }
+  const qualifications = Array.from({ length: 51 }, (_, index) => ({
+    skillId: `0190f0a0-0000-7000-8000-${String(index).padStart(12, '0')}`,
+    expiresOn: undefined,
+  }));
+  return { ...week, employees: [{ ...employee, qualifications }] };
+}
+
 export async function createScheduleGenerationTestApp() {
   const clock = new FixedClock('2026-11-17T10:00:00Z');
   const generations = new InMemoryScheduleGenerations();
@@ -124,6 +139,7 @@ export async function createScheduleGenerationTestApp() {
   planning.define(organizationA, weekOf(SITE_A));
   planning.define(organizationA, { ...weekOf(EMPTY_SITE_A), shifts: [] });
   planning.define(organizationA, tooLargeWeek());
+  planning.define(organizationA, outOfBoundsWeek());
   const weekPlanning: DynamicModule = {
     module: class TestWeekPlanningModule {},
     providers: [{ provide: WEEK_PLANNING_SOURCE, useValue: planning }],

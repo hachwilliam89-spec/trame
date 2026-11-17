@@ -10,12 +10,14 @@ export * from './lib/diagnostic-progress';
 export {
   IdempotencyKeyReusedError,
   ScheduleGenerationNotFoundError,
+  ScheduleRequestOutOfBoundsError,
   ScheduleRequestTooLargeError,
   SiteNotFoundError,
 } from './lib/generation/generation.errors';
 export type {
   ScheduleGenerationRequest,
   ScheduleGenerations,
+  WeekScheduleGenerations,
 } from './lib/generation/schedule-generations';
 export type { WeekPlanningSource } from './lib/generation/week-planning-source';
 export {
@@ -29,7 +31,6 @@ export {
 export {
   GetWeekScheduleGenerations,
   type GetWeekScheduleGenerationsQuery,
-  type WeekScheduleGenerations,
 } from './lib/generation/get-week-schedule-generations';
 export {
   ReceiveScheduleReport,

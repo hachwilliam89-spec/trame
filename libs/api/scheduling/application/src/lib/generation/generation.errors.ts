@@ -24,3 +24,13 @@ export class ScheduleRequestTooLargeError extends Error {
     super('La semaine est trop grande pour un seul calcul.');
   }
 }
+
+/**
+ * Le problème de la semaine sort des limites du contrat du moteur (par exemple plus de
+ * 50 habilitations pour un salarié) : la demande serait refusée par le relais.
+ */
+export class ScheduleRequestOutOfBoundsError extends Error {
+  constructor() {
+    super('La semaine dépasse les limites acceptées par le moteur de planification.');
+  }
+}

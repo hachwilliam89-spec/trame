@@ -12,6 +12,7 @@ import {
 import request from 'supertest';
 import {
   EMPTY_SITE_A,
+  OUT_OF_BOUNDS_SITE_A,
   SITE_A,
   TOO_LARGE_SITE_A,
   admin,
@@ -144,6 +145,18 @@ describe('API des générations de planning', () => {
     expect(empty.body.detail).toBe('Aucun besoin de couverture pour cette semaine.');
     expectProblem(tooLarge, 422);
     expect(generations.messages()).toHaveLength(0);
+  });
+
+  it('422 pour une semaine hors des limites du moteur, sans génération ni message', async () => {
+    const response = await post(manager, 'out-of-bounds', {
+      siteId: OUT_OF_BOUNDS_SITE_A,
+      weekStartsOn: MONDAY,
+    });
+
+    expectProblem(response, 422);
+    expect(generations.messages()).toHaveLength(0);
+    const weekOfSite = await week(manager, OUT_OF_BOUNDS_SITE_A);
+    expect(weekOfSite.body).toEqual({ latestAttempt: null, latestSchedule: null });
   });
 
   it('Isolation : une autre organisation ne lance ni ne lit rien de A (404)', async () => {
