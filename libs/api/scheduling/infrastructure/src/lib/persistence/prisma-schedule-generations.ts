@@ -3,6 +3,7 @@ import { type Prisma, PrismaService, instantToDate, plainDateToDate } from '@tra
 import type {
   ScheduleGenerationRequest,
   ScheduleGenerations,
+  WeekScheduleGenerations,
 } from '@trame/api/scheduling/application';
 import { SCHEDULE_STATUSES, type ScheduleGeneration } from '@trame/api/scheduling/domain';
 import type { IdempotencyKey } from '@trame/platform/idempotency';
@@ -64,35 +65,37 @@ export class PrismaScheduleGenerations implements ScheduleGenerations {
     return record === null ? undefined : toScheduleGeneration(record);
   }
 
-  async latestAttempt(
+  async latestOfWeek(
     organizationId: string,
     siteId: string,
     weekStartsOn: Temporal.PlainDate,
-  ): Promise<ScheduleGeneration | undefined> {
-    const record = await this.prisma.scheduleGeneration.findFirst({
-      where: weekOf(organizationId, siteId, weekStartsOn),
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-    });
-    return record === null ? undefined : toScheduleGeneration(record);
-  }
-
-  async latestWithSchedule(
-    organizationId: string,
-    siteId: string,
-    weekStartsOn: Temporal.PlainDate,
-  ): Promise<ScheduleGeneration | undefined> {
+  ): Promise<WeekScheduleGenerations> {
+    const week = weekOf(organizationId, siteId, weekStartsOn);
     const withSchedule = SCHEDULE_STATUSES.map((status) => ({
       outcome: { path: ['result', 'status'], equals: status },
     }));
-    const record = await this.prisma.scheduleGeneration.findFirst({
-      where: {
-        ...weekOf(organizationId, siteId, weekStartsOn),
-        status: 'SUCCEEDED',
-        OR: withSchedule,
+    const latestFirst: Prisma.ScheduleGenerationOrderByWithRelationInput[] = [
+      { createdAt: 'desc' },
+      { id: 'desc' },
+    ];
+    // Un seul instantané : une fin de calcul entre les deux lectures ne les rend pas incohérentes.
+    return this.prisma.$transaction(
+      async (transaction) => {
+        const attempt = await transaction.scheduleGeneration.findFirst({
+          where: week,
+          orderBy: latestFirst,
+        });
+        const schedule = await transaction.scheduleGeneration.findFirst({
+          where: { ...week, status: 'SUCCEEDED', OR: withSchedule },
+          orderBy: latestFirst,
+        });
+        return {
+          latestAttempt: attempt === null ? undefined : toScheduleGeneration(attempt),
+          latestSchedule: schedule === null ? undefined : toScheduleGeneration(schedule),
+        };
       },
-      orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-    });
-    return record === null ? undefined : toScheduleGeneration(record);
+      { isolationLevel: 'RepeatableRead' },
+    );
   }
 }
 

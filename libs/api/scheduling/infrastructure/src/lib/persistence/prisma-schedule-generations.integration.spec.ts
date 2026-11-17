@@ -128,7 +128,9 @@ describe('Enregistrement des générations (PostgreSQL)', () => {
     const generation = await launch('request-1');
 
     expect(await generations.findById(anotherOrganizationId, generation.id)).toBeUndefined();
-    expect(await generations.latestAttempt(anotherOrganizationId, SITE_ID, MONDAY)).toBeUndefined();
+    expect(
+      (await generations.latestOfWeek(anotherOrganizationId, SITE_ID, MONDAY)).latestAttempt,
+    ).toBeUndefined();
   });
 
   it('garde le dernier planning exploitable pendant qu’un nouveau calcul tourne', async () => {
@@ -170,12 +172,12 @@ describe('Enregistrement des générations (PostgreSQL)', () => {
       },
     });
 
-    expect((await generations.latestAttempt(organizationId, SITE_ID, MONDAY))?.id).toBe(
-      impossible.id,
-    );
-    expect((await generations.latestWithSchedule(organizationId, SITE_ID, MONDAY))?.id).toBe(
-      solved.id,
-    );
+    expect(
+      (await generations.latestOfWeek(organizationId, SITE_ID, MONDAY)).latestAttempt?.id,
+    ).toBe(impossible.id);
+    expect(
+      (await generations.latestOfWeek(organizationId, SITE_ID, MONDAY)).latestSchedule?.id,
+    ).toBe(solved.id);
   });
 
   it('une demande au-delà de 1 Mio ne crée ni génération ni message', async () => {
@@ -206,6 +208,24 @@ describe('Enregistrement des générations (PostgreSQL)', () => {
     ).rejects.toThrow(ScheduleRequestTooLargeError);
     expect(await prisma.scheduleGeneration.count()).toBe(0);
     expect(await prisma.outboxMessage.count()).toBe(0);
+  });
+
+  it('supprime les événements de progression avec leur génération', async () => {
+    const generation = await launch('request-1');
+    await prisma.scheduleGenerationEvent.create({
+      data: {
+        id: '0190f0a0-0000-7000-8000-0000000000f1',
+        organizationId,
+        generationId: generation.id,
+        sequence: 1,
+        status: 'RUNNING',
+        occurredAt: new Date('2026-11-16T21:00:01Z'),
+      },
+    });
+
+    await prisma.scheduleGeneration.delete({ where: { id: generation.id } });
+
+    expect(await prisma.scheduleGenerationEvent.count()).toBe(0);
   });
 
   it('refuse en base une semaine qui ne commence pas un lundi', async () => {

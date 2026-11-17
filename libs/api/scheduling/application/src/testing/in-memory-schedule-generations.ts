@@ -21,6 +21,7 @@ import type {
 import type {
   ScheduleGenerationRequest,
   ScheduleGenerations,
+  WeekScheduleGenerations,
 } from '../lib/generation/schedule-generations';
 
 export class InMemoryScheduleGenerations
@@ -57,20 +58,13 @@ export class InMemoryScheduleGenerations
     );
   }
 
-  async latestAttempt(
+  async latestOfWeek(
     organizationId: string,
     siteId: string,
     weekStartsOn: Temporal.PlainDate,
-  ): Promise<ScheduleGeneration | undefined> {
-    return this.ofWeek(organizationId, siteId, weekStartsOn).at(-1);
-  }
-
-  async latestWithSchedule(
-    organizationId: string,
-    siteId: string,
-    weekStartsOn: Temporal.PlainDate,
-  ): Promise<ScheduleGeneration | undefined> {
-    return this.ofWeek(organizationId, siteId, weekStartsOn).filter(hasSchedule).at(-1);
+  ): Promise<WeekScheduleGenerations> {
+    const ofWeek = this.ofWeek(organizationId, siteId, weekStartsOn);
+    return { latestAttempt: ofWeek.at(-1), latestSchedule: ofWeek.filter(hasSchedule).at(-1) };
   }
 
   async accept(

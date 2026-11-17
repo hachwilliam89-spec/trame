@@ -1,19 +1,12 @@
-import { ensureWeekStartsOnMonday, type ScheduleGeneration } from '@trame/api/scheduling/domain';
+import { ensureWeekStartsOnMonday } from '@trame/api/scheduling/domain';
 import { SiteNotFoundError } from './generation.errors';
-import type { ScheduleGenerations } from './schedule-generations';
+import type { ScheduleGenerations, WeekScheduleGenerations } from './schedule-generations';
 import type { WeekPlanningSource } from './week-planning-source';
 
 export interface GetWeekScheduleGenerationsQuery {
   organizationId: string;
   siteId: string;
   weekStartsOn: Temporal.PlainDate;
-}
-
-export interface WeekScheduleGenerations {
-  /** Dernière génération lancée, quel que soit son état. */
-  latestAttempt: ScheduleGeneration | undefined;
-  /** Dernier planning exploitable, affiché pendant qu'un nouveau calcul tourne. */
-  latestSchedule: ScheduleGeneration | undefined;
 }
 
 /** Retrouve les générations d'une semaine après un rechargement de la page. */
@@ -28,14 +21,6 @@ export class GetWeekScheduleGenerations {
     if (!(await this.planning.hasSite(query.organizationId, query.siteId))) {
       throw new SiteNotFoundError();
     }
-    const { organizationId, siteId, weekStartsOn } = query;
-    return {
-      latestAttempt: await this.generations.latestAttempt(organizationId, siteId, weekStartsOn),
-      latestSchedule: await this.generations.latestWithSchedule(
-        organizationId,
-        siteId,
-        weekStartsOn,
-      ),
-    };
+    return this.generations.latestOfWeek(query.organizationId, query.siteId, query.weekStartsOn);
   }
 }

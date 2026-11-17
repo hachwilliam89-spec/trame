@@ -262,9 +262,9 @@ describe('Génération : PostgreSQL, RabbitMQ et vrai moteur Python', () => {
     expect(schedule?.shortfalls).toEqual([
       { shiftId: generation.problem.shifts[0]?.id, requiredCount: 3, assignedCount: 2 },
     ]);
-    expect((await generations.latestWithSchedule(organizationId, SITE_ID, MONDAY))?.id).toBe(
-      generation.id,
-    );
+    expect(
+      (await generations.latestOfWeek(organizationId, SITE_ID, MONDAY)).latestSchedule?.id,
+    ).toBe(generation.id);
     await expectProgress(generation.id, [
       [1, 'RUNNING', undefined],
       [2, 'SUCCEEDED', 'OPTIMAL'],
@@ -298,10 +298,12 @@ describe('Génération : PostgreSQL, RabbitMQ et vrai moteur Python', () => {
     const timedOut = await settled(retried.id, false);
 
     expect(timedOut.outcome?.result.status).toBe('UNKNOWN');
-    expect((await generations.latestAttempt(organizationId, SITE_ID, MONDAY))?.id).toBe(retried.id);
-    expect((await generations.latestWithSchedule(organizationId, SITE_ID, MONDAY))?.id).toBe(
-      solved.id,
-    );
+    expect(
+      (await generations.latestOfWeek(organizationId, SITE_ID, MONDAY)).latestAttempt?.id,
+    ).toBe(retried.id);
+    expect(
+      (await generations.latestOfWeek(organizationId, SITE_ID, MONDAY)).latestSchedule?.id,
+    ).toBe(solved.id);
   });
 
   it('Un planning incohérent part en rebut et fait échouer la génération', async () => {

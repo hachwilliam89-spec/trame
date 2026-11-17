@@ -261,6 +261,30 @@ describe('Retrouver les générations', () => {
     expect(week.latestSchedule?.id).toBe(solved.id);
   });
 
+  it('lit le dernier essai et le dernier planning dans un même état de la base', async () => {
+    const racing = new FinishingDuringRead();
+    const start = new StartScheduleGeneration(racing, planning, clock, ids);
+    const running = await start.execute({
+      organizationId,
+      siteId: SITE_ID,
+      weekStartsOn: MONDAY,
+      key: IdempotencyKey.of('running'),
+    });
+    racing.start(running.id);
+    racing.finishOnRead = running.id;
+
+    const week = await new GetWeekScheduleGenerations(racing, planning).execute({
+      organizationId,
+      siteId: SITE_ID,
+      weekStartsOn: MONDAY,
+    });
+
+    // Avant ou après la fin du calcul, mais jamais les deux à la fois.
+    const sameState =
+      week.latestSchedule === undefined || week.latestAttempt?.status === 'SUCCEEDED';
+    expect(sameState).toBe(true);
+  });
+
   it('rend une semaine vide sans génération, et refuse le site d’une autre organisation', async () => {
     const getWeek = new GetWeekScheduleGenerations(generations, planning);
     const query = { organizationId, siteId: SITE_ID, weekStartsOn: MONDAY };
@@ -277,3 +301,28 @@ describe('Retrouver les générations', () => {
     ).rejects.toThrow(WeekMustStartOnMondayError);
   });
 });
+
+/** Un calcul se termine pendant la lecture d'une semaine : la lecture doit rester cohérente. */
+class FinishingDuringRead extends InMemoryScheduleGenerations {
+  finishOnRead: string | undefined;
+
+  override async latestOfWeek(
+    organizationId: string,
+    siteId: string,
+    weekStartsOn: Temporal.PlainDate,
+  ): Promise<WeekScheduleGenerations> {
+    const week = await super.latestOfWeek(organizationId, siteId, weekStartsOn);
+    this.finishPending();
+    return week;
+  }
+
+  private finishPending(): void {
+    if (this.finishOnRead !== undefined) {
+      this.finish(this.finishOnRead, {
+        status: 'OPTIMAL',
+        schedule: { assignments: [], shortfalls: [] },
+      });
+      this.finishOnRead = undefined;
+    }
+  }
+}

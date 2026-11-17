@@ -16,8 +16,8 @@ export interface ScheduleGenerationProgressSnapshot {
 }
 
 /**
- * Trois événements au plus par génération : ils sont gardés avec elle, sans purge ni expiration,
- * contrairement au diagnostic.
+ * Trois événements au plus par génération : gardés aussi longtemps qu'elle et supprimés avec elle,
+ * sans purge ni expiration propres, contrairement au diagnostic.
  */
 export interface ScheduleGenerationProgress {
   /** `undefined` : la génération n'existe pas dans cette organisation. */

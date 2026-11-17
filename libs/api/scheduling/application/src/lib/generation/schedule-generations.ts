@@ -14,16 +14,20 @@ export interface ScheduleGenerations {
   register(request: ScheduleGenerationRequest): Promise<ScheduleGeneration>;
   findByKey(organizationId: string, key: IdempotencyKey): Promise<ScheduleGeneration | undefined>;
   findById(organizationId: string, generationId: string): Promise<ScheduleGeneration | undefined>;
-  /** La dernière génération lancée pour la semaine, quel que soit son état. */
-  latestAttempt(
+  /**
+   * Le dernier essai et le dernier planning exploitable d'une semaine, lus dans un même état de la
+   * base : une génération qui se termine pendant la lecture n'y figure jamais sous deux états.
+   */
+  latestOfWeek(
     organizationId: string,
     siteId: string,
     weekStartsOn: Temporal.PlainDate,
-  ): Promise<ScheduleGeneration | undefined>;
-  /** La dernière génération terminée avec un planning (`OPTIMAL` ou `FEASIBLE`). */
-  latestWithSchedule(
-    organizationId: string,
-    siteId: string,
-    weekStartsOn: Temporal.PlainDate,
-  ): Promise<ScheduleGeneration | undefined>;
+  ): Promise<WeekScheduleGenerations>;
+}
+
+export interface WeekScheduleGenerations {
+  /** Dernière génération lancée, quel que soit son état. */
+  latestAttempt: ScheduleGeneration | undefined;
+  /** Dernière génération terminée avec un planning (`OPTIMAL` ou `FEASIBLE`). */
+  latestSchedule: ScheduleGeneration | undefined;
 }
