@@ -167,7 +167,7 @@ describe('Page Planning', () => {
 
     expect(planning.open).toHaveBeenCalledWith(SITE, '2026-11-23');
     expect(text(page.querySelector('h1'))).toBe('23–29 novembre 2026');
-    expect(text(page.querySelector('.overline'))).toBe(
+    expect(text(page.querySelector('.week-label'))).toBe(
       'Entrepôt de démonstration · Planning de la semaine 48',
     );
     expect(text(page.querySelector('.week-status'))).toContain(

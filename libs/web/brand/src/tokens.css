@@ -1,47 +1,42 @@
-/*
- * Jetons du design system « Trame » (révision du 16 novembre 2026).
- * Seuls les jetons déjà employés sont déclarés ; le créneau de nuit et le statut « conforme » arriveront
- * avec la grille du planning. Une seule action principale par vue ; un statut porte
- * toujours un mot, jamais la couleur seule.
- */
+/* Palette Encre et vermillon. Chaque statut reste lisible sans sa couleur. */
 :root {
   color-scheme: light dark;
 
   /* Marque */
-  --brand-warp: light-dark(#0f4f58, #8fdde4);
-  --brand-weft: light-dark(#1e9aaa, #2db4c4);
-  --brand-ink: light-dark(#0d3a41, #e4f4f5);
+  --brand-warp: light-dark(#a22d21, #ff947b);
+  --brand-weft: light-dark(#a94e3d, #ef9877);
+  --brand-ink: light-dark(#191e30, #fff2df);
 
   /* Surfaces et texte */
-  --page: light-dark(#f3f7f6, #101d20);
-  --surface: light-dark(#fff, #17282c);
-  --soft: light-dark(#e7f3f2, #213d41);
-  --ink: light-dark(#183b40, #e4f4f5);
-  --muted: light-dark(#536b70, #b0c5c8);
-  --line: light-dark(#dbe5e3, #354b50);
-  --line-strong: light-dark(#71878c, #7c979d);
-  --action-ink: light-dark(#fff, #0d3a41);
-  --focus: light-dark(#1a7584, #2db4c4);
+  --page: light-dark(#f0eae2, #191c29);
+  --surface: light-dark(#fffaf3, #222633);
+  --soft: light-dark(#f8f0e5, #2b3040);
+  --ink: light-dark(#191e30, #f4eee5);
+  --muted: light-dark(#595766, #cbd0dd);
+  --line: light-dark(#d2c6ba, #535a70);
+  --line-strong: light-dark(#827568, #929ab4);
+  --action-ink: light-dark(#fffaf3, #211a20);
+  --focus: light-dark(#46548a, #a2b2ec);
 
-  /* Statuts : chacun porte aussi un mot, jamais la couleur seule. */
-  --warning: light-dark(#7c5715, #eacb8e);
-  --warning-soft: light-dark(#f6ecd6, #352a17);
-  --error: light-dark(#9d332c, #ffb4ac);
-  --error-soft: light-dark(#f9e4e1, #3b2220);
+  /* Statuts */
+  --warning: light-dark(#633a08, #ffe4a5);
+  --warning-soft: light-dark(#f8e7c1, #392d18);
+  --error: light-dark(#922c48, #ffbac8);
+  --error-soft: light-dark(#f7dfe6, #412432);
 
-  /* Créneaux, du plus clair au plus sombre : réservés aux barres de créneau. */
-  --shift-matin: light-dark(#f2c661, #e2b552);
-  --shift-aprem: light-dark(#7fcdd5, #4fb8c4);
-  --on-shift: #0d3a41;
+  /* Créneaux */
+  --shift-matin: light-dark(#eae3f4, #393250);
+  --shift-matin-ink: light-dark(#422b58, #efe1ff);
+  --shift-aprem: light-dark(#dce9ef, #223c4d);
+  --shift-aprem-ink: light-dark(#183a4a, #d4f1fa);
 
-  /* Les bandeaux de vitrine gardent les couleurs du logo, quel que soit le thème système. */
-  --weave-ground: #0f4f58;
-  --weave-ground-deep: #0b4149;
-  --weave-paper: #e4f4f5;
-  --weave-paper-muted: #b8e3e7;
-  --weave-note: #c5e5e8;
-  --weave-thread: #8fdde4;
-  --weave-ink: #0d3a41;
+  /* Bandeaux de marque, indépendants du thème système */
+  --weave-ground: #181d31;
+  --weave-ground-deep: #111524;
+  --weave-paper: #fff2df;
+  --weave-paper-muted: #d4cedb;
+  --weave-thread: #ff9b7d;
+  --weave-ink: #211a20;
 
   /* Typographie : polices hébergées par l'application, la CSP refusant toute autre origine. */
   --font-display: 'Bricolage Grotesque Variable', 'IBM Plex Sans', system-ui, sans-serif;

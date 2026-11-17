@@ -72,7 +72,7 @@ tr-planning-page .week-number {
   letter-spacing: -0.09em;
   font-weight: 750;
 }
-tr-planning-page .overline {
+tr-planning-page .week-label {
   margin-bottom: 5px;
   color: var(--muted);
   letter-spacing: 0.1em;
@@ -211,11 +211,11 @@ tr-planning-page .swatch {
 }
 tr-planning-page .tone-1 {
   background: var(--shift-matin);
-  color: var(--on-shift);
+  color: var(--shift-matin-ink);
 }
 tr-planning-page .tone-2 {
   background: var(--shift-aprem);
-  color: var(--on-shift);
+  color: var(--shift-aprem-ink);
 }
 tr-planning-page .tone-3 {
   background: var(--soft);
@@ -279,12 +279,15 @@ tr-planning-page .employee-link {
   overflow-wrap: anywhere;
 }
 tr-planning-page .week-grid :is(th, td).weekly-hours {
-  width: 96px;
+  width: 106px;
   text-align: end;
   font-variant-numeric: tabular-nums;
 }
 tr-planning-page .weekly-hours span {
   display: block;
+}
+tr-planning-page .weekly-hours .meta {
+  text-wrap: balance;
 }
 tr-planning-page .week-grid .shift {
   width: 100%;
@@ -299,10 +302,10 @@ tr-planning-page .employee-assignment + .employee-assignment {
   margin-block-start: 4px;
 }
 tr-planning-page .week-grid .shift:hover {
-  box-shadow: inset 0 -2px var(--on-shift);
+  box-shadow: inset 0 -2px currentColor;
 }
 tr-planning-page .week-grid .shift[aria-pressed='true'] {
-  box-shadow: inset 0 0 0 2px var(--on-shift);
+  box-shadow: inset 0 0 0 2px currentColor;
 }
 tr-planning-page .shift-position {
   display: block;

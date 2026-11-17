@@ -86,13 +86,15 @@ describe('Premier parcours Guidé', () => {
     (element.querySelector('button') as HTMLButtonElement).click();
     expect(session.login).toHaveBeenCalledOnce();
   });
-  it('dit le but de Trame et mène vers l’avancement et la connexion', async () => {
+  it('dit le but de Trame et mène vers l’aperçu du planning et la connexion', async () => {
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const element = fixture.nativeElement as HTMLElement;
 
-    expect(element.querySelector('h1')?.textContent).toContain('Relier les tâches.');
-    expect(element.querySelector('a[href="#avancement"]')).not.toBeNull();
+    expect(element.querySelector('h1')?.textContent).toContain(
+      'Composez la semaine de votre équipe.',
+    );
+    expect(element.querySelector('a[href="#apercu-planning"]')).not.toBeNull();
     expect(element.querySelector('a[href="#diagnostic-start"]')).not.toBeNull();
     expect(element.querySelector('#diagnostic-start')?.textContent).toContain('Se connecter');
     expect(element.querySelectorAll('button').length).toBe(1);

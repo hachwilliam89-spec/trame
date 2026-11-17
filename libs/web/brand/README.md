@@ -1,10 +1,10 @@
 # Marque Trame
 
-Jetons du design system « Trame » : couleurs clair/sombre, polices, espacements, angles et ombre du symbole (`src/tokens.css`). La référence visuelle est l'artefact Design System « Trame » de Kim (révision du 16 novembre 2026) : règles d'usage, composants et maquettes des écrans clés. Seuls les jetons déjà employés par l'application sont déclarés ici ; le créneau de nuit et le statut « conforme » arriveront avec la grille du planning.
+La palette Encre et vermillon est partagée par la vitrine, le diagnostic et le planning. Le vermillon repère les actions et le lilas et le bleu distinguent les créneaux. L’ambre indique un manque de couverture. Chaque état garde un libellé. Les couleurs claires et sombres suivent le thème du navigateur.
 
 ## Logo
 
-Le symbole aux cinq T tissés et le mot-symbole sont servis par `apps/web/public` ; leurs sources sont dans `docs/brand/logo-v2/`. Ne pas déformer, recolorer ni ajouter d'effet au logo. En thème sombre, chaque fil tient au moins 3:1 sur `weave-ground` et sur `surface`.
+Les variantes servies par `apps/web/public` reprennent les cinq T tissés et le mot-symbole du kit `docs/brand/logo-v2/` avec les couleurs Encre et vermillon. La géométrie est commune aux variantes. Le relief vient du support CSS du symbole dans le bandeau de la vitrine.
 
 ## Polices
 

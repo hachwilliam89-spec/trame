@@ -1,63 +1,33 @@
 <section class="landing-hero" aria-labelledby="welcome-title">
   <div class="hero-copy">
-    <div class="eyebrow">Planification d’équipes · entrepôts logistiques</div>
-    <h1 id="welcome-title">Relier les tâches.<br /><span>Composer l’équipe.</span></h1>
+    <div class="eyebrow">Planification d’équipes · Entrepôts</div>
+    <h1 id="welcome-title">Composez la semaine de votre équipe.</h1>
     <p class="hero-pitch">
-      Trame génère le planning de la semaine sous les règles du Code du travail et des contrats,
-      puis explique chaque choix. Ex-responsable logistique, j’ai construit l’outil qui me manquait.
+      Répartissez les postes selon les habilitations et les contrats. Voyez où il manque du monde.
     </p>
     <div class="hero-actions">
-      <a class="action hero-action" href="#avancement">Voir où en est le projet</a>
+      <a class="action hero-action" href="#apercu-planning">
+        Voir un exemple de planning <span aria-hidden="true">↘</span>
+      </a>
       <a class="hero-secondary" href="#diagnostic-start">Accéder à votre espace</a>
     </div>
-    <p class="hero-note">En construction · version de démonstration</p>
   </div>
-  <img class="hero-mark" src="/trame-mark.svg" width="180" height="180" alt="" />
-</section>
-
-<section class="threads" aria-labelledby="threads-title">
-  <div class="eyebrow">Le principe</div>
-  <h2 id="threads-title">Trois fils, un planning qui tient.</h2>
-  <div class="thread-row">
-    <span class="thread-number" aria-hidden="true">01</span>
-    <div>
-      <h3>Générer sans enfreindre</h3>
-      <span class="status">Disponible sur compte</span>
+  <div class="hero-art" aria-hidden="true">
+    <div class="hero-plate">
+      <img class="hero-mark" src="/trame-mark.svg" width="180" height="180" alt="" />
     </div>
-    <p>
-      Repos de 11 h, durées maximales, habilitations, volume des contrats : les règles dures sont
-      des murs. Les besoins de couverture viennent ensuite, et chaque manque est chiffré.
-    </p>
-  </div>
-  <div class="thread-row">
-    <span class="thread-number" aria-hidden="true">02</span>
-    <div>
-      <h3>Dire pourquoi</h3>
-      <span class="status planned">Bientôt</span>
-    </div>
-    <p>
-      Chaque manque sera expliqué par créneau et par compétence, avec la règle qui bloque et son
-      article. Quand aucun planning n’existe, Trame dira quel fil casse.
-    </p>
-  </div>
-  <div class="thread-row">
-    <span class="thread-number" aria-hidden="true">03</span>
-    <div>
-      <h3>Ajuster en direct</h3>
-      <span class="status planned">Bientôt</span>
-    </div>
-    <p>
-      Déplacer un créneau le fera évaluer aussitôt : conforme, à surveiller ou bloqué, avant même de
-      valider la modification.
-    </p>
   </div>
 </section>
 
-<section class="preview" aria-labelledby="preview-title">
+<section class="preview" id="apercu-planning" aria-labelledby="preview-title">
   <div class="preview-heading">
     <h2 id="preview-title">Une semaine type</h2>
-    <span class="status planned">Maquette de l’écran en construction</span>
+    <span class="status planned">Aperçu · données fictives</span>
   </div>
+  <p class="preview-gap">
+    <strong>Samedi matin · Caristes</strong>
+    <span>2 affectés sur 3 · 1 manquant</span>
+  </p>
   <!-- Sur mobile, la grille défile : le clavier doit pouvoir l’atteindre. -->
   <div
     class="preview-scroll"
@@ -183,17 +153,41 @@
             >
           </td>
         </tr>
-        <tr class="coverage-row">
-          <th scope="row">Caristes du matin</th>
-          <td><span class="coverage-full">Couvert</span></td>
-          <td><span class="coverage-full">Couvert</span></td>
-          <td><span class="coverage-full">Couvert</span></td>
-          <td><span class="coverage-full">Couvert</span></td>
-          <td><span class="coverage-full">Couvert</span></td>
-          <td><span class="coverage-gap">1 manquant</span></td>
-        </tr>
       </tbody>
     </table>
+  </div>
+</section>
+
+<section class="threads" aria-labelledby="threads-title">
+  <div class="eyebrow">Le principe</div>
+  <h2 id="threads-title">Ce que Trame fait</h2>
+  <div class="thread-row">
+    <div>
+      <h3>Générer le planning</h3>
+      <span class="status">Disponible sur compte</span>
+    </div>
+    <p>
+      Repos de 11 h, durées maximales, habilitations, volume des contrats : le calcul respecte ces
+      contraintes et indique combien de personnes manquent à chaque créneau.
+    </p>
+  </div>
+  <div class="thread-row">
+    <div>
+      <h3>Dire pourquoi</h3>
+      <span class="status planned">Bientôt</span>
+    </div>
+    <p>
+      Chaque manque sera expliqué par créneau et par compétence, avec la règle qui bloque et son
+      article. Quand aucun planning n’existe, Trame indiquera les contraintes qui empêchent le
+      calcul.
+    </p>
+  </div>
+  <div class="thread-row">
+    <div>
+      <h3>Ajuster en direct</h3>
+      <span class="status planned">Bientôt</span>
+    </div>
+    <p>Vérifiez l’effet d’un déplacement de créneau avant de valider la modification.</p>
   </div>
 </section>
 
