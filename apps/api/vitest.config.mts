@@ -25,6 +25,7 @@ export default defineConfig(() => ({
       OIDC_JWKS_URL: 'https://idp.test/realms/trame/protocol/openid-connect/certs',
     },
     include: ['{src,tests}/**/*.{test,spec}.ts'],
+    exclude: ['**/*.integration.spec.ts'],
     passWithNoTests: false,
     reporters: ['default'],
     coverage: {

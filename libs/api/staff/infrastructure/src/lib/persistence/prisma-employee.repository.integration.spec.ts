@@ -1,4 +1,4 @@
-import { PrismaService } from '@trame/api/database';
+import { PrismaDatabase, PrismaService } from '@trame/api/database';
 import { type TestDatabase, startTestDatabase } from '@trame/api/database/testing';
 import { anEmployee } from '@trame/api/staff/application/testing';
 import type { Employee } from '@trame/api/staff/domain';
@@ -29,7 +29,7 @@ describe('employés sur PostgreSQL (US-031, jalon 1)', () => {
   beforeAll(async () => {
     database = await startTestDatabase();
     prisma = new PrismaService({ url: database.url });
-    employees = new PrismaEmployeeRepository(prisma);
+    employees = new PrismaEmployeeRepository(new PrismaDatabase(prisma));
   }, 120_000);
 
   beforeEach(async () => {

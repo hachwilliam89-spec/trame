@@ -6,7 +6,7 @@ import {
   SiteCodeAlreadyUsedError,
   TimeZone,
 } from '@trame/api/organization/domain';
-import { PrismaService } from '@trame/api/database';
+import { PrismaDatabase, PrismaService } from '@trame/api/database';
 import { type TestDatabase, startTestDatabase } from '@trame/api/database/testing';
 import { ORGANIZATION_A, ORGANIZATION_B } from '../../testing';
 import { PrismaShiftTemplateRepository } from './prisma-shift-template.repository';
@@ -55,8 +55,8 @@ describe('dépôts Prisma du contexte organization (intégration)', () => {
   beforeAll(async () => {
     database = await startTestDatabase();
     prisma = new PrismaService({ url: database.url });
-    sites = new PrismaSiteRepository(prisma);
-    shiftTemplates = new PrismaShiftTemplateRepository(prisma);
+    sites = new PrismaSiteRepository(new PrismaDatabase(prisma));
+    shiftTemplates = new PrismaShiftTemplateRepository(new PrismaDatabase(prisma));
   }, 120_000);
 
   afterAll(async () => {

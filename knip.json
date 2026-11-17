@@ -24,7 +24,7 @@
   ],
   "vitest": {
     "config": [
-      "apps/*/vitest.config.mts",
+      "apps/*/vitest*.config.mts",
       "libs/**/vitest*.config.mts",
       "tools/*/vitest.config.mts",
       "infra/vitest*.config.mts"

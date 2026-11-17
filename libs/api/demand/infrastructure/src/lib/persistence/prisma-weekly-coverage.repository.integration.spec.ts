@@ -1,4 +1,4 @@
-import { PrismaService } from '@trame/api/database';
+import { PrismaDatabase, PrismaService } from '@trame/api/database';
 import { type TestDatabase, startTestDatabase } from '@trame/api/database/testing';
 import { aWeeklyCoverage } from '@trame/api/demand/application/testing';
 import type { WeeklyCoverage } from '@trame/api/demand/domain';
@@ -32,7 +32,7 @@ describe('besoins de couverture sur PostgreSQL (US-050, jalon 1)', () => {
   beforeAll(async () => {
     database = await startTestDatabase();
     prisma = new PrismaService({ url: database.url });
-    coverages = new PrismaWeeklyCoverageRepository(prisma);
+    coverages = new PrismaWeeklyCoverageRepository(new PrismaDatabase(prisma));
   }, 120_000);
 
   beforeEach(async () => {

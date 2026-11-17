@@ -1,4 +1,4 @@
-import { PrismaService } from '@trame/api/database';
+import { PrismaDatabase, PrismaService } from '@trame/api/database';
 import { type TestDatabase, startTestDatabase } from '@trame/api/database/testing';
 import { aContract, anEmployee } from '@trame/api/staff/application/testing';
 import { type Contract, OverlappingContractError } from '@trame/api/staff/domain';
@@ -21,8 +21,8 @@ describe('contrats de travail sur PostgreSQL (US-032, jalon 1)', () => {
   beforeAll(async () => {
     database = await startTestDatabase();
     prisma = new PrismaService({ url: database.url });
-    employees = new PrismaEmployeeRepository(prisma);
-    contracts = new PrismaContractRepository(prisma);
+    employees = new PrismaEmployeeRepository(new PrismaDatabase(prisma));
+    contracts = new PrismaContractRepository(new PrismaDatabase(prisma));
   }, 120_000);
 
   beforeEach(async () => {

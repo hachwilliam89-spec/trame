@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   type Prisma,
-  PrismaService,
+  Database,
   dateToInstant,
   dateToPlainDate,
   instantToDate,
@@ -15,7 +15,7 @@ type WeeklyCoverageRecord = Prisma.WeeklyCoverageModel & { needs: Prisma.Coverag
 /** Semaines dans `demand.weekly_coverages`, et leurs besoins dans `demand.coverage_needs`. */
 @Injectable()
 export class PrismaWeeklyCoverageRepository implements WeeklyCoverageRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly database: Database) {}
 
   async save(coverage: WeeklyCoverage): Promise<void> {
     const week = {
@@ -30,7 +30,7 @@ export class PrismaWeeklyCoverageRepository implements WeeklyCoverageRepository 
       positionId: need.positionId,
       requiredCount: need.requiredCount,
     }));
-    await this.prisma.$transaction(async (transaction) => {
+    await this.database.transaction(async (transaction) => {
       await upsertAndLockWeek(transaction, coverage);
       await transaction.coverageNeed.deleteMany({ where: week });
       await transaction.coverageNeed.createMany({ data: needs });
@@ -42,7 +42,7 @@ export class PrismaWeeklyCoverageRepository implements WeeklyCoverageRepository 
     siteId: string,
     weekStartsOn: Temporal.PlainDate,
   ): Promise<WeeklyCoverage | undefined> {
-    const record = await this.prisma.weeklyCoverage.findUnique({
+    const record = await this.database.client.weeklyCoverage.findUnique({
       where: {
         organizationId_siteId_weekStartsOn: {
           organizationId,

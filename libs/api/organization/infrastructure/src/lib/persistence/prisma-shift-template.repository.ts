@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import type { ShiftTemplateRepository } from '@trame/api/organization/application';
 import { ShiftBreak, ShiftTemplate } from '@trame/api/organization/domain';
-import { type Prisma, PrismaService, dateToInstant, instantToDate } from '@trame/api/database';
+import { type Prisma, Database, dateToInstant, instantToDate } from '@trame/api/database';
 import { type Page, type PageRequest, pageFrom } from '@trame/platform/pagination';
 import { afterCursor } from './after-cursor';
 import { fromMinutesSinceMidnight, toMinutesSinceMidnight } from './local-time-minutes';
@@ -9,10 +9,10 @@ import { fromMinutesSinceMidnight, toMinutesSinceMidnight } from './local-time-m
 /** Créneaux types dans la table `organization.shift_templates`. */
 @Injectable()
 export class PrismaShiftTemplateRepository implements ShiftTemplateRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly database: Database) {}
 
   async add(shiftTemplate: ShiftTemplate): Promise<void> {
-    await this.prisma.shiftTemplate.create({ data: toRecord(shiftTemplate) });
+    await this.database.client.shiftTemplate.create({ data: toRecord(shiftTemplate) });
   }
 
   async findById(
@@ -20,7 +20,7 @@ export class PrismaShiftTemplateRepository implements ShiftTemplateRepository {
     siteId: string,
     shiftTemplateId: string,
   ): Promise<ShiftTemplate | undefined> {
-    const record = await this.prisma.shiftTemplate.findFirst({
+    const record = await this.database.client.shiftTemplate.findFirst({
       where: { id: shiftTemplateId, organizationId, siteId },
     });
     if (record === null) {
@@ -34,7 +34,7 @@ export class PrismaShiftTemplateRepository implements ShiftTemplateRepository {
     siteId: string,
     page: PageRequest,
   ): Promise<Page<ShiftTemplate>> {
-    const records = await this.prisma.shiftTemplate.findMany({
+    const records = await this.database.client.shiftTemplate.findMany({
       where: { organizationId, siteId, id: afterCursor(page.after) },
       orderBy: { id: 'asc' },
       take: page.limit + 1,

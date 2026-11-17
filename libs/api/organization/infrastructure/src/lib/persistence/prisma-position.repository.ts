@@ -6,7 +6,7 @@ import {
 import { Position } from '@trame/api/organization/domain';
 import {
   type Prisma,
-  PrismaService,
+  Database,
   dateToInstant,
   instantToDate,
   isForeignKeyViolation,
@@ -19,7 +19,7 @@ type PositionRecord = Prisma.PositionModel & { skills: { skillId: string }[] };
 /** Postes dans `organization.positions`, et leurs compétences requises dans `position_skills`. */
 @Injectable()
 export class PrismaPositionRepository implements PositionRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly database: Database) {}
 
   async add(position: Position): Promise<void> {
     const requirements = position.skillIds.map((skillId) => ({
@@ -28,9 +28,10 @@ export class PrismaPositionRepository implements PositionRepository {
       skillId,
     }));
     try {
-      // Les identifiants sont déjà attribués : les deux écritures partagent la même transaction.
-      await this.prisma.$transaction([
-        this.prisma.position.create({
+      // Les deux écritures partagent une transaction : celle de l'unité de travail, s'il y en a
+      // une (ADR-0038).
+      await this.database.transaction(async (transaction) => {
+        await transaction.position.create({
           data: {
             id: position.id,
             organizationId: position.organizationId,
@@ -38,9 +39,9 @@ export class PrismaPositionRepository implements PositionRepository {
             name: position.name,
             createdAt: instantToDate(position.createdAt),
           },
-        }),
-        this.prisma.positionSkill.createMany({ data: requirements }),
-      ]);
+        });
+        await transaction.positionSkill.createMany({ data: requirements });
+      });
     } catch (error) {
       if (isForeignKeyViolation(error)) {
         throw new PositionReferenceNotFoundError();
@@ -54,7 +55,7 @@ export class PrismaPositionRepository implements PositionRepository {
     siteId: string,
     positionId: string,
   ): Promise<Position | undefined> {
-    const record = await this.prisma.position.findFirst({
+    const record = await this.database.client.position.findFirst({
       where: { id: positionId, organizationId, siteId },
       include: { skills: { where: { organizationId }, select: { skillId: true } } },
     });
@@ -69,7 +70,7 @@ export class PrismaPositionRepository implements PositionRepository {
     siteId: string,
     page: PageRequest,
   ): Promise<Page<Position>> {
-    const records = await this.prisma.position.findMany({
+    const records = await this.database.client.position.findMany({
       where: { organizationId, siteId, id: afterCursor(page.after) },
       include: { skills: { where: { organizationId }, select: { skillId: true } } },
       orderBy: { id: 'asc' },
@@ -79,7 +80,9 @@ export class PrismaPositionRepository implements PositionRepository {
   }
 
   async isSkillRequired(organizationId: string, skillId: string): Promise<boolean> {
-    const count = await this.prisma.positionSkill.count({ where: { organizationId, skillId } });
+    const count = await this.database.client.positionSkill.count({
+      where: { organizationId, skillId },
+    });
     return count > 0;
   }
 }

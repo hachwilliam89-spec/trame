@@ -1,4 +1,4 @@
-import { PrismaService, instantToDate } from '@trame/api/database';
+import { PrismaDatabase, PrismaService, instantToDate } from '@trame/api/database';
 import { type TestDatabase, startTestDatabase } from '@trame/api/database/testing';
 import { PositionReferenceNotFoundError } from '@trame/api/organization/application';
 import {
@@ -28,9 +28,9 @@ describe('catalogue et postes sur PostgreSQL (US-030 B)', () => {
   beforeAll(async () => {
     database = await startTestDatabase();
     prisma = new PrismaService({ url: database.url });
-    sites = new PrismaSiteRepository(prisma);
-    skills = new PrismaSkillRepository(prisma);
-    positions = new PrismaPositionRepository(prisma);
+    sites = new PrismaSiteRepository(new PrismaDatabase(prisma));
+    skills = new PrismaSkillRepository(new PrismaDatabase(prisma));
+    positions = new PrismaPositionRepository(new PrismaDatabase(prisma));
   }, 120_000);
 
   beforeEach(async () => {

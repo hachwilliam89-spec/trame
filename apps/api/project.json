@@ -25,6 +25,14 @@
           "buildTarget": "api:build:production"
         }
       }
+    },
+    "integration": {
+      "dependsOn": ["^prisma-generate"],
+      "command": "vitest run --config vitest.integration.config.mts",
+      "options": {
+        "cwd": "{projectRoot}"
+      },
+      "cache": false
     }
   }
 }
