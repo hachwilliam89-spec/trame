@@ -10,6 +10,7 @@
 @import './landing.css';
 @import '../../../libs/web/scheduling/feature-diagnostic/src/lib/diagnostic-page.css';
 @import '../../../libs/web/scheduling/feature-diagnostic/src/lib/assignment-weave.css';
+@import '../../../libs/web/scheduling/feature-planning/src/lib/planning-page.css';
 * {
   box-sizing: border-box;
 }

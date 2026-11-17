@@ -11,7 +11,7 @@
     </div>
   </header>
   <main id="main" class="main-content">
-    @if (session.status() === 'authenticated') {<tr-diagnostic-page />
+    @if (session.status() === 'authenticated') {<router-outlet />
     <footer>
       <button type="button" class="text-action" (click)="logout()">Se déconnecter</button>
     </footer>

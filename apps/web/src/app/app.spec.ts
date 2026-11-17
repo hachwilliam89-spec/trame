@@ -1,8 +1,10 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { WebSession } from '@trame/web/auth/data-access';
-import { DiagnosticState } from '@trame/web/scheduling/data-access';
+import { provideRouter, Router } from '@angular/router';
+import { DiagnosticState, PlanningState } from '@trame/web/scheduling/data-access';
 import { App } from './app';
+import { appRoutes } from './app.routes';
 
 describe('Premier parcours Guidé', () => {
   const identity = { subject: 'manager-A', organizationId: 'organization-A', roles: ['manager'] };
@@ -42,10 +44,21 @@ describe('Premier parcours Guidé', () => {
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [
+        provideRouter(appRoutes),
         { provide: WebSession, useValue: session },
         { provide: DiagnosticState, useValue: diagnostic },
+        {
+          provide: PlanningState,
+          useValue: {
+            phase: signal('idle'),
+            identify: vi.fn(async () => undefined),
+            disconnect: vi.fn(),
+          },
+        },
       ],
     }).compileComponents();
+    // Le diagnostic est la page d'accueil : la coque la rend par son routeur.
+    await TestBed.inject(Router).navigateByUrl('/');
   });
   it('affiche le logo et déclenche la connexion par redirection sans formulaire de mot de passe', async () => {
     const fixture = TestBed.createComponent(App);
