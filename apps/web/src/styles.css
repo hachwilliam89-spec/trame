@@ -230,9 +230,6 @@ p {
   font-weight: 500;
   max-width: 100%;
   white-space: normal;
-  transition:
-    background-color 120ms,
-    border-color 120ms;
 }
 .action:hover:not(:disabled) {
   background: var(--brand-ink);

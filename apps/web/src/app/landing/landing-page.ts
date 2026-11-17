@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 
 /**
- * Accueil d'un visiteur sans compte (direction « atelier » du 16 novembre 2026).
+ * Accueil d'un visiteur sans compte.
  * Il dit le but de Trame, l'état réel de chaque partie et mène à la connexion. L'aperçu du
  * planning est une maquette annoncée comme telle : aucun résultat n'y est présenté comme calculé.
  */

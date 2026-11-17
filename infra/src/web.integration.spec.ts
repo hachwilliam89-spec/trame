@@ -118,6 +118,9 @@ describe('Front Guidé construit et chaîne réelle', () => {
       try {
         await page.goto(web.origin);
         await noViolations(page);
+        await page.emulateMedia({ colorScheme: 'dark' });
+        await noViolations(page);
+        await page.emulateMedia({ colorScheme: 'light' });
         await login(page, 'manager');
         await page.getByRole('button', { name: 'Tester le moteur', exact: true }).click();
         await page
@@ -266,6 +269,8 @@ describe('Front Guidé construit et chaîne réelle', () => {
           .getByText('Repos quotidien d’au moins 11 h consécutives', { exact: false })
           .waitFor();
         await noViolations(page);
+        await page.emulateMedia({ colorScheme: 'dark' });
+        await noViolations(page);
         expect(errors).toEqual([]);
       } finally {
         await browser.close();
@@ -278,6 +283,9 @@ describe('Front Guidé construit et chaîne réelle', () => {
     const context = await browser.newContext({ viewport: { width: 375, height: 900 } });
     const page = await context.newPage();
     try {
+      await page.goto(web.origin);
+      await page.getByRole('heading', { name: 'Une semaine type', exact: true }).waitFor();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(375);
       await login(page, 'manager');
       const loadedSites = page.waitForResponse(
         (response) => new URL(response.url()).pathname === '/api/v1/sites',

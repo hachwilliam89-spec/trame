@@ -35,7 +35,7 @@ Organiser par fonctionnalité. Un composant propre à un écran reste près de c
 
 ## Design et expérience
 
-Angular apporte la composition et les interactions ; la direction visuelle appartient à Trame. Conserver le logo bicolore et la direction Tissage validée.
+Angular apporte la composition et les interactions ; la direction visuelle appartient à Trame. Conserver les cinq T du logo et la palette Encre et vermillon validée. Réserver le relief à la vitrine pour garder les grilles lisibles.
 
 - HTML sémantique et contrôles natifs d’abord. Composants petits, nommés par leur rôle, avec des états cohérents. Les styles propres à un composant restent près de lui ; les tokens réutilisés vont dans `brand`.
 - Avec la CSP actuelle (`style-src 'self'`), les styles sont émis dans une feuille externe : conserver les CSS près des composants, les importer depuis `apps/web/src/styles.css` et préfixer leurs sélecteurs par le composant. Ne pas utiliser `styles`/`styleUrl` sans une prise en charge CSP adaptée : Angular les injecte dans la page. Vérifier le rendu de la version construite, pas seulement le DOM des tests.

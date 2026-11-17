@@ -1,46 +1,61 @@
-/* Accueil d'un visiteur : direction « atelier » du design system Trame (16 novembre 2026). */
-
-/* Bandeau : les couleurs du logo, indépendamment du thème système. */
+/* Le relief appartient à la vitrine. Les écrans de travail gardent des surfaces planes. */
 .landing-hero {
+  position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(100px, 22%);
+  grid-template-columns: minmax(0, 1.13fr) minmax(0, 0.9fr);
   align-items: center;
-  gap: var(--space-7);
-  padding: 56px var(--space-7);
-  background: var(--weave-ground);
+  min-height: clamp(380px, 44vw, 488px);
+  overflow: hidden;
+  padding-inline: clamp(22px, 4.2vw, 48px);
+  border-bottom: 3px solid var(--weave-thread);
+  background: radial-gradient(ellipse at 64% 18%, #303a59, transparent 61%), var(--weave-ground);
   color: var(--weave-paper);
 }
+.hero-copy {
+  z-index: 1;
+  padding-block: clamp(24px, 5vw, 58px);
+}
 .landing-hero .eyebrow {
-  color: var(--weave-paper-muted);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: #ffc0a9;
+  font-family: var(--font-mono);
+}
+.landing-hero .eyebrow::before {
+  content: '';
+  flex: 0 0 20px;
+  height: 2px;
+  background: currentColor;
 }
 .landing-hero h1 {
+  max-width: 13ch;
   margin: var(--space-4) 0;
-  font-size: clamp(32px, 4.6vw, 52px);
-  line-height: 1.08;
-  letter-spacing: -0.03em;
-  font-weight: 650;
-}
-.landing-hero h1 span {
-  color: var(--weave-thread);
+  font-size: clamp(36px, 6.2vw, 74px);
+  line-height: 0.98;
+  letter-spacing: -0.047em;
+  font-weight: 750;
 }
 .hero-pitch {
-  max-width: 52ch;
-  margin: 0 0 var(--space-6);
+  max-width: 39ch;
+  margin: 0 0 var(--space-5);
   font-size: 16px;
-  line-height: 26px;
+  line-height: 1.55;
   color: var(--weave-paper-muted);
 }
 .hero-actions {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-3) var(--space-4);
 }
 .landing-hero .hero-action {
-  padding: 12px 20px;
+  padding: 11px 16px;
   background: var(--weave-thread);
   border-color: var(--weave-thread);
+  box-shadow: 4px 4px 0 #8b352e;
   color: var(--weave-ink);
+  font-weight: 600;
   text-decoration: none;
 }
 .landing-hero .hero-action:hover {
@@ -52,35 +67,90 @@
   display: inline-flex;
   align-items: center;
   min-height: 44px;
-  padding: 0 var(--space-4);
-  border: 1px solid var(--weave-thread);
-  border-radius: var(--radius-sm);
   color: var(--weave-paper);
   font-weight: 500;
-  text-decoration: none;
+  text-decoration: underline;
+  text-underline-offset: 4px;
 }
-.hero-secondary:hover {
-  background: var(--weave-ground-deep);
+.hero-secondary:hover,
+.hero-secondary:focus-visible {
+  color: var(--weave-thread);
 }
 .landing-hero :focus-visible {
   outline-color: var(--weave-thread);
 }
-.hero-note {
-  margin: var(--space-4) 0 0;
-  font-size: 13px;
-  color: var(--weave-note);
+.hero-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-self: stretch;
+  min-height: 270px;
+  isolation: isolate;
+}
+.hero-art::before,
+.hero-art::after {
+  content: '';
+  position: absolute;
+  transform: rotate(-11deg);
+}
+.hero-art::before {
+  inset: 17% 6% 13% 13%;
+  z-index: -2;
+  border: 1px solid #8993ab;
+  background:
+    repeating-linear-gradient(0deg, #b4c0da28 0 1px, transparent 1px 16px),
+    repeating-linear-gradient(90deg, #b4c0da28 0 1px, transparent 1px 16px);
+}
+.hero-art::after {
+  inset: 43% auto auto 2%;
+  z-index: -1;
+  width: 135%;
+  height: 35%;
+  background: linear-gradient(180deg, #ed7957 0 2px, #b83e2c 2px 19%, #a62d24 19% 94%, #391723 94%);
+  box-shadow: 0 19px 33px #05081473;
+}
+.hero-plate {
+  display: grid;
+  place-items: center;
+  width: min(68%, 272px);
+  aspect-ratio: 1;
+  margin-inline-end: 9%;
+  border: 1px solid #a5acc1;
+  transform: rotate(-11deg);
+  background: linear-gradient(138deg, #3b4664, #28344e 36%, #202840 84%);
+  box-shadow:
+    8px 8px 0 #101422,
+    0 28px 48px #060817a3,
+    inset 0 0 0 5px #a5acc122;
 }
 .hero-mark {
   display: block;
-  width: 100%;
+  width: 73%;
   height: auto;
-  transform: rotate(-7deg);
-  filter: drop-shadow(var(--shadow-weave));
+  filter: drop-shadow(3px 4px 0 #101422) drop-shadow(1px 4px 6px #11172599);
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .hero-plate {
+    transition: transform 220ms ease-out;
+  }
+  .landing-hero:hover .hero-plate {
+    transform: translate(4px, -6px) rotate(-9deg);
+  }
+  .landing-hero .hero-action {
+    transition:
+      transform 160ms ease-out,
+      box-shadow 160ms ease-out;
+  }
+  .landing-hero .hero-action:hover {
+    transform: translate(-2px, -2px);
+    box-shadow: 6px 6px 0 #8b352e;
+  }
 }
 
 /* Les trois fils : la cible du produit, chacun avec son état réel. */
 .threads {
-  padding: 64px 0 var(--space-6);
+  padding: var(--space-6) 0;
 }
 .threads h2,
 .progress h2 {
@@ -92,7 +162,7 @@
 }
 .thread-row {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) minmax(0, 1.4fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
   gap: var(--space-5);
   align-items: baseline;
   padding: var(--space-5) 0;
@@ -103,10 +173,6 @@
 }
 .thread-row:last-of-type {
   border-bottom: 1px solid var(--line);
-}
-.thread-number {
-  font: 700 48px/48px var(--font-display);
-  color: var(--brand-weft);
 }
 .thread-row h3 {
   margin: 0 0 var(--space-2);
@@ -129,14 +195,15 @@
   box-shadow: inset 0 0 0 1.5px currentColor;
 }
 
-/* Aperçu : une maquette annoncée comme telle, toujours en thème sombre comme dans la direction. */
+/* La grille reprend les tokens de l’écran Planning dans les deux thèmes. */
 .preview {
-  color-scheme: dark;
   margin: var(--space-6) 0;
   padding: var(--space-6);
-  background: var(--page);
+  scroll-margin-top: var(--space-4);
+  background: var(--surface);
   color: var(--ink);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
 }
 .preview-heading {
   display: flex;
@@ -150,6 +217,8 @@
   margin: 0;
 }
 .preview-scroll {
+  /* Les libellés accessibles en position absolue suivent le défilement de la grille. */
+  position: relative;
   overflow-x: auto;
 }
 .planning-grid {
@@ -199,9 +268,7 @@
   border-bottom: none;
 }
 /* Barres de créneau à angles droits, comme les fils du logo. */
-.shift-bar,
-.coverage-full,
-.coverage-gap {
+.shift-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -217,27 +284,25 @@
 }
 .shift-bar.morning {
   background: var(--shift-matin);
-  color: var(--on-shift);
+  color: var(--shift-matin-ink);
 }
 .shift-bar.afternoon {
   background: var(--shift-aprem);
-  color: var(--on-shift);
+  color: var(--shift-aprem-ink);
 }
-.shift-bar.rest,
-.coverage-full {
+.shift-bar.rest {
   justify-content: center;
   color: var(--muted);
 }
-.coverage-row th {
-  color: var(--muted);
-  font-size: 12px;
-}
-.coverage-gap {
-  justify-content: center;
+.preview-gap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--space-3);
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-inline-start: 3px solid var(--warning);
+  background: var(--warning-soft);
   color: var(--warning);
-  background: repeating-linear-gradient(135deg, var(--warning-soft) 0 4px, var(--surface) 4px 8px);
-  border: 1px dashed var(--warning);
-  font-weight: 600;
 }
 
 /* Avancement : ce qui tourne, ce qui se construit, ce qui suit. */
@@ -317,39 +382,20 @@
 
 @media (max-width: 650px) {
   .landing-hero {
-    grid-template-columns: minmax(0, 1fr) 76px;
-    gap: var(--space-5);
-    padding: 28px 22px;
+    grid-template-columns: minmax(0, 1fr);
   }
   .hero-copy {
-    display: contents;
+    padding-bottom: 0;
   }
-  .landing-hero .eyebrow,
-  .hero-pitch,
-  .hero-actions,
-  .hero-note {
-    grid-column: 1 / -1;
+  .hero-art {
+    min-height: 192px;
   }
-  .landing-hero h1 {
-    margin: 0;
-  }
-  .hero-mark {
-    grid-column: 2;
-    grid-row: 2;
-  }
-  .hero-pitch,
-  .hero-note {
-    margin: 0;
+  .hero-plate {
+    width: min(39%, 150px);
   }
   .thread-row {
-    grid-template-columns: 56px minmax(0, 1fr);
-  }
-  .thread-row p {
-    grid-column: 2;
-  }
-  .thread-number {
-    font-size: 32px;
-    line-height: 32px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--space-2);
   }
   .preview {
     padding: var(--space-4);
