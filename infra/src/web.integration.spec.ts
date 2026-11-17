@@ -2,18 +2,24 @@ import { chromium, firefox, webkit, type Browser, type Page } from 'playwright';
 import AxeBuilder from '@axe-core/playwright';
 import { compose, type ComposeOptions } from './lib/compose';
 import {
+  loadDemo,
   reserveFreePort,
   runPrisma,
   startApi,
   startStack,
   queryDatabase,
   type ApiProcess,
+  type LoadedDemo,
 } from './lib/dev-stack';
 import { startWebServer } from './lib/web-test-server';
 import { startDiagnosticProcesses } from './lib/diagnostic-processes';
 import { launchTestBrowser } from './lib/test-browser';
 
+/** Organisation des comptes de développement (`infra/keycloak/trame-realm.json`). */
+const DEV_ORGANIZATION_ID = '019a4ac0-0000-7000-8000-000000000001';
+
 describe('Front Guidé construit et chaîne réelle', () => {
+  let demo: LoadedDemo;
   let stack: ComposeOptions;
   let api: ApiProcess;
   let databaseUrl: string;
@@ -49,6 +55,7 @@ describe('Front Guidé construit et chaîne réelle', () => {
       databaseUrl,
       amqpUrl: `amqp://trame:trame@127.0.0.1:${amqpPort}`,
     });
+    demo = await loadDemo(databaseUrl, DEV_ORGANIZATION_ID);
   });
   afterAll(async () => {
     await workers?.stop();
@@ -186,6 +193,107 @@ describe('Front Guidé construit et chaîne réelle', () => {
       }
     }, 90_000);
   }
+  /** Le lien d'une semaine, ouvert avant la connexion : il doit survivre au retour de Keycloak. */
+  async function openPlanningAsManager(page: Page): Promise<void> {
+    const query = new URLSearchParams({ site: demo.siteId, semaine: demo.weekStartsOn });
+    await page.goto(`${web.origin}/planning?${query.toString()}`);
+    await page.getByRole('button', { name: 'Se connecter', exact: true }).click();
+    await page.locator('#username').fill('dev-manager');
+    await page.locator('#password').fill('trame-local-only');
+    await page.locator('#kc-login').click();
+    await page.waitForURL(
+      (url) => url.pathname === '/planning' && url.searchParams.get('site') === demo.siteId,
+    );
+    await page.getByText('Entrepôt de démonstration', { exact: false }).first().waitFor();
+  }
+
+  /**
+   * Lance ou relance le calcul de la semaine, puis attend la relecture de cette génération : le
+   * planning d'un navigateur précédent est déjà affiché, il ne prouve rien.
+   */
+  async function generateWeek(page: Page): Promise<void> {
+    const started = page.waitForResponse(
+      (response) =>
+        response.request().method() === 'POST' &&
+        new URL(response.url()).pathname === '/api/v1/schedule-generations',
+    );
+    await page.locator('.attempt button').click();
+    const response = await started;
+    expect(response.status()).toBe(202);
+    const { id } = (await response.json()) as { id: string };
+    await page
+      .waitForResponse(
+        (reread) =>
+          reread.request().method() === 'GET' &&
+          new URL(reread.url()).pathname === `/api/v1/schedule-generations/${id}`,
+        { timeout: 30_000 },
+      )
+      .catch(async () => {
+        throw new Error(
+          'UI: ' +
+            (await page.locator('body').innerText()) +
+            '\nPROCESSUS: ' +
+            workers.logs().slice(-4000),
+        );
+      });
+    await page.getByText('Planning proposé.', { exact: true }).waitFor();
+  }
+
+  for (const [name, browserType] of [
+    ['Chromium', chromium],
+    ['Firefox', firefox],
+    ['WebKit', webkit],
+  ] as const) {
+    it(`${name} : lien de la semaine, génération, grille et manque du samedi, accessibilité`, async () => {
+      const browser: Browser = await launchTestBrowser(browserType);
+      const page = await (await browser.newContext()).newPage();
+      const errors: string[] = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      try {
+        await openPlanningAsManager(page);
+        await generateWeek(page);
+
+        expect(await page.locator('.week-grid tbody tr').count()).toBe(12);
+        const gaps = page.locator('.gaps summary');
+        expect(await gaps.count()).toBe(1);
+        expect(await gaps.locator('strong').innerText()).toMatch(/^Samedi \d+ · Matin · Cariste$/);
+        expect(await gaps.locator('.gap-count').innerText()).toBe('2 affectés sur 3 · 1 manquant');
+        expect(await page.locator('.coverage .meta').first().innerText()).toMatch(
+          /^50 places pourvues sur 51 · 98(,0)?\s?%$/,
+        );
+        await page.getByRole('button', { name: 'Voir les règles appliquées', exact: true }).click();
+        await page
+          .getByText('Repos quotidien d’au moins 11 h consécutives', { exact: false })
+          .waitFor();
+        await noViolations(page);
+        expect(errors).toEqual([]);
+      } finally {
+        await browser.close();
+      }
+    }, 90_000);
+  }
+
+  it('montre la vue Jour par défaut sur un écran étroit', async () => {
+    const browser = await launchTestBrowser(chromium);
+    const context = await browser.newContext({ viewport: { width: 375, height: 900 } });
+    const page = await context.newPage();
+    try {
+      await openPlanningAsManager(page);
+      await page
+        .locator('.week-grid')
+        .waitFor({ timeout: 30_000 })
+        .catch(() => generateWeek(page));
+      await page.locator('.week-grid').waitFor();
+
+      const options = await page.locator('.team select option').allInnerTexts();
+      expect(options).not.toContain('Semaine complète');
+      expect(await page.locator('.week-grid thead th').count()).toBe(3);
+      await noViolations(page);
+    } finally {
+      await browser.close();
+    }
+  }, 60_000);
+
   it('interrompt puis reprend le suivi sans créer de nouveau calcul', async () => {
     const browser = await launchTestBrowser(chromium);
     const context = await browser.newContext();

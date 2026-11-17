@@ -1,0 +1,130 @@
+<div class="team-head">
+  <h2 id="planning-team-title">Planning de l’équipe</h2>
+  <ul class="legend" aria-label="Horaires des créneaux">
+    @for (kind of view().shiftKinds; track kind.shiftTemplateId) {
+    <li class="legend-item">
+      <span class="swatch" [class]="'tone-' + kind.tone" aria-hidden="true"></span>
+      {{ kind.label }} <span class="meta">{{ kind.hours }}</span>
+    </li>
+    }
+  </ul>
+</div>
+<label class="day-control">
+  Vue des affectations
+  <select [value]="shownSelection()" (change)="choose($any($event.target).value)">
+    @if (canShowWeek()) {
+    <option value="week">Semaine complète</option>
+    } @for (day of view().days; track day.date) {
+    <option [value]="day.date">{{ day.optionLabel }}</option>
+    }
+  </select>
+</label>
+<div class="assignment-detail" role="status">{{ cellDetail() }}</div>
+<table class="week-grid">
+  <caption class="visually-hidden">
+    Affectations de l’équipe, semaine {{ view().weekNumber }}
+  </caption>
+  <thead>
+    <tr>
+      <th scope="col" class="employee-column">Salarié</th>
+      @for (entry of visibleDays(); track entry.day.date) {
+      <th scope="col">
+        <span class="day-long">{{ entry.day.name }}</span
+        ><span class="day-abbr">{{ entry.day.abbreviation }}</span> {{ entry.day.dayOfMonth }}
+      </th>
+      }
+      <th scope="col" class="weekly-hours">Heures semaine</th>
+    </tr>
+  </thead>
+  <tbody>
+    @for (row of view().team; track row.employeeId) {
+    <tr>
+      <th scope="row">
+        <button
+          type="button"
+          class="quiet-button employee-link"
+          [attr.aria-expanded]="openEmployeeId() === row.employeeId"
+          [attr.aria-controls]="'planning-employee-' + row.employeeId"
+          (click)="toggleEmployee(row, $event.currentTarget)"
+        >
+          {{ row.name }}
+        </button>
+        <small class="meta">{{ row.positionsLabel }}</small>
+      </th>
+      @for (entry of visibleDays(); track entry.day.date) {
+      <td>
+        @for (cell of row.cells[entry.index]; track cell.shiftId) {
+        <button
+          type="button"
+          [class]="'shift tone-' + cell.tone"
+          [attr.aria-pressed]="isInspected(row, cell)"
+          [attr.aria-label]="cellLabel(row, entry.day, cell)"
+          (click)="inspect(row, entry.day.date, cell)"
+        >
+          {{ cell.shiftLabel }} @if (cell.showsPosition) {
+          <span class="shift-position">{{ cell.positionName }}</span>
+          }
+        </button>
+        } @empty {
+        <span class="rest meta" aria-hidden="true">—</span>
+        <span class="visually-hidden">Non planifié</span>
+        }
+      </td>
+      }
+      <td class="weekly-hours">
+        <strong>{{ row.plannedLabel }}</strong>
+        <span class="meta">{{ row.contractLabel }}</span>
+      </td>
+    </tr>
+    @if (openEmployeeId() === row.employeeId) {
+    <tr class="employee-profile-row">
+      <td [attr.colspan]="columnCount()">
+        <section
+          class="employee-profile"
+          [id]="'planning-employee-' + row.employeeId"
+          [attr.aria-label]="'Semaine de ' + row.name"
+        >
+          <header class="employee-profile-head">
+            <div>
+              <h3>{{ row.name }}</h3>
+              <p class="meta">{{ row.positionsLabel }} · Semaine {{ view().weekNumber }}</p>
+            </div>
+            <button #closeButton type="button" class="quiet-button" (click)="closeEmployee()">
+              Fermer
+            </button>
+          </header>
+          <p class="employee-hours">{{ row.plannedLabel }} planifiées · {{ row.contractLabel }}</p>
+          <table class="employee-week">
+            <caption class="visually-hidden">
+              Affectations de {{ row.name }}, semaine {{ view().weekNumber }}
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Jour</th>
+                <th scope="col">Affectation</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (day of row.week; track day.date) {
+              <tr>
+                <th scope="row">{{ day.dayLabel }}</th>
+                <td>
+                  @for (cell of day.cells; track cell.shiftId) {
+                  <div class="employee-assignment">
+                    <span>{{ cell.shiftLabel }} · {{ cell.positionName }}</span>
+                    <span class="meta">{{ cell.hours }}</span>
+                  </div>
+                  } @empty {
+                  <span class="meta">{{ day.note }}</span>
+                  }
+                </td>
+              </tr>
+              }
+            </tbody>
+          </table>
+        </section>
+      </td>
+    </tr>
+    } }
+  </tbody>
+</table>

@@ -1,0 +1,395 @@
+/*
+ * Page Planning, d'après la maquette validée (`trame-planning-lecture.html`). Importée par la
+ * feuille de l'application (CSP `style-src 'self'`) ; chaque sélecteur est préfixé par la page.
+ * Les règles globales des tableaux et des détails sont redéfinies ici pour la grille.
+ */
+tr-planning-page {
+  display: block;
+  color: var(--ink);
+}
+tr-planning-page :where(h1, h2, h3, p) {
+  margin: 0;
+}
+tr-planning-page h1 {
+  font-size: clamp(23px, 3.1vw, 36px);
+  letter-spacing: -0.045em;
+  line-height: 1.1;
+}
+tr-planning-page h2 {
+  font-size: 16px;
+  letter-spacing: -0.015em;
+}
+tr-planning-page :where(button, select) {
+  font: inherit;
+  color: inherit;
+}
+tr-planning-page :where(button, select, summary):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+tr-planning-page .meta {
+  color: var(--muted);
+  font-size: 12px;
+}
+tr-planning-page .quiet-button {
+  min-height: 0;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--brand-warp);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-align: start;
+}
+tr-planning-page .visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+tr-planning-page .planning-notice {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-6) 0;
+}
+
+/* En-tête de la semaine */
+tr-planning-page .week-heading {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 2px 0 20px;
+  border-bottom: 2px solid var(--brand-warp);
+}
+tr-planning-page .week-number {
+  color: var(--brand-warp);
+  font-size: clamp(42px, 7vw, 72px);
+  line-height: 0.92;
+  letter-spacing: -0.09em;
+  font-weight: 750;
+}
+tr-planning-page .overline {
+  margin-bottom: 5px;
+  color: var(--muted);
+  letter-spacing: 0.1em;
+  font-size: 11px;
+  text-transform: uppercase;
+}
+/* Le numéro reste lu par les lecteurs d'écran ; le grand chiffre visible leur est masqué. */
+tr-planning-page .week-compact {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+tr-planning-page .week-status {
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+tr-planning-page .rules-button {
+  margin-inline-start: auto;
+}
+tr-planning-page .rules {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+tr-planning-page .rules ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+  gap: 4px 16px;
+  padding-inline-start: 19px;
+  margin: 8px 0 0;
+}
+
+/* Message sur le dernier calcul */
+tr-planning-page .attempt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  padding: 10px 12px;
+  background: var(--soft);
+  border-inline-start: 2px solid var(--brand-warp);
+}
+tr-planning-page .attempt.tone-warning {
+  background: var(--warning-soft);
+  border-color: var(--warning);
+  color: var(--warning);
+}
+tr-planning-page .attempt.tone-error {
+  background: var(--error-soft);
+  border-color: var(--error);
+  color: var(--error);
+}
+
+/* Couverture */
+tr-planning-page .coverage {
+  padding: 16px 0 18px;
+  border-bottom: 1px solid var(--line);
+}
+tr-planning-page .gaps {
+  display: grid;
+  gap: 5px;
+  margin-top: 10px;
+}
+tr-planning-page details {
+  margin-top: 0;
+  color: var(--ink);
+  font-size: 14px;
+}
+tr-planning-page .gap-button {
+  padding: 10px 12px;
+  background: var(--warning-soft);
+  border: 1px solid transparent;
+  color: var(--warning);
+}
+tr-planning-page .gap-button:hover {
+  border-color: currentColor;
+}
+tr-planning-page .gap-count {
+  margin-inline-start: 8px;
+  white-space: nowrap;
+}
+tr-planning-page .gap-detail {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border-inline-start: 2px solid var(--warning);
+}
+tr-planning-page .coverage-detail {
+  margin-top: 7px;
+}
+tr-planning-page .coverage-table {
+  margin-top: 6px;
+}
+tr-planning-page .coverage-table tr.understaffed td:last-child {
+  color: var(--warning);
+  font-weight: 650;
+}
+tr-planning-page .coverage-table td:last-child {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Grille de l'équipe */
+tr-planning-page .team {
+  margin-top: 18px;
+}
+tr-planning-page .team-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+tr-planning-page .legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 3px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+}
+tr-planning-page .legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+tr-planning-page .swatch {
+  width: 12px;
+  height: 9px;
+}
+tr-planning-page .tone-1 {
+  background: var(--shift-matin);
+  color: var(--on-shift);
+}
+tr-planning-page .tone-2 {
+  background: var(--shift-aprem);
+  color: var(--on-shift);
+}
+tr-planning-page .tone-3 {
+  background: var(--soft);
+  color: var(--ink);
+}
+tr-planning-page .day-control {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin: 4px 0 9px;
+  font-size: 13px;
+}
+tr-planning-page .day-control select {
+  max-width: 100%;
+  min-height: 33px;
+  padding: 3px 6px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+}
+tr-planning-page .assignment-detail:not(:empty) {
+  margin-bottom: 8px;
+  padding: 9px 12px;
+  background: var(--soft);
+  border-inline-start: 2px solid var(--brand-warp);
+}
+tr-planning-page table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: start;
+}
+tr-planning-page :is(th, td) {
+  padding: 6px;
+  color: var(--ink);
+  border-bottom: 1px solid var(--line);
+}
+tr-planning-page .week-grid {
+  table-layout: fixed;
+  background: var(--surface);
+}
+tr-planning-page .week-grid :is(th, td) {
+  border: 1px solid var(--line);
+}
+tr-planning-page .week-grid thead th {
+  background: var(--soft);
+  font-weight: 650;
+  font-size: 12px;
+}
+tr-planning-page .week-grid .employee-column {
+  width: 23%;
+}
+tr-planning-page .week-grid tbody th {
+  font-size: 13px;
+}
+tr-planning-page .week-grid tbody th small {
+  display: block;
+  font-weight: 400;
+}
+tr-planning-page .employee-link {
+  font-weight: inherit;
+  overflow-wrap: anywhere;
+}
+tr-planning-page .week-grid :is(th, td).weekly-hours {
+  width: 96px;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+tr-planning-page .weekly-hours span {
+  display: block;
+}
+tr-planning-page .week-grid .shift {
+  width: 100%;
+  padding: 5px 2px;
+  border: 0;
+  border-radius: 2px;
+  font-size: 12px;
+  font-weight: 600;
+}
+tr-planning-page .week-grid .shift + .shift,
+tr-planning-page .employee-assignment + .employee-assignment {
+  margin-block-start: 4px;
+}
+tr-planning-page .week-grid .shift:hover {
+  box-shadow: inset 0 -2px var(--on-shift);
+}
+tr-planning-page .week-grid .shift[aria-pressed='true'] {
+  box-shadow: inset 0 0 0 2px var(--on-shift);
+}
+tr-planning-page .shift-position {
+  display: block;
+  font-weight: 400;
+  font-size: 11px;
+}
+tr-planning-page .rest {
+  display: block;
+  text-align: center;
+}
+tr-planning-page .week-grid .employee-profile-row > td {
+  padding: 0;
+}
+tr-planning-page .employee-profile {
+  padding: clamp(13px, 3vw, 24px);
+  background: var(--surface);
+  border-inline-start: 3px solid var(--brand-warp);
+}
+tr-planning-page .employee-profile-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  gap: 12px;
+}
+tr-planning-page .employee-profile h3 {
+  font-size: 23px;
+  line-height: 1.15;
+}
+tr-planning-page .employee-hours {
+  margin-top: 12px;
+  padding: 8px 10px;
+  background: var(--soft);
+}
+tr-planning-page .employee-week {
+  margin-top: 8px;
+}
+tr-planning-page .employee-week th[scope='row'] {
+  font-weight: 500;
+}
+tr-planning-page .employee-week td span {
+  display: block;
+}
+tr-planning-page .excluded {
+  margin-top: 10px;
+}
+tr-planning-page .day-abbr {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  tr-planning-page .day-long {
+    display: none;
+  }
+  tr-planning-page .day-abbr {
+    display: inline;
+  }
+}
+@media (max-width: 560px) {
+  tr-planning-page .week-number {
+    display: none;
+  }
+  tr-planning-page .week-compact {
+    position: static;
+    width: auto;
+    height: auto;
+    clip-path: none;
+  }
+  tr-planning-page .week-heading {
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+  tr-planning-page .rules-button {
+    margin-inline-start: 0;
+  }
+  tr-planning-page .week-grid .employee-column {
+    width: 49%;
+  }
+  tr-planning-page .week-grid :is(th, td).weekly-hours {
+    width: 72px;
+  }
+  tr-planning-page .gap-count {
+    display: block;
+    margin-inline-start: 13px;
+  }
+}
+@media (pointer: coarse) {
+  tr-planning-page :is(.quiet-button, .gap-button, .day-control select, .week-grid .shift) {
+    min-height: 44px;
+  }
+}

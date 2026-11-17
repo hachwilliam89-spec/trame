@@ -1,14 +1,70 @@
 import {
   diagnosticProgressV1,
+  scheduleGenerationProgressV1,
   type DiagnosticProgressV1,
+  type ScheduleGenerationProgressV1,
 } from '@trame/shared/contracts/scheduling';
 import { createParser } from 'eventsource-parser';
 
-/** Décode les frontières SSE indépendamment des frontières des paquets réseau. */
-export async function readProgress(
+/** Un flux SSE de progression : l'événement attendu, sa validation et sa fin. */
+interface ProgressStream<Event> {
+  /** Nom de l'événement SSE ; les autres sont ignorés. */
+  eventName: string;
+  /** Valide le message ; lève une erreur s'il est invalide ou étranger au suivi demandé. */
+  parse(data: unknown): Event;
+  idOf(event: Event): string;
+  isFinal(event: Event): boolean;
+}
+
+/** Progression d'un diagnostic, jusqu'à son rapport final. */
+export function readProgress(
   response: Response,
   runId: string,
   receive: (event: DiagnosticProgressV1) => void,
+): Promise<void> {
+  return readServerEvents(
+    response,
+    {
+      eventName: 'diagnostic',
+      parse: (data) => {
+        const event = diagnosticProgressV1.parse(data);
+        if (event.runId !== runId) throw new Error('Progression incohérente');
+        return event;
+      },
+      idOf: (event) => event.id,
+      isFinal: (event) => event.report.kind !== 'STARTED',
+    },
+    receive,
+  );
+}
+
+/** Progression d'une génération de planning, jusqu'à son issue. */
+export function readScheduleGenerationProgress(
+  response: Response,
+  generationId: string,
+  receive: (event: ScheduleGenerationProgressV1) => void,
+): Promise<void> {
+  return readServerEvents(
+    response,
+    {
+      eventName: 'schedule-generation',
+      parse: (data) => {
+        const event = scheduleGenerationProgressV1.parse(data);
+        if (event.generationId !== generationId) throw new Error('Progression incohérente');
+        return event;
+      },
+      idOf: (event) => event.id,
+      isFinal: (event) => event.status !== 'RUNNING',
+    },
+    receive,
+  );
+}
+
+/** Décode les frontières SSE indépendamment des frontières des paquets réseau. */
+async function readServerEvents<Event>(
+  response: Response,
+  stream: ProgressStream<Event>,
+  receive: (event: Event) => void,
 ): Promise<void> {
   if (
     !response.headers.get('content-type')?.startsWith('text/event-stream') ||
@@ -24,12 +80,11 @@ export async function readProgress(
       throw new Error('Progression invalide');
     },
     onEvent: (message) => {
-      if (message.event !== 'diagnostic') return;
-      const event = diagnosticProgressV1.parse(JSON.parse(message.data));
-      if (event.runId !== runId || message.id !== event.id)
-        throw new Error('Progression incohérente');
+      if (terminal || message.event !== stream.eventName) return;
+      const event = stream.parse(JSON.parse(message.data));
+      if (message.id !== stream.idOf(event)) throw new Error('Progression incohérente');
       receive(event);
-      terminal = event.report.kind !== 'STARTED';
+      terminal = stream.isFinal(event);
     },
   });
   try {

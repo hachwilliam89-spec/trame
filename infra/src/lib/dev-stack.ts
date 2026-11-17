@@ -12,6 +12,7 @@ const WORKSPACE_ROOT = join(__dirname, '../../..');
 const DATABASE_LIBRARY_ROOT = join(WORKSPACE_ROOT, 'libs/api/shared/database');
 const PRISMA_BINARY = join(WORKSPACE_ROOT, 'node_modules/.bin/prisma');
 const BUILT_API_ENTRY = join(WORKSPACE_ROOT, 'dist/apps/api/main.js');
+const BUILT_LOAD_DEMO_ENTRY = join(WORKSPACE_ROOT, 'dist/apps/api/load-demo.js');
 
 const STARTUP_TIMEOUT_SECONDS = '120';
 
@@ -148,4 +149,20 @@ async function stopProcess(child: ChildProcess): Promise<void> {
   const exited = new Promise((resolve) => child.once('exit', resolve));
   child.kill('SIGTERM');
   await exited;
+}
+
+/** Le site et le lundi rendus par la commande opérateur du jeu de démonstration. */
+export interface LoadedDemo {
+  siteId: string;
+  weekStartsOn: string;
+}
+
+/** Charge le jeu de démonstration avec la commande construite, comme au staging. */
+export async function loadDemo(databaseUrl: string, organizationId: string): Promise<LoadedDemo> {
+  const { stdout } = await execFileAsync(
+    process.execPath,
+    [BUILT_LOAD_DEMO_ENTRY, '--organization', organizationId],
+    { env: { ...process.env, DATABASE_URL: databaseUrl }, timeout: 60_000 },
+  );
+  return JSON.parse(stdout) as LoadedDemo;
 }

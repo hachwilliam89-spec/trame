@@ -1,0 +1,63 @@
+<h2 id="planning-coverage-title">Couverture du site</h2>
+<p class="meta">
+  {{ view().coverage.assignedPlaces }} places pourvues sur {{ view().coverage.requiredPlaces }} · {{
+  view().coverage.percentLabel }}
+</p>
+<div class="gaps" aria-label="Manques de la semaine">
+  @for (gap of view().coverage.gaps; track gap.date + gap.shiftLabel + gap.positionName) {
+  <details name="planning-gaps">
+    <summary class="gap-button">
+      <strong>{{ gap.dayLabel }} · {{ gap.shiftLabel }} · {{ gap.positionName }}</strong>
+      <span class="gap-count">{{ gap.countLabel }}</span>
+    </summary>
+    <div class="gap-detail">
+      <p>
+        @if (gap.assignedNames.length > 0) {
+        <strong>Personnes affectées</strong> · {{ gap.assignedNamesLabel }} } @else {
+        <strong>Aucune affectation à ce poste.</strong>
+        }
+      </p>
+      <p class="meta">{{ gap.dayLabel }} · {{ gap.hours }}</p>
+      <button type="button" class="quiet-button" (click)="showDay.emit(gap.date)">
+        Voir l’équipe du {{ gap.dayLabel }} <span aria-hidden="true">→</span>
+      </button>
+    </div>
+  </details>
+  } @empty {
+  <p>Tous les besoins sont couverts.</p>
+  }
+</div>
+<details class="coverage-detail">
+  <summary class="quiet-button">Voir la couverture par jour et par poste</summary>
+  <label class="day-control">
+    Jour à vérifier
+    <select [value]="checkedDate()" (change)="checkedDate.set($any($event.target).value)">
+      @for (day of view().coverageByDay; track day.date) {
+      <option [value]="day.date">{{ day.optionLabel }}</option>
+      }
+    </select>
+  </label>
+  @if (checkedDay(); as day) {
+  <table class="coverage-table">
+    <caption class="visually-hidden">
+      Besoins et affectations du {{ day.optionLabel }}
+    </caption>
+    <thead>
+      <tr>
+        <th scope="col">Créneau</th>
+        <th scope="col">Poste</th>
+        <th scope="col">Affectés / requis</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (row of day.rows; track row.shiftLabel + row.positionName) {
+      <tr [class.understaffed]="row.missing > 0">
+        <td>{{ row.shiftLabel }}</td>
+        <td>{{ row.positionName }}</td>
+        <td>{{ row.assigned }} / {{ row.required }} @if (row.missing > 0) { · Manque }</td>
+      </tr>
+      }
+    </tbody>
+  </table>
+  }
+</details>

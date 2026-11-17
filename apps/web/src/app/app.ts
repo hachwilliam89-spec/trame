@@ -8,18 +8,24 @@ import {
   DestroyRef,
 } from '@angular/core';
 import { WebSession } from '@trame/web/auth/data-access';
-import { DiagnosticState } from '@trame/web/scheduling/data-access';
-import { DiagnosticPage } from '@trame/web/scheduling/feature-diagnostic';
+import { RouterOutlet } from '@angular/router';
+import {
+  DiagnosticState,
+  PlanningState,
+  rememberPlanningReturn,
+} from '@trame/web/scheduling/data-access';
+import { browserStorage } from './browser-storage';
 import { LandingPage } from './landing/landing-page';
 @Component({
   selector: 'tr-root',
-  imports: [DiagnosticPage, LandingPage],
+  imports: [RouterOutlet, LandingPage],
   templateUrl: './app.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
   protected readonly session = inject(WebSession);
   private readonly diagnostic = inject(DiagnosticState);
+  private readonly planning = inject(PlanningState);
   protected readonly actionError = signal('');
   protected readonly roleLabel = computed(() => {
     const roles = this.session.identity()?.roles ?? [];
@@ -29,15 +35,25 @@ export class App {
   });
   constructor() {
     effect(() => {
-      void this.diagnostic.identify(this.session.identity());
+      const identity = this.session.identity();
+      void this.diagnostic.identify(identity);
+      void this.planning.identify(identity);
+    });
+    effect(() => {
+      if (this.planning.phase() === 'expired') this.session.expire();
     });
     effect(() => {
       if (this.diagnostic.phase() === 'expired') this.session.expire();
     });
-    inject(DestroyRef).onDestroy(() => this.diagnostic.disconnect());
+    inject(DestroyRef).onDestroy(() => {
+      this.diagnostic.disconnect();
+      this.planning.disconnect();
+    });
   }
   protected async login(): Promise<void> {
     this.actionError.set('');
+    // Seuls le site et la semaine validés sont retenus, pour rouvrir le planning au retour.
+    rememberPlanningReturn(browserStorage(), location.pathname, location.search);
     try {
       await this.session.login();
     } catch {
@@ -46,6 +62,7 @@ export class App {
   }
   protected async logout(): Promise<void> {
     this.diagnostic.disconnect();
+    this.planning.disconnect();
     this.actionError.set('');
     try {
       await this.session.logout();
