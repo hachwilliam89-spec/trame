@@ -1,4 +1,4 @@
-import { readProgress } from './progress-stream';
+import { readProgress, readScheduleGenerationProgress } from './progress-stream';
 const id = '0190f0a0-0000-7000-8000-000000000001';
 const runId = '0190f0a0-0000-7000-8000-000000000002';
 const event = {
@@ -40,5 +40,48 @@ describe('Lecture de progression SSE', () => {
     await readProgress(response([`id: ${id}\ndata: {`]), runId, receive);
     expect(receive).not.toHaveBeenCalled();
     await expect(readProgress(new Response('<html>'), runId, receive)).rejects.toThrow();
+  });
+});
+
+describe('Lecture de la progression d’une génération', () => {
+  const generationId = '0190f0a0-0000-7000-8000-000000000003';
+  const running = {
+    id,
+    generationId,
+    sequence: 1,
+    occurredAt: '2026-11-17T10:00:00Z',
+    status: 'RUNNING',
+  };
+  const succeeded = {
+    ...running,
+    id: '0190f0a0-0000-7000-8000-000000000004',
+    sequence: 2,
+    status: 'SUCCEEDED',
+    resultStatus: 'OPTIMAL',
+  };
+  const frame = (body: { id: string }) =>
+    `id: ${body.id}\nevent: schedule-generation\ndata: ${JSON.stringify(body)}\n\n`;
+
+  it('reçoit les événements de la génération jusqu’à l’issue, puis s’arrête', async () => {
+    const receive = vi.fn();
+    const ignored = `id: ${id}\nevent: diagnostic\ndata: {}\n\n`;
+
+    await readScheduleGenerationProgress(
+      response([ignored, frame(running), frame(succeeded), frame({ ...running, id: runId })]),
+      generationId,
+      receive,
+    );
+
+    expect(receive.mock.calls).toEqual([[running], [succeeded]]);
+  });
+
+  it('refuse la progression d’une autre génération', async () => {
+    const receive = vi.fn();
+    const foreign = { ...running, generationId: runId };
+
+    await expect(
+      readScheduleGenerationProgress(response([frame(foreign)]), generationId, receive),
+    ).rejects.toThrow();
+    expect(receive).not.toHaveBeenCalled();
   });
 });
