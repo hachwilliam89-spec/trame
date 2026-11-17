@@ -1,4 +1,3 @@
-import './app/browser-validation';
 import { bootstrapApplication } from '@angular/platform-browser';
 import { KeycloakDriver, WebSession, loadWebConfiguration } from '@trame/web/auth/data-access';
 import {
