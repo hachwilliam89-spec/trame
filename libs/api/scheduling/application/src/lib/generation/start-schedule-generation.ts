@@ -9,9 +9,14 @@ import type { Clock } from '@trame/platform/clock';
 import type { IdGenerator } from '@trame/platform/ids';
 import type { IdempotencyKey } from '@trame/platform/idempotency';
 import { prepareOutboxMessage } from '@trame/platform/outbox';
-import { SCHEDULE_MESSAGE_MAX_BYTES, type ScheduleRequestedV1 } from '@trame/shared/contracts';
+import {
+  SCHEDULE_MESSAGE_MAX_BYTES,
+  type ScheduleRequestedV1,
+  scheduleRequestedV1,
+} from '@trame/shared/contracts';
 import {
   IdempotencyKeyReusedError,
+  ScheduleRequestOutOfBoundsError,
   ScheduleRequestTooLargeError,
   SiteNotFoundError,
 } from './generation.errors';
@@ -56,10 +61,7 @@ export class StartScheduleGeneration {
       this.clock,
       this.ids,
     );
-    // Vérifié avant d'écrire : une demande que le moteur refuserait resterait en attente.
-    if (publishedBytes(message) > SCHEDULE_MESSAGE_MAX_BYTES) {
-      throw new ScheduleRequestTooLargeError();
-    }
+    ensureSendable(message);
     const registered = await this.generations.register({ generation, key: command.key, message });
     // Deux demandes simultanées sur la même clé : la gagnante doit porter la même semaine.
     return sameRequestOrThrow(registered, command);
@@ -86,6 +88,19 @@ export class StartScheduleGeneration {
       excludedEmployees,
       createdAt: this.clock.now(),
     };
+  }
+}
+
+/**
+ * Vérifié avant d'écrire, par le contrat et la taille que le relais et le moteur appliquent : une
+ * demande refusée ensuite resterait en tête de l'outbox de génération et la bloquerait.
+ */
+function ensureSendable(message: unknown): void {
+  if (!scheduleRequestedV1.safeParse(message).success) {
+    throw new ScheduleRequestOutOfBoundsError();
+  }
+  if (publishedBytes(message) > SCHEDULE_MESSAGE_MAX_BYTES) {
+    throw new ScheduleRequestTooLargeError();
   }
 }
 

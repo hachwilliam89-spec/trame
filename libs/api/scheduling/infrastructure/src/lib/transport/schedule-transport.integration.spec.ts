@@ -19,6 +19,7 @@ import {
   scheduleTopologyV1,
 } from '@trame/shared/contracts';
 import { PrismaDiagnosticRuns } from '../persistence/prisma-diagnostic-runs';
+import { PrismaScheduleGenerationProgress } from '../persistence/prisma-schedule-generation-progress';
 import { PrismaScheduleGenerations } from '../persistence/prisma-schedule-generations';
 import { DiagnosticTransport } from './diagnostic-transport';
 import { ScheduleTransport } from './schedule-transport';
@@ -141,6 +142,7 @@ describe('Génération : PostgreSQL, RabbitMQ et vrai moteur Python', () => {
     }
     await prisma.inboxReceipt.deleteMany();
     await prisma.outboxMessage.deleteMany();
+    await prisma.scheduleGenerationEvent.deleteMany();
     await prisma.scheduleGeneration.deleteMany();
   });
   afterAll(async () => {
@@ -200,6 +202,21 @@ describe('Génération : PostgreSQL, RabbitMQ et vrai moteur Python', () => {
     return request.id;
   }
 
+  /** Les événements SSE enregistrés pour la génération : numéro, état et issue. */
+  async function expectProgress(
+    generationId: string,
+    expected: [number, string, string | undefined][],
+  ): Promise<void> {
+    const progress = await new PrismaScheduleGenerationProgress(prisma).read({
+      organizationId,
+      generationId,
+    });
+    const events = progress?.events ?? [];
+    expect(events.map((event) => [event.sequence, event.status, event.resultStatus])).toEqual(
+      expected,
+    );
+  }
+
   /** Retire le message garé, pour que le test suivant parte d'un parking vide. */
   async function takeParked(): Promise<void> {
     await expect
@@ -245,9 +262,13 @@ describe('Génération : PostgreSQL, RabbitMQ et vrai moteur Python', () => {
     expect(schedule?.shortfalls).toEqual([
       { shiftId: generation.problem.shifts[0]?.id, requiredCount: 3, assignedCount: 2 },
     ]);
-    expect((await generations.latestWithSchedule(organizationId, SITE_ID, MONDAY))?.id).toBe(
-      generation.id,
-    );
+    expect(
+      (await generations.latestOfWeek(organizationId, SITE_ID, MONDAY)).latestSchedule?.id,
+    ).toBe(generation.id);
+    await expectProgress(generation.id, [
+      [1, 'RUNNING', undefined],
+      [2, 'SUCCEEDED', 'OPTIMAL'],
+    ]);
   });
 
   it('Aucun planning légal : un minimum contractuel inatteignable donne INFEASIBLE, sans planning', async () => {
@@ -277,10 +298,12 @@ describe('Génération : PostgreSQL, RabbitMQ et vrai moteur Python', () => {
     const timedOut = await settled(retried.id, false);
 
     expect(timedOut.outcome?.result.status).toBe('UNKNOWN');
-    expect((await generations.latestAttempt(organizationId, SITE_ID, MONDAY))?.id).toBe(retried.id);
-    expect((await generations.latestWithSchedule(organizationId, SITE_ID, MONDAY))?.id).toBe(
-      solved.id,
-    );
+    expect(
+      (await generations.latestOfWeek(organizationId, SITE_ID, MONDAY)).latestAttempt?.id,
+    ).toBe(retried.id);
+    expect(
+      (await generations.latestOfWeek(organizationId, SITE_ID, MONDAY)).latestSchedule?.id,
+    ).toBe(solved.id);
   });
 
   it('Un planning incohérent part en rebut et fait échouer la génération', async () => {

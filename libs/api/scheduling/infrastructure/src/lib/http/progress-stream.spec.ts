@@ -2,7 +2,8 @@ import { EventEmitter } from 'node:events';
 import type { Response } from 'express';
 import { FixedClock } from '@trame/platform/clock';
 import type { ProgressSnapshot } from '@trame/api/scheduling/application';
-import { serveDiagnosticStream } from './diagnostic-stream';
+import type { ScheduleGenerationProgressV1 } from '@trame/shared/contracts';
+import { serveProgressStream } from './progress-stream';
 
 class Client extends EventEmitter {
   chunks: string[] = [];
@@ -34,7 +35,7 @@ const failed = {
   report: { kind: 'FAILED' as const, code: 'PROCESSING_FAILED' as const },
 };
 
-describe('Cycle de vie du flux SSE', () => {
+describe('Cycle de vie du flux SSE, partagé par le diagnostic et la génération', () => {
   let clock: FixedClock;
   let client: Client;
   beforeEach(() => {
@@ -46,12 +47,14 @@ describe('Cycle de vie du flux SSE', () => {
     vi.useRealTimers();
   });
   function stream(initial: ProgressSnapshot, read = vi.fn(async () => initial), ttl = 60_000) {
-    return serveDiagnosticStream({
+    return serveProgressStream({
       response: client as unknown as Response,
       clock,
       expiresAt: clock.now().epochMilliseconds + ttl,
       initial,
       read,
+      eventName: 'diagnostic',
+      isFinal: (event) => event.report.kind !== 'STARTED',
       onError: vi.fn(),
     });
   }
@@ -99,6 +102,41 @@ describe('Cycle de vie du flux SSE', () => {
     await finished;
     expect(client.ended).toBe(true);
     expect(read).not.toHaveBeenCalled();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+  it('nomme les événements de la génération et termine à son premier état final', async () => {
+    const running: ScheduleGenerationProgressV1 = {
+      id: '0190f0a0-0000-7000-8000-000000000011',
+      generationId: '0190f0a0-0000-7000-8000-000000000012',
+      sequence: 1,
+      occurredAt: '2026-11-05T10:00:00Z',
+      status: 'RUNNING',
+    };
+    const succeeded: ScheduleGenerationProgressV1 = {
+      ...running,
+      id: '0190f0a0-0000-7000-8000-000000000013',
+      sequence: 2,
+      status: 'SUCCEEDED',
+      resultStatus: 'OPTIMAL',
+    };
+    const read = vi.fn(async () => ({ events: [] }));
+
+    await serveProgressStream({
+      response: client as unknown as Response,
+      clock,
+      expiresAt: clock.now().epochMilliseconds + 60_000,
+      initial: { events: [running, succeeded], finishedAt: clock.now() },
+      read,
+      eventName: 'schedule-generation',
+      isFinal: (event) => event.status !== 'RUNNING',
+      onError: vi.fn(),
+    });
+
+    const sent = client.chunks.join('');
+    expect(sent).toContain(`id: ${running.id}\nevent: schedule-generation\ndata: `);
+    expect(sent).toContain(JSON.stringify(succeeded));
+    expect(read).not.toHaveBeenCalled();
+    expect(client.ended).toBe(true);
     expect(vi.getTimerCount()).toBe(0);
   });
 });

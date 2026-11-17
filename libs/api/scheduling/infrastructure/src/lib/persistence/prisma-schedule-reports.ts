@@ -3,7 +3,7 @@ import {
   type ScheduleReports,
   UnmatchedScheduleReportError,
 } from '@trame/api/scheduling/application';
-import type { ScheduleGeneration } from '@trame/api/scheduling/domain';
+import { progressStateOf, type ScheduleGeneration } from '@trame/api/scheduling/domain';
 import type { Clock } from '@trame/platform/clock';
 import { type ScheduleReportedV1, scheduleRequestedV1 } from '@trame/shared/contracts';
 import { toScheduleGeneration } from './generation-record';
@@ -45,7 +45,7 @@ export class PrismaScheduleReports implements ScheduleReports {
       if (updated === undefined) {
         return;
       }
-      await saveTransition(transaction, updated);
+      await saveTransition(transaction, updated, message, record.lastSequence + 1);
     });
   }
 }
@@ -83,10 +83,14 @@ async function lockGeneration(
   }
 }
 
+/** La génération et son événement de progression, numéroté à la suite, dans la même transaction. */
 async function saveTransition(
   transaction: Prisma.TransactionClient,
   generation: ScheduleGeneration,
+  message: ScheduleReportedV1,
+  sequence: number,
 ): Promise<void> {
+  const state = progressStateOf(generation);
   await transaction.scheduleGeneration.update({
     where: {
       id_organizationId: { id: generation.id, organizationId: generation.organizationId },
@@ -97,6 +101,22 @@ async function saveTransition(
       failure: generation.failure,
       finishedAt:
         generation.finishedAt === undefined ? undefined : instantToDate(generation.finishedAt),
+      lastSequence: state === undefined ? undefined : sequence,
+    },
+  });
+  if (state === undefined) {
+    return;
+  }
+  await transaction.scheduleGenerationEvent.create({
+    data: {
+      id: message.id,
+      organizationId: generation.organizationId,
+      generationId: generation.id,
+      sequence,
+      status: state.status,
+      resultStatus: state.resultStatus,
+      failure: state.failure,
+      occurredAt: new Date(message.occurredAt),
     },
   });
 }

@@ -1,20 +1,36 @@
 import { once } from 'node:events';
 import type { Clock } from '@trame/platform/clock';
-import type { ProgressSnapshot } from '@trame/api/scheduling/application';
 import type { Response } from 'express';
 
-export interface DiagnosticStreamOptions {
+/** Un lot d'événements après le curseur, et la fin du traitement s'il est terminé. */
+export interface ProgressBatch<Event extends { id: string }> {
+  finishedAt?: Temporal.Instant;
+  events: readonly Event[];
+}
+
+export interface ProgressStreamOptions<Event extends { id: string }> {
   response: Response;
   clock: Clock;
+  /** Expiration du jeton : le flux se ferme alors, même pendant une lecture. */
   expiresAt: number;
-  initial: ProgressSnapshot;
-  read: (after: string | undefined) => Promise<ProgressSnapshot>;
+  initial: ProgressBatch<Event>;
+  read: (after: string | undefined) => Promise<ProgressBatch<Event>>;
   after?: string;
+  /** Nom SSE des événements : `diagnostic` ou `schedule-generation`. */
+  eventName: string;
+  /** Le flux se termine après le premier événement final. */
+  isFinal: (event: Event) => boolean;
   onError: (error: unknown) => void;
 }
 
-/** Un seul lot en mémoire ; la déconnexion annule aussi l'attente d'un client lent. */
-export async function serveDiagnosticStream(options: DiagnosticStreamOptions): Promise<void> {
+/**
+ * Boucle SSE commune au diagnostic et à la génération : reprise par `Last-Event-ID`, maintien à
+ * 20 s, fermeture à l'expiration du jeton. Un seul lot en mémoire ; la déconnexion annule aussi
+ * l'attente d'un client lent.
+ */
+export async function serveProgressStream<Event extends { id: string }>(
+  options: ProgressStreamOptions<Event>,
+): Promise<void> {
   if (options.response.destroyed) return;
   const stop = new AbortController();
   const closed = () => stop.abort();
@@ -35,12 +51,15 @@ export async function serveDiagnosticStream(options: DiagnosticStreamOptions): P
   }
 }
 
-function authorized(options: DiagnosticStreamOptions, signal: AbortSignal): boolean {
+function authorized<Event extends { id: string }>(
+  options: ProgressStreamOptions<Event>,
+  signal: AbortSignal,
+): boolean {
   return !signal.aborted && options.clock.now().epochMilliseconds < options.expiresAt;
 }
 
-function scheduleConnectionLimits(
-  options: DiagnosticStreamOptions,
+function scheduleConnectionLimits<Event extends { id: string }>(
+  options: ProgressStreamOptions<Event>,
   stop: AbortController,
 ): () => void {
   let deadline: ReturnType<typeof setTimeout>;
@@ -65,18 +84,21 @@ function scheduleConnectionLimits(
   };
 }
 
-async function sendProgress(options: DiagnosticStreamOptions, signal: AbortSignal): Promise<void> {
+async function sendProgress<Event extends { id: string }>(
+  options: ProgressStreamOptions<Event>,
+  signal: AbortSignal,
+): Promise<void> {
   let snapshot = options.initial;
   let after = options.after;
   while (authorized(options, signal)) {
     for (const event of snapshot.events) {
       if (!authorized(options, signal)) return;
       const accepted = options.response.write(
-        `id: ${event.id}\nevent: diagnostic\ndata: ${JSON.stringify(event)}\n\n`,
+        `id: ${event.id}\nevent: ${options.eventName}\ndata: ${JSON.stringify(event)}\n\n`,
       );
       if (!accepted) await once(options.response, 'drain', { signal });
       after = event.id;
-      if (event.report.kind !== 'STARTED') return;
+      if (options.isFinal(event)) return;
     }
     if (snapshot.finishedAt !== undefined && snapshot.events.length === 0) return;
     await pause(1000, signal);
@@ -99,10 +121,10 @@ function pause(milliseconds: number, signal: AbortSignal): Promise<void> {
 }
 
 /** La requête HTTP se termine sans attendre un accès stockage encore en vol. */
-async function readUntilClosed(
-  read: () => Promise<ProgressSnapshot>,
+async function readUntilClosed<Event extends { id: string }>(
+  read: () => Promise<ProgressBatch<Event>>,
   signal: AbortSignal,
-): Promise<ProgressSnapshot> {
+): Promise<ProgressBatch<Event>> {
   let abort: () => void = () => undefined;
   const cancelled = new Promise<never>((_resolve, reject) => {
     abort = () => reject(new Error('Connexion fermée'));

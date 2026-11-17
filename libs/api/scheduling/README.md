@@ -102,6 +102,27 @@ même après un retour à une version antérieure.
 - Une file pleine ne suspend que son flux, 5 s : le diagnostic continue pendant une saturation
   de la génération, et inversement (ADR-0032, ajout du 17 novembre).
 
+## Routes et progression d'une génération (PR 6c)
+
+Rôles admin et manager ; erreurs en `application/problem+json`.
+
+| Route                                                   | Réponse                                       |
+| ------------------------------------------------------- | --------------------------------------------- |
+| `POST /api/v1/schedule-generations` (`Idempotency-Key`) | 202, `Location`, génération en attente        |
+| `GET /api/v1/schedule-generations/{id}`                 | la génération, son instantané et son résultat |
+| `GET /api/v1/schedule-generations?siteId&weekStartsOn`  | dernier essai et dernier planning exploitable |
+| `GET /api/v1/schedule-generations/{id}/events`          | flux SSE `schedule-generation`                |
+
+- 400 : semaine qui ne commence pas un lundi, corps ou clé invalide, curseur inconnu ; 404 : site
+  ou génération d'une autre organisation ; 409 : clé déjà utilisée pour un autre site ou une autre
+  semaine ; 422 : semaine sans besoin, ou trop grande pour un calcul (plus de 1 Mio).
+- Le flux SSE partage la boucle du diagnostic (`http/progress-stream.ts`) : reprise par
+  `Last-Event-ID`, maintien à 20 s, fermeture à l'expiration du jeton, attente d'un client lent.
+  Chaque événement donne l'état atteint (`RUNNING`, `SUCCEEDED` avec l'issue, `FAILED` avec le
+  code), sans le planning, lu ensuite par la génération. Trois événements au plus par génération,
+  gardés aussi longtemps qu'elle et supprimés avec elle (purge des organisations de démo) : ni
+  purge ni expiration propres, contrairement au diagnostic.
+
 ## Vérifications
 
 ```bash

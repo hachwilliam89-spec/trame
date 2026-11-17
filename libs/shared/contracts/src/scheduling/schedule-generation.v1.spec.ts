@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { z } from 'zod';
 import {
+  scheduleGenerationProgressV1,
   scheduleGenerationV1,
   startScheduleGenerationRequestV1,
   weekScheduleGenerationsQueryV1,
@@ -9,6 +10,7 @@ import {
 } from './schedule-generation.v1';
 
 const exchangedSchemas = {
+  scheduleGenerationProgressV1,
   scheduleGenerationV1,
   startScheduleGenerationRequestV1,
   weekScheduleGenerationsQueryV1,
@@ -89,5 +91,28 @@ describe('contrats de la génération d’un planning', () => {
     expect(
       weekScheduleGenerationsV1.safeParse({ latestAttempt: null, latestSchedule: null }).success,
     ).toBe(true);
+  });
+
+  it('annonce la progression sans le planning, lu ensuite par la génération', () => {
+    const finished = {
+      id: '0190f0a0-0000-7000-8000-0000000000f2',
+      generationId: queued.id,
+      sequence: 2,
+      occurredAt: '2026-11-16T21:00:02Z',
+      status: 'SUCCEEDED',
+      resultStatus: 'INFEASIBLE',
+    };
+
+    expect(scheduleGenerationProgressV1.safeParse(finished).success).toBe(true);
+    expect(
+      scheduleGenerationProgressV1.safeParse({
+        ...finished,
+        status: 'FAILED',
+        failure: 'INVALID_MODEL',
+      }).success,
+    ).toBe(true);
+    expect(scheduleGenerationProgressV1.safeParse({ ...finished, status: 'QUEUED' }).success).toBe(
+      false,
+    );
   });
 });
