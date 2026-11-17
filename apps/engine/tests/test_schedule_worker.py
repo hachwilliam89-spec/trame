@@ -13,14 +13,21 @@ import pytest
 
 from trame_engine.contracts import ScheduleReportedV1, ScheduleRequestedV1, ScheduleTopologyV1
 from trame_engine.solver.scheduling import (
+    Assignment,
     ScheduleOutcome,
+    ScheduleStatus,
     SolveParameters,
     Week,
     read_week,
     solve_week,
 )
 from trame_engine.worker.background import run_in_background
-from trame_engine.worker.schedule import MAX_REQUEST_BYTES, handle_schedule_request, run_schedule
+from trame_engine.worker.schedule import (
+    MAX_REPORT_BYTES,
+    MAX_REQUEST_BYTES,
+    handle_schedule_request,
+    run_schedule,
+)
 from trame_engine.worker.serve import with_worker_cap
 
 ROOT = Path(__file__).resolve().parents[3]
@@ -247,3 +254,20 @@ def test_le_plafond_de_workers_de_l_environnement_borne_la_demande() -> None:
         SolveParameters(time_limit_seconds=5, workers=1, seed=0),
         SolveParameters(time_limit_seconds=5, workers=1, seed=7),
     ]
+
+
+def test_un_resultat_de_plus_de_1_mio_devient_un_petit_rapport_d_echec() -> None:
+    request = ScheduleRequestedV1.model_validate_json(request_body())
+
+    def huge(_week: Week, _parameters: SolveParameters) -> ScheduleOutcome | None:
+        employee_id = UUID("0190f0a0-0000-7000-8000-000000000041")
+        shift_ids = [f"2026-11-23/{index:080d}" for index in range(12_000)]
+        assignments = frozenset(Assignment(shift_id, employee_id) for shift_id in shift_ids)
+        return ScheduleOutcome(ScheduleStatus.FEASIBLE, assignments, (), ("UN_SEUL_SHIFT",), 1.0)
+
+    reports = list(run_schedule(request, FixedClock(), next_id, huge))
+
+    assert [report.payload.report.kind for report in reports] == ["STARTED", "FAILED"]
+    failure = reports[1].model_dump(by_alias=True, mode="json")["payload"]["report"]
+    assert failure == {"kind": "FAILED", "code": "PROCESSING_FAILED"}
+    assert all(len(report.model_dump_json(by_alias=True)) <= MAX_REPORT_BYTES for report in reports)

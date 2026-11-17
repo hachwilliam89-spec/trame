@@ -2,6 +2,7 @@ import { PrismaService } from '@trame/api/database';
 import { type TestDatabase, startTestDatabase } from '@trame/api/database/testing';
 import {
   IdempotencyKeyReusedError,
+  ScheduleRequestTooLargeError,
   StartScheduleGeneration,
 } from '@trame/api/scheduling/application';
 import { InMemoryWeekPlanningSource } from '@trame/api/scheduling/application/testing';
@@ -174,6 +175,36 @@ describe('Enregistrement des générations (PostgreSQL)', () => {
     expect((await generations.latestWithSchedule(organizationId, SITE_ID, MONDAY))?.id).toBe(
       solved.id,
     );
+  });
+
+  it('une demande au-delà de 1 Mio ne crée ni génération ni message', async () => {
+    const [shift] = planning.shifts;
+    if (shift === undefined) {
+      throw new Error('Semaine sans shift.');
+    }
+    const skills = Array.from(
+      { length: 20 },
+      (_, index) => `0190f0a0-0000-7000-8000-${String(index).padStart(12, '0')}`,
+    );
+    const shifts = Array.from({ length: 2_000 }, (_, index) => ({
+      ...shift,
+      positionId: `0190f0a0-0000-7000-8000-${String(index).padStart(12, '0')}`,
+      requiredSkillIds: skills,
+    }));
+    const source = new InMemoryWeekPlanningSource();
+    source.define(organizationId, { ...planning, shifts });
+    const tooLarge = new StartScheduleGeneration(generations, source, clock, ids);
+
+    await expect(
+      tooLarge.execute({
+        organizationId,
+        siteId: SITE_ID,
+        weekStartsOn: MONDAY,
+        key: IdempotencyKey.of('too-large'),
+      }),
+    ).rejects.toThrow(ScheduleRequestTooLargeError);
+    expect(await prisma.scheduleGeneration.count()).toBe(0);
+    expect(await prisma.outboxMessage.count()).toBe(0);
   });
 
   it('refuse en base une semaine qui ne commence pas un lundi', async () => {

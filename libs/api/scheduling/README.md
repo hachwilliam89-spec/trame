@@ -84,6 +84,24 @@ Le relais ne prend dans l'outbox que les types qu'il sait router, filtrés dans 
 SQL avant `LIMIT 1` : une demande de génération en attente ne bloque jamais les diagnostics,
 même après un retour à une version antérieure.
 
+## Chaîne de traitement d'une génération (PR 6b)
+
+- `ScheduleTransport`, lancé par le relais à côté du diagnostic : il publie les demandes de
+  génération de l'outbox, reçoit les rapports par l'inbox et traite la file de rebut.
+- `advanceGeneration` : `STARTED` donne `RUNNING`, `RESULT` donne `SUCCEEDED` avec le résultat,
+  `FAILED` donne `FAILED` ; un rapport tardif ne rouvre rien. Les cinq issues sont traitées.
+- Avant d'enregistrer un planning, le domaine le contrôle contre l'instantané : chaque couple
+  shift-salarié une seule fois, des shifts et des salariés du problème, pas plus de personnes que
+  le besoin, et des manques annoncés égaux à ceux que donnent les affectations. C'est un contrôle
+  de cohérence ; les règles de planning restent dans le moteur (règle 5).
+- Un rapport refusé (illisible, sans demande, incohérent) part en rebut. Rattaché à sa demande
+  publiée, il fait passer la génération en `FAILED` (`PROCESSING_FAILED`) ; une demande épuisée
+  donne `RETRIES_EXHAUSTED`. Une génération terminée n'est jamais rouverte.
+- Une demande dont le message publié dépasserait 1 Mio (`SCHEDULE_MESSAGE_MAX_BYTES`) est refusée
+  avant toute écriture (`ScheduleRequestTooLargeError`, 422 en 6c).
+- Une file pleine ne suspend que son flux, 5 s : le diagnostic continue pendant une saturation
+  de la génération, et inversement (ADR-0032, ajout du 17 novembre).
+
 ## Vérifications
 
 ```bash

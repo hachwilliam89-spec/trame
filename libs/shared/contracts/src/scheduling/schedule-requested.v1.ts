@@ -1,6 +1,12 @@
 import { z } from 'zod';
 import { schedulingProblemV1 } from './scheduling-problem.v1';
 
+/**
+ * Taille maximale, en octets UTF-8, d'un message de génération publié (demande ou rapport). Le
+ * worker refuse au-delà (`MAX_REQUEST_BYTES`, `MAX_REPORT_BYTES`) : l'API vérifie avant d'écrire.
+ */
+export const SCHEDULE_MESSAGE_MAX_BYTES = 1024 * 1024;
+
 /** Paramètres de CP-SAT, enregistrés avec la génération pour la rejouer à l'identique. */
 export const solveParametersV1 = z.object({
   timeLimitSeconds: z.int().min(1).max(300),

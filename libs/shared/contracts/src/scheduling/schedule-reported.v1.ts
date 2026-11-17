@@ -54,3 +54,5 @@ export const scheduleReportedV1 = z.object({
 export type ScheduleOutcomeV1 = z.infer<typeof scheduleOutcomeV1>;
 export type ScheduleFailureV1 = z.infer<typeof scheduleFailureV1>;
 export type ScheduleReportedV1 = z.infer<typeof scheduleReportedV1>;
+
+export type ScheduleReportV1 = z.infer<typeof scheduleReportV1>;

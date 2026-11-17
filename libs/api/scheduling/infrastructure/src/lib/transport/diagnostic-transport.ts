@@ -1,4 +1,3 @@
-import { setTimeout } from 'node:timers/promises';
 import type { Message } from 'amqplib';
 import type { PrismaService } from '@trame/api/database';
 import {
@@ -19,6 +18,14 @@ import {
 import { ZodError } from 'zod';
 import { PrismaDiagnosticReports } from '../persistence/prisma-diagnostic-reports';
 import { PrismaOutboxStore } from '../persistence/prisma-outbox-store';
+import {
+  DatabaseRecovery,
+  RefusedPublicationPause,
+  errorTypeOf,
+  parseJsonBody,
+} from './transport-support';
+
+const MAX_DIAGNOSTIC_REPORT_BYTES = 65_536;
 
 export interface DiagnosticTransportOptions {
   prisma: PrismaService;
@@ -34,7 +41,15 @@ export interface DiagnosticTransportOptions {
 export class DiagnosticTransport {
   private readonly relay: OutboxRelay;
   private readonly receive: ReceiveDiagnosticReport;
+  private readonly recovery: DatabaseRecovery;
+  private readonly publication: RefusedPublicationPause;
   constructor(private readonly options: DiagnosticTransportOptions) {
+    this.recovery = new DatabaseRecovery(options);
+    this.publication = new RefusedPublicationPause(
+      options.clock,
+      options.session,
+      options.logError,
+    );
     this.receive = new ReceiveDiagnosticReport(
       new PrismaDiagnosticReports(options.prisma, options.clock),
       options.clock,
@@ -63,21 +78,25 @@ export class DiagnosticTransport {
     if (!this.options.session.isOpen) {
       throw new Error('Connexion AMQP fermée.');
     }
-    await this.commitWithDatabaseRecovery(async () => {
-      await this.relay.deliverOne();
-    });
+    await this.publication.relay(() =>
+      this.recovery.commit(async () => {
+        await this.relay.deliverOne();
+      }),
+    );
   }
 
   private async handleReport(message: Message): Promise<void> {
     const { session } = this.options;
     try {
-      const report = diagnosticReportedV1.parse(parseBody(message.content));
+      const report = diagnosticReportedV1.parse(
+        parseJsonBody(message.content, MAX_DIAGNOSTIC_REPORT_BYTES),
+      );
       await acknowledgeAfterCommit(
-        () => this.commitWithDatabaseRecovery(() => this.receive.execute(report)),
+        () => this.recovery.commit(() => this.receive.execute(report)),
         () => session.receiver.ack(message),
       );
     } catch (error) {
-      this.options.logError(error instanceof Error ? error.constructor.name : 'UnknownError');
+      this.options.logError(errorTypeOf(error));
       // reject, et non nack : RabbitMQ 4.3 incrémente ainsi le compteur d'échecs.
       const permanent =
         error instanceof ZodError ||
@@ -90,7 +109,7 @@ export class DiagnosticTransport {
   private async handleDeadLetter(message: Message): Promise<void> {
     const { session, topology } = this.options;
     try {
-      await this.commitWithDatabaseRecovery(() => this.failKnownRequest(message.content));
+      await this.recovery.commit(() => this.failKnownRequest(message.content));
       // Le parking garde le message pour diagnostic ; aucune lecture automatique de ce parking.
       await session.publish(
         { exchange: topology.exchange, routingKey: topology.parking.routingKey },
@@ -98,41 +117,15 @@ export class DiagnosticTransport {
       );
       session.receiver.ack(message);
     } catch (error) {
-      this.options.logError(error instanceof Error ? error.constructor.name : 'UnknownError');
+      this.options.logError(errorTypeOf(error));
       session.receiver.reject(message, true);
-    }
-  }
-
-  private async commitWithDatabaseRecovery(commit: () => Promise<void>): Promise<void> {
-    while (this.options.session.isOpen && !this.options.signal?.aborted) {
-      try {
-        await commit();
-        return;
-      } catch (error) {
-        if (await this.databaseIsAvailable()) {
-          throw error;
-        }
-        this.options.logError('DatabaseUnavailable');
-        // L'indisponibilité d'une dépendance ne consomme pas les reprises du traitement.
-        await setTimeout(1_000, undefined, { signal: this.options.signal });
-      }
-    }
-    throw new Error('Transport arrêté avant validation.');
-  }
-
-  private async databaseIsAvailable(): Promise<boolean> {
-    try {
-      await this.options.prisma.$queryRaw`SELECT 1`;
-      return true;
-    } catch {
-      return false;
     }
   }
 
   private async failKnownRequest(body: Buffer): Promise<void> {
     let report: DiagnosticReportedV1 | undefined;
     try {
-      report = this.deadLetterReport(parseBody(body));
+      report = this.deadLetterReport(parseJsonBody(body, MAX_DIAGNOSTIC_REPORT_BYTES));
     } catch {
       return;
     }
@@ -177,11 +170,4 @@ export class DiagnosticTransport {
       payload: { runId, requestId, report: { kind: 'FAILED', code: 'RETRIES_EXHAUSTED' } },
     });
   }
-}
-
-function parseBody(body: Buffer): unknown {
-  if (body.length > 65_536) {
-    throw new SyntaxError('Message trop volumineux.');
-  }
-  return JSON.parse(body.toString('utf8')) as unknown;
 }

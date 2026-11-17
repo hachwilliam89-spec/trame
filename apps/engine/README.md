@@ -66,6 +66,8 @@ calcule dans un autre thread pendant que le principal continue de servir la conn
 Une génération publie `STARTED`, puis `RESULT` (issue, planning et manques, règles vérifiées)
 ou `FAILED` avec `INVALID_MODEL` pour un problème incohérent ; sans planning légal, le résultat
 n'en invente aucun. Une demande de plus de 1 Mio, ou illisible, est écartée sans nouvel essai.
+Un résultat de plus de 1 Mio, que l'API refuserait, devient un petit rapport `FAILED`
+(`PROCESSING_FAILED`).
 
 À l'arrêt (`SIGTERM`), le calcul en cours est interrompu, les consommateurs sont annulés, puis
 chaque livraison détenue est rendue par `basic.nack` : RabbitMQ 4.3 ne compte pas ce retour

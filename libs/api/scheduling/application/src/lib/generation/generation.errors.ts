@@ -17,3 +17,10 @@ export class IdempotencyKeyReusedError extends Error {
     super('Cette clé d’idempotence a déjà servi pour un autre site ou une autre semaine.');
   }
 }
+
+/** Le problème de la semaine, une fois publié, dépasserait la taille acceptée par le moteur. */
+export class ScheduleRequestTooLargeError extends Error {
+  constructor() {
+    super('La semaine est trop grande pour un seul calcul.');
+  }
+}

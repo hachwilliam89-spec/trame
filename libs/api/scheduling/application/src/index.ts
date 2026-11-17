@@ -10,6 +10,7 @@ export * from './lib/diagnostic-progress';
 export {
   IdempotencyKeyReusedError,
   ScheduleGenerationNotFoundError,
+  ScheduleRequestTooLargeError,
   SiteNotFoundError,
 } from './lib/generation/generation.errors';
 export type {
@@ -30,3 +31,8 @@ export {
   type GetWeekScheduleGenerationsQuery,
   type WeekScheduleGenerations,
 } from './lib/generation/get-week-schedule-generations';
+export {
+  ReceiveScheduleReport,
+  UnmatchedScheduleReportError,
+  type ScheduleReports,
+} from './lib/generation/receive-schedule-report';

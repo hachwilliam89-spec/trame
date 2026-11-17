@@ -46,3 +46,24 @@
   - [Pika 1.4.4 — BlockingConnection](https://github.com/pika/pika/blob/1.4.4/pika/adapters/blocking_connection.py) :
     les timeouts de connexion ne bornent pas l'attente d'une confirmation.
   - [Python 3.14 — signal.setitimer](https://docs.python.org/3.14/library/signal.html#signal.setitimer).
+
+## Ajout du 2026-11-17 — Génération d'un planning (US-061, PR 6b)
+
+La génération reprend ce transport, avec sa propre topologie (`infra/rabbitmq/schedule-topology.json`),
+sur la même connexion que le diagnostic.
+
+- **Deux flux indépendants** : chaque flux a son relais d'outbox, filtré sur ses types dans la
+  sélection SQL. Une file pleine refuse la publication sans fermer la session : seul ce flux
+  attend 5 s, l'autre flux et les consommateurs continuent. Une session fermée fait toujours
+  reconnecter.
+- **Taille bornée de bout en bout** : 1 Mio par message de génération
+  (`SCHEDULE_MESSAGE_MAX_BYTES`). L'API vérifie la taille de la demande publiée avant d'écrire
+  la génération ; le worker refuse une demande plus grande et remplace un résultat trop gros par
+  un rapport `FAILED` (`PROCESSING_FAILED`).
+- **Cohérence avant enregistrement** : le planning reçu est contrôlé contre l'instantané stocké
+  (couples uniques, shifts et salariés du problème, besoin non dépassé, manques exacts). Les règles
+  de planning restent dans le moteur (ADR-0020).
+- **File de rebut** : un message rattaché à sa demande publiée (enveloppe minimale, puis
+  vérification en base) fait échouer sa génération si elle n'est pas terminée :
+  `RETRIES_EXHAUSTED` pour une demande, `PROCESSING_FAILED` pour un rapport refusé. Une génération
+  ne reste donc jamais en attente d'un rapport garé.
