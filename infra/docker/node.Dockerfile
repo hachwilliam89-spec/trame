@@ -34,6 +34,7 @@ RUN pnpm install --prod --frozen-lockfile --ignore-scripts
 FROM base AS api
 COPY --from=api-dependencies /runtime/node_modules ./node_modules
 COPY --from=builder /workspace/dist/apps/api/main.js ./main.js
+COPY --from=builder /workspace/dist/apps/api/load-demo.js ./load-demo.js
 USER node
 EXPOSE 3000
 CMD ["node", "main.js"]

@@ -3,6 +3,7 @@
   "entry": [
     "tools/assistant-evaluation/src/main.ts",
     "apps/api/src/main.ts",
+    "apps/api/src/load-demo.ts",
     "apps/web/src/main.ts",
     "apps/docs/src/content.config.ts",
     "libs/platform/*/src/index.ts",
