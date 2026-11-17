@@ -63,3 +63,20 @@ export const weekScheduleGenerationsV1 = z.object({
 });
 
 export type WeekScheduleGenerationsV1 = z.infer<typeof weekScheduleGenerationsV1>;
+
+/**
+ * Événement SSE `schedule-generation` : l'état atteint par la génération, sans le planning, qui se
+ * lit ensuite par `GET /api/v1/schedule-generations/{id}`. Un message reste ainsi petit.
+ */
+export const scheduleGenerationProgressV1 = z.object({
+  id: z.uuid(),
+  generationId: z.uuid(),
+  sequence: z.int().positive(),
+  occurredAt: z.iso.datetime({ offset: true }),
+  status: z.enum(['RUNNING', 'SUCCEEDED', 'FAILED']),
+  /** Issue du solveur, pour `SUCCEEDED`. */
+  resultStatus: z.enum(['OPTIMAL', 'FEASIBLE', 'INFEASIBLE', 'UNKNOWN', 'CANCELLED']).optional(),
+  failure: scheduleFailureV1.optional(),
+});
+
+export type ScheduleGenerationProgressV1 = z.infer<typeof scheduleGenerationProgressV1>;
