@@ -36,11 +36,12 @@ export class PrismaDemoUnitOfWork implements DemoUnitOfWork {
 }
 
 /**
- * Verrou libéré à la fin de la transaction. Deux organisations dont les clés auraient le même
- * condensat ne feraient que s'attendre : la vérification du site reste exacte.
+ * Verrou libéré à la fin de la transaction. La clé prend l'UUID en minuscules : PostgreSQL lit
+ * toutes ses graphies comme la même organisation. Deux organisations dont les clés auraient le
+ * même condensat ne feraient que s'attendre : la vérification du site reste exacte.
  */
 async function lockDemoLoading(database: Database, organizationId: string): Promise<void> {
-  const key = `trame.demo.${organizationId}`;
+  const key = `trame.demo.${organizationId.toLowerCase()}`;
   await database.client
     .$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}::text, 0))`;
 }

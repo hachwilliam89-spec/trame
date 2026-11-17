@@ -146,10 +146,11 @@ describe('chargement du jeu de démonstration sur PostgreSQL', () => {
     await expect(rowsOf(ORGANIZATION_FAILING)).resolves.toEqual(EMPTY);
   });
 
-  it('deux lancements simultanés : un chargement, un refus, un seul site', async () => {
+  it('deux lancements simultanés, l’UUID écrit en minuscules puis en majuscules : un seul site', async () => {
+    // PostgreSQL lit les deux graphies comme la même organisation : le verrou aussi.
     const results = await Promise.allSettled([
       loader().execute(ORGANIZATION_RACED),
-      loader().execute(ORGANIZATION_RACED),
+      loader().execute(ORGANIZATION_RACED.toUpperCase()),
     ]);
 
     const loaded = results.filter((result) => result.status === 'fulfilled');
