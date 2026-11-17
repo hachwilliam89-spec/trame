@@ -1,3 +1,10 @@
+export {
+  type AtomicWorkOptions,
+  Database,
+  type DatabaseClient,
+  PrismaDatabase,
+  runAtomically,
+} from './lib/database';
 export { DatabaseModule, type DatabaseModuleAsyncOptions } from './lib/database.module';
 export { DatabaseReadiness } from './lib/database-readiness';
 export { dateToInstant, instantToDate } from './lib/instant-conversions';
