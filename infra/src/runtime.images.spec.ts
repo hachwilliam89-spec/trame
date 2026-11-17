@@ -256,3 +256,98 @@ it('refuse le diagnostic à l’employé sur la chaîne conteneurisée', async (
     await browser.close();
   }
 });
+
+/** Jeton du responsable de démonstration, capté à la connexion par le front. */
+async function managerToken(): Promise<string> {
+  const browser = await launchTestBrowser(chromium);
+  try {
+    const page = await browser.newPage();
+    const tokenResponse = page.waitForResponse((response) =>
+      new URL(response.url()).pathname.endsWith('/protocol/openid-connect/token'),
+    );
+    await login(page, 'manager');
+    const tokens: { access_token: string } = await (await tokenResponse).json();
+    return tokens.access_token;
+  } finally {
+    await browser.close();
+  }
+}
+
+function organizationIdOf(accessToken: string): string {
+  const payload = accessToken.split('.')[1] ?? '';
+  const claims: { organization_id: string } = JSON.parse(
+    Buffer.from(payload, 'base64url').toString('utf8'),
+  );
+  return claims.organization_id;
+}
+
+function loadDemo(organizationId: string): Promise<string> {
+  return imageCompose(stack, [
+    'exec',
+    '-T',
+    'api',
+    'node',
+    'load-demo.js',
+    '--organization',
+    organizationId,
+  ]);
+}
+
+interface GenerationRead {
+  status: string;
+  problem: { shifts: { id: string; date: string; requiredSkillIds: string[] }[] };
+  outcome?: {
+    result: {
+      status: string;
+      schedule: {
+        assignments: unknown[];
+        shortfalls: { shiftId: string; requiredCount: number; assignedCount: number }[];
+      } | null;
+    };
+  };
+}
+
+it('charge le jeu de démonstration par la commande de l’image API, puis calcule sa semaine', async () => {
+  const accessToken = await managerToken();
+  const authorization = 'Bearer ' + accessToken;
+  const organizationId = organizationIdOf(accessToken);
+
+  const loaded: { siteId: string; weekStartsOn: string } = JSON.parse(
+    await loadDemo(organizationId),
+  );
+  await expect(loadDemo(organizationId)).rejects.toThrow('déjà un site');
+
+  const started = await fetch(origin + '/api/v1/schedule-generations', {
+    method: 'POST',
+    headers: {
+      authorization,
+      'content-type': 'application/json',
+      'idempotency-key': 'demo-images',
+    },
+    body: JSON.stringify(loaded),
+  });
+  expect(started.status).toBe(202);
+  const { id }: { id: string } = await started.json();
+  const readGeneration = async (): Promise<GenerationRead> => {
+    const response = await fetch(origin + '/api/v1/schedule-generations/' + id, {
+      headers: { authorization },
+    });
+    return response.json();
+  };
+  await expect
+    .poll(async () => (await readGeneration()).status, { timeout: 60_000, interval: 500 })
+    .toBe('SUCCEEDED');
+
+  const generation = await readGeneration();
+  const result = generation.outcome?.result;
+  expect(['OPTIMAL', 'FEASIBLE']).toContain(result?.status);
+  expect(result?.schedule?.assignments).toHaveLength(50);
+  // Le seul manque : trois caristes le samedi matin, deux seulement encore habilités.
+  const [shortfall, ...others] = result?.schedule?.shortfalls ?? [];
+  expect(others).toEqual([]);
+  expect(shortfall).toMatchObject({ requiredCount: 3, assignedCount: 2 });
+  const short = generation.problem.shifts.find((shift) => shift.id === shortfall?.shiftId);
+  const saturday = Temporal.PlainDate.from(loaded.weekStartsOn).add({ days: 5 }).toString();
+  expect(short?.date).toBe(saturday);
+  expect(short?.requiredSkillIds).toHaveLength(2);
+});

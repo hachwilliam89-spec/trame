@@ -14,6 +14,8 @@ module.exports = {
       target: 'node',
       compiler: 'tsc',
       main: './src/main.ts',
+      // Commande opérateur du jeu de démonstration, livrée dans l'image de l'API (ADR-0038).
+      additionalEntryPoints: [{ entryName: 'load-demo', entryPath: './src/load-demo.ts' }],
       tsConfig: './tsconfig.app.json',
       optimization: false,
       outputHashing: 'none',
