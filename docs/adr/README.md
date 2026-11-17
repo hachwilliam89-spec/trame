@@ -43,3 +43,4 @@ Les ADR 0018, 0020, 0021 et 0022 ont été amendées le 2026-11-01 après la rev
 | [0035](0035-livraison-continue-du-staging.md)                  | Livraison continue du staging : à la demande, répétée, approuvée            | Proposé                                   |
 | [0036](0036-worker-un-calcul-a-la-fois.md)                     | Worker : un calcul à la fois, et un arrêt qui ne compte pas d'échec         | Proposé                                   |
 | [0037](0037-generation-de-demonstration-a-un-worker.md)        | Génération de démonstration : un worker CP-SAT et une graine fixe           | Proposé                                   |
+| [0038](0038-unite-de-travail-entre-contextes.md)               | Unité de travail entre contextes, portée par la transaction courante        | Proposé                                   |
