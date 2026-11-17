@@ -78,7 +78,7 @@ async function serveAsset(
     );
     return;
   }
-  const relative = ['/', '/oidc-callback'].includes(path)
+  const relative = ['/', '/oidc-callback', '/planning'].includes(path)
     ? '/index.html'
     : decodeURIComponent(path);
   const file = resolve(root, '.' + relative);
