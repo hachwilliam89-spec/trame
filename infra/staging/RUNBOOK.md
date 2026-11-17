@@ -362,11 +362,16 @@ docker exec trame-staging-api-1 node load-demo.js --organization "$ORGANIZATION_
 
 La commande affiche `{"siteId":"…","weekStartsOn":"AAAA-MM-JJ"}`. L'écran Planning (PR 8) ouvrira cette semaine à l'adresse `https://staging.trame.wkhach.dev/planning?site=<siteId>&semaine=<weekStartsOn>`. Code 1 et message `… a déjà un site …` : rien n'a été écrit.
 
-Retour arrière (retire le jeu et les générations de l'organisation, dans une seule transaction) :
+Retour arrière : retire, dans une seule transaction, ce qui est rattaché au site de démonstration (générations comprises) et les compétences du jeu que plus rien n'utilise. Le reste de l'organisation n'est pas touché. Si le site donné n'est pas le site `DEMO` de cette organisation, le script s'arrête sans rien supprimer. Coller à l'invite le `siteId` affiché par le chargement :
 
 ```bash
-docker exec -i trame-shared-postgres-1 psql --no-psqlrc -v ON_ERROR_STOP=1 -U postgres -d trame_staging \
-  -v organization="$ORGANIZATION_ID" < /opt/trame/source/infra/staging/unload-demo.sql
+read -r -p 'siteId : ' SITE_ID
+```
+
+```bash
+docker exec -i -e PGOPTIONS="-c trame.demo_organization=$ORGANIZATION_ID -c trame.demo_site=$SITE_ID" \
+  trame-shared-postgres-1 psql --no-psqlrc -v ON_ERROR_STOP=1 -U postgres -d trame_staging \
+  < /opt/trame/source/infra/staging/unload-demo.sql
 ```
 
 ### Livraison continue : mise en place (une fois)

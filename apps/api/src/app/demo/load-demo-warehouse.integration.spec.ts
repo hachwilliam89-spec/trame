@@ -2,6 +2,7 @@ import { PrismaService } from '@trame/api/database';
 import { type TestDatabase, startTestDatabase } from '@trame/api/database/testing';
 import { FixedClock } from '@trame/platform/clock';
 import { type IdGenerator, UuidV7Generator } from '@trame/platform/ids';
+import { type DemoRows, NO_DEMO_ROWS, countDemoRows } from './demo-rows';
 import { DemoAlreadyLoadedError, LoadDemoWarehouse } from './load-demo-warehouse';
 import { PrismaDemoUnitOfWork } from './prisma-demo-unit-of-work';
 
@@ -51,35 +52,9 @@ describe('chargement du jeu de démonstration sur PostgreSQL', () => {
     return new LoadDemoWarehouse(new PrismaDemoUnitOfWork(prisma, clock, ids), clock);
   }
 
-  /** Lignes de l'organisation dans chaque table que le chargement remplit. */
-  async function rowsOf(organizationId: string): Promise<Record<string, number>> {
-    const where = { where: { organizationId } };
-    return {
-      sites: await prisma.site.count(where),
-      skills: await prisma.skill.count(where),
-      positions: await prisma.position.count(where),
-      positionSkills: await prisma.positionSkill.count(where),
-      shiftTemplates: await prisma.shiftTemplate.count(where),
-      employees: await prisma.employee.count(where),
-      employeeQualifications: await prisma.employeeQualification.count(where),
-      contracts: await prisma.contract.count(where),
-      weeklyCoverages: await prisma.weeklyCoverage.count(where),
-      coverageNeeds: await prisma.coverageNeed.count(where),
-    };
-  }
-
-  const EMPTY = {
-    sites: 0,
-    skills: 0,
-    positions: 0,
-    positionSkills: 0,
-    shiftTemplates: 0,
-    employees: 0,
-    employeeQualifications: 0,
-    contracts: 0,
-    weeklyCoverages: 0,
-    coverageNeeds: 0,
-  };
+  const rowsOf = (organizationId: string): Promise<DemoRows> =>
+    countDemoRows(prisma, organizationId);
+  const EMPTY = NO_DEMO_ROWS;
 
   it('remplit une organisation vide et rend le site et le lundi suivant', async () => {
     const loaded = await loader().execute(ORGANIZATION_EMPTY);
