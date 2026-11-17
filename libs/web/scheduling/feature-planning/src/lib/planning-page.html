@@ -1,0 +1,93 @@
+@if (address() === undefined) {
+<section class="planning-notice">
+  <h1>Adresse du planning incomplète</h1>
+  <p>
+    Ouvrez le planning depuis le lien de sa semaine : il indique le site et le lundi de la semaine.
+  </p>
+</section>
+} @else { @switch (planning.phase()) { @case ('ready') { @if (heading(); as heading) {
+<header class="week-heading">
+  <div class="week-number" aria-hidden="true">{{ heading.weekNumber }}</div>
+  <div>
+    <p class="overline">
+      {{ heading.siteName }} · Planning de la semaine
+      <span class="week-compact">{{ heading.weekNumber }}</span>
+    </p>
+    <h1>{{ heading.rangeLabel }}</h1>
+    @if (view(); as view) {
+    <p class="week-status">
+      <strong>Planning proposé</strong>
+      @if (view.daysWithoutNeeds.length > 0) {
+      <span aria-hidden="true"> · </span>Aucun besoin planifié : {{ view.daysWithoutNeeds.join(', ')
+      }} }
+    </p>
+    }
+  </div>
+  @if (view()) {
+  <button
+    type="button"
+    class="quiet-button rules-button"
+    aria-controls="planning-rules"
+    [attr.aria-expanded]="rulesOpen()"
+    (click)="rulesOpen.set(!rulesOpen())"
+  >
+    {{ rulesOpen() ? 'Masquer les règles appliquées' : 'Voir les règles appliquées' }}
+  </button>
+  }
+</header>
+} @if (view(); as view) {
+<div id="planning-rules" class="rules" [hidden]="!rulesOpen()">
+  <p><strong>Ce que le moteur a vérifié pour ce planning</strong></p>
+  <ul aria-label="Règles appliquées">
+    @for (rule of view.rules; track rule.label) {
+    <li>
+      {{ rule.label }} @if (rule.reference) {
+      <span class="meta"> · {{ rule.reference }}</span>
+      }
+    </li>
+    }
+  </ul>
+</div>
+}
+<div [class]="'attempt tone-' + message().tone" role="status">
+  <p>{{ message().text }}</p>
+  @if (message().action) {
+  <button type="button" class="action" (click)="act()">{{ message().actionLabel }}</button>
+  }
+</div>
+@if (view(); as view) {
+<section class="coverage" aria-labelledby="planning-coverage-title">
+  <tr-week-coverage [view]="view" (showDay)="showDay($event)" />
+</section>
+<section class="team" aria-labelledby="planning-team-title">
+  <tr-team-grid [view]="view" [(selection)]="selection" />
+  @if (view.excluded.length > 0) {
+  <p class="meta excluded">
+    Hors du calcul, aucun contrat ne couvrant la semaine : {{ view.excluded.join(', ') }}.
+  </p>
+  }
+</section>
+} } @case ('forbidden') {
+<section class="planning-notice">
+  <h1>Vous n’avez pas accès au planning</h1>
+  <p>Le planning est réservé aux managers du site.</p>
+</section>
+} @case ('missing') {
+<section class="planning-notice">
+  <h1>Site introuvable</h1>
+  <p>Ce site n’existe pas dans votre organisation.</p>
+</section>
+} @case ('unavailable') {
+<section class="planning-notice">
+  <h1>Planning indisponible</h1>
+  <p>Le planning n’a pas pu être chargé.</p>
+  <button type="button" class="action" (click)="reload()">Réessayer</button>
+</section>
+} @case ('expired') {
+<section class="planning-notice">
+  <h1>Session expirée</h1>
+  <p>Reconnectez-vous pour retrouver le planning.</p>
+</section>
+} @default {
+<p class="planning-notice" role="status">Chargement du planning…</p>
+} } }

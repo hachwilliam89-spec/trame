@@ -64,6 +64,9 @@
       "@trame/web/scheduling/feature-diagnostic": [
         "./libs/web/scheduling/feature-diagnostic/src/index.ts"
       ],
+      "@trame/web/scheduling/feature-planning": [
+        "./libs/web/scheduling/feature-planning/src/index.ts"
+      ],
       "@trame/shared/contracts/organization": ["./libs/shared/contracts/src/organization/index.ts"],
       "@trame/shared/contracts/scheduling": ["./libs/shared/contracts/src/scheduling/index.ts"],
       "@trame/shared/contracts/staff": ["./libs/shared/contracts/src/staff/index.ts"]

@@ -13,10 +13,12 @@ export type PlanningPhase =
   'idle' | 'loading' | 'ready' | 'forbidden' | 'missing' | 'expired' | 'unavailable';
 
 /**
- * Commande du manager : `sending` pendant le lancement, `following` pendant le suivi, `lost` quand
- * la réponse ou le suivi se sont perdus avant l'issue, `rejected` quand l'API refuse la semaine.
+ * Commande du manager : `sending` pendant le lancement, `following` pendant le suivi. `lost` : la
+ * réponse au lancement s'est perdue, à retenter avec la même clé. `interrupted` : le suivi s'est
+ * coupé avant l'issue, à reprendre sans relancer. `rejected` : l'API refuse cette semaine.
  */
-export type PlanningRequest = 'idle' | 'sending' | 'following' | 'lost' | 'rejected';
+export type PlanningRequest =
+  'idle' | 'sending' | 'following' | 'lost' | 'interrupted' | 'rejected';
 
 /** Libellés du site : la génération ne porte que des identifiants (aucun nom n'est copié). */
 export interface PlanningCatalog {
@@ -61,7 +63,10 @@ export class PlanningState {
     private readonly keys: () => string,
   ) {}
 
-  /** Au changement de compte ou d'organisation : abandonne les requêtes et vide l'état. */
+  /**
+   * Au changement de compte ou d'organisation : abandonne les requêtes et vide l'état. La semaine
+   * demandée par l'adresse est rouverte pour le nouveau compte, s'il peut la lire.
+   */
   async identify(identity: WebIdentity | undefined): Promise<void> {
     const scope = scopeOf(identity);
     const canManage = managesPlanning(identity);
@@ -69,15 +74,17 @@ export class PlanningState {
     this.disconnect();
     this.scope = scope;
     this.canManage = canManage;
-    this.week = undefined;
     this.pending = undefined;
     this.clear(identity !== undefined && !canManage ? 'forbidden' : 'idle');
+    const week = this.week;
+    if (canManage && week !== undefined) await this.open(week.siteId, week.weekStartsOn);
   }
 
+  /** Ouvre la semaine ; avant que le compte soit connu, elle est seulement retenue. */
   async open(siteId: string, weekStartsOn: string): Promise<void> {
+    this.week = { siteId, weekStartsOn };
     if (!this.canManage) return;
     const operation = this.begin();
-    this.week = { siteId, weekStartsOn };
     this.clear('loading');
     try {
       const [catalog, week] = await Promise.all([
@@ -96,9 +103,12 @@ export class PlanningState {
     }
   }
 
+  /** Lance un calcul ; sans effet tant que le calcul précédent n'a pas d'issue. */
   async generate(): Promise<void> {
     const week = this.week;
     if (week === undefined || this.phase() !== 'ready' || this.isBusy()) return;
+    const attempt = this.latestAttempt();
+    if (attempt !== null && !isFinished(attempt)) return;
     const pending = this.pendingFor(week.siteId, week.weekStartsOn);
     const operation = this.begin();
     this.requestState.set('sending');
@@ -111,6 +121,18 @@ export class PlanningState {
       else await this.follow(generation.id, operation);
     } catch (error) {
       if (this.current(operation)) this.failStarting(error);
+    }
+  }
+
+  /** Reprend le suivi coupé du dernier calcul, puis relit son état. */
+  async resume(): Promise<void> {
+    const attempt = this.latestAttempt();
+    if (this.request() !== 'interrupted' || attempt === null) return;
+    const operation = this.begin();
+    try {
+      await this.follow(attempt.id, operation);
+    } catch (error) {
+      if (this.current(operation)) this.failReading(error);
     }
   }
 
@@ -139,12 +161,12 @@ export class PlanningState {
       // Une coupure réseau garde l'écran ; un refus ou une session expirée remonte.
       if (error instanceof AuthenticationRequired || error instanceof PlanningHttpError)
         throw error;
-      if (this.current(operation)) this.requestState.set('lost');
+      if (this.current(operation)) this.requestState.set('interrupted');
       return;
     }
     if (!this.current(operation)) return;
     this.apply(generation);
-    this.requestState.set(isFinished(generation) ? 'idle' : 'lost');
+    this.requestState.set(isFinished(generation) ? 'idle' : 'interrupted');
   }
 
   private receive(event: ScheduleGenerationProgressV1, operation: AbortController): void {

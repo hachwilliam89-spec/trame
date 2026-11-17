@@ -171,8 +171,24 @@ describe('État du planning d’une semaine', () => {
 
     await state.generate();
 
-    expect(state.request()).toBe('lost');
+    expect(state.request()).toBe('interrupted');
     expect(state.latestAttempt()?.status).toBe('RUNNING');
+  });
+
+  it('reprend un suivi coupé sans lancer de nouveau calcul', async () => {
+    gateway.start.mockResolvedValue(generation('A', 'QUEUED'));
+    gateway.generation.mockResolvedValueOnce(generation('A', 'RUNNING'));
+    gateway.generation.mockResolvedValue(generation('A', 'SUCCEEDED', 'OPTIMAL'));
+    await state.open(SITE, MONDAY);
+    await state.generate();
+
+    await state.generate();
+    expect(gateway.start).toHaveBeenCalledOnce();
+    await state.resume();
+
+    expect(gateway.follow).toHaveBeenCalledTimes(2);
+    expect(state.request()).toBe('idle');
+    expect(state.latestSchedule()?.id).toBe('A');
   });
 
   it('garde l’écran quand la relecture après le flux échoue sur une coupure réseau', async () => {
@@ -185,7 +201,7 @@ describe('État du planning d’une semaine', () => {
     await state.generate();
 
     expect(state.phase()).toBe('ready');
-    expect(state.request()).toBe('lost');
+    expect(state.request()).toBe('interrupted');
     expect(state.latestSchedule()).toBe(previous);
   });
 
@@ -200,7 +216,7 @@ describe('État du planning d’une semaine', () => {
     await state.open(SITE, MONDAY);
 
     expect(state.phase()).toBe('ready');
-    expect(state.request()).toBe('lost');
+    expect(state.request()).toBe('interrupted');
     expect(state.latestSchedule()).toBe(previous);
   });
 
@@ -228,6 +244,17 @@ describe('État du planning d’une semaine', () => {
     await state.generate();
 
     expect(gateway.start.mock.calls.map((call) => call[1])).toEqual(['clé-1', 'clé-2']);
+  });
+
+  it('ouvre la semaine demandée avant que le compte soit connu, dès qu’il l’est', async () => {
+    const early = new PlanningState(gateway as unknown as PlanningGateway, () => 'clé');
+
+    await early.open(SITE, MONDAY);
+    expect(gateway.site).not.toHaveBeenCalled();
+    await early.identify(manager);
+    await vi.waitFor(() => expect(early.phase()).toBe('ready'));
+
+    expect(gateway.week).toHaveBeenCalledWith(SITE, MONDAY, expect.any(AbortSignal));
   });
 
   it('n’ouvre rien pour un salarié, et vide tout au changement de compte', async () => {
