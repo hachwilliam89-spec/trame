@@ -3,7 +3,7 @@ import type { SiteRepository } from '@trame/api/organization/application';
 import { Site, SiteCode, SiteCodeAlreadyUsedError, TimeZone } from '@trame/api/organization/domain';
 import {
   type Prisma,
-  PrismaService,
+  DatabaseContext,
   dateToInstant,
   instantToDate,
   isUniqueViolation,
@@ -14,11 +14,11 @@ import { afterCursor } from './after-cursor';
 /** Sites dans la table `organization.sites`. */
 @Injectable()
 export class PrismaSiteRepository implements SiteRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly database: DatabaseContext) {}
 
   async add(site: Site): Promise<void> {
     try {
-      await this.prisma.site.create({ data: toRecord(site) });
+      await this.database.client.site.create({ data: toRecord(site) });
     } catch (error) {
       // Deux créations simultanées : la contrainte d'unicité tranche.
       if (isUniqueViolation(error)) {
@@ -29,12 +29,16 @@ export class PrismaSiteRepository implements SiteRepository {
   }
 
   async existsWithCode(organizationId: string, code: SiteCode): Promise<boolean> {
-    const count = await this.prisma.site.count({ where: { organizationId, code: code.value } });
+    const count = await this.database.client.site.count({
+      where: { organizationId, code: code.value },
+    });
     return count > 0;
   }
 
   async findById(organizationId: string, siteId: string): Promise<Site | undefined> {
-    const record = await this.prisma.site.findFirst({ where: { id: siteId, organizationId } });
+    const record = await this.database.client.site.findFirst({
+      where: { id: siteId, organizationId },
+    });
     if (record === null) {
       return undefined;
     }
@@ -42,7 +46,7 @@ export class PrismaSiteRepository implements SiteRepository {
   }
 
   async list(organizationId: string, page: PageRequest): Promise<Page<Site>> {
-    const records = await this.prisma.site.findMany({
+    const records = await this.database.client.site.findMany({
       where: { organizationId, id: afterCursor(page.after) },
       orderBy: { id: 'asc' },
       take: page.limit + 1,

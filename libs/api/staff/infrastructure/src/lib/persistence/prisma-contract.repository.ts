@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   type Prisma,
-  PrismaService,
+  DatabaseContext,
   dateToInstant,
   dateToPlainDate,
   instantToDate,
@@ -16,10 +16,10 @@ import { optionalDateToPlainDate, optionalPlainDateToDate } from './optional-dat
 /** Contrats de travail dans `staff.contracts`. */
 @Injectable()
 export class PrismaContractRepository implements ContractRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly database: DatabaseContext) {}
 
   async add(contract: Contract): Promise<void> {
-    await this.prisma.$transaction(async (transaction) => {
+    await this.database.transaction(async (transaction) => {
       await lockEmployee(transaction, contract);
       const records = await transaction.contract.findMany({
         where: { organizationId: contract.organizationId, employeeId: contract.employeeId },
@@ -45,7 +45,7 @@ export class PrismaContractRepository implements ContractRepository {
     employeeId: string,
     page: PageRequest,
   ): Promise<Page<Contract>> {
-    const records = await this.prisma.contract.findMany({
+    const records = await this.database.client.contract.findMany({
       where: { organizationId, employeeId, id: afterCursor(page.after) },
       orderBy: { id: 'asc' },
       take: page.limit + 1,
