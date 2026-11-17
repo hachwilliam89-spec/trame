@@ -11,6 +11,7 @@ import { Router } from '@angular/router';
 import { AuthenticationRequired, WebSession } from '@trame/web/auth/data-access';
 import {
   canManagePlanning,
+  planningAccountScope,
   PlanningHttpError,
   PlanningState,
   readPlanningAddress,
@@ -28,8 +29,10 @@ export class PlanningWeekPicker {
   private readonly router = inject(Router);
 
   protected readonly canOpenPlanning = computed(() => canManagePlanning(this.session.identity()));
+  private readonly accountScope = computed(() => planningAccountScope(this.session.identity()));
   protected readonly sites = resource({
-    params: () => (this.canOpenPlanning() ? this.session.identity() : undefined),
+    // Chaque lecture de jeton republie l'identité ; seul un changement de compte relance la liste.
+    params: () => (this.canOpenPlanning() ? this.accountScope() : undefined),
     loader: ({ abortSignal }) => this.loadSites(abortSignal),
   });
   protected readonly siteId = linkedSignal(() => {

@@ -166,6 +166,11 @@ describe('Premier parcours Guidé', () => {
   it('ouvre le planning depuis le diagnostic, puis revient à l’accueil par le logo', async () => {
     session.identity.set(identity);
     session.status.set('authenticated');
+    listSites.mockImplementationOnce(async () => {
+      // La lecture du jeton reconstruit l'identité avec les mêmes valeurs.
+      session.identity.set({ ...identity });
+      return [demoSite];
+    });
     const fixture = TestBed.createComponent(App);
     await fixture.whenStable();
     const element = fixture.nativeElement as HTMLElement;

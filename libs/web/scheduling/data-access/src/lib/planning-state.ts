@@ -67,7 +67,7 @@ export class PlanningState {
    * demandée par l'adresse est rouverte pour le nouveau compte, s'il peut la lire.
    */
   async identify(identity: WebIdentity | undefined): Promise<void> {
-    const scope = scopeOf(identity);
+    const scope = planningAccountScope(identity);
     const canManage = canManagePlanning(identity);
     if (scope === this.scope && canManage === this.canManage) return;
     this.disconnect();
@@ -275,7 +275,7 @@ function phaseOf(error: unknown): PlanningPhase {
   return phases[error.status] ?? 'unavailable';
 }
 
-function scopeOf(identity: WebIdentity | undefined): string | undefined {
+export function planningAccountScope(identity: WebIdentity | undefined): string | undefined {
   if (identity === undefined) return undefined;
   return JSON.stringify([identity.organizationId, identity.subject]);
 }

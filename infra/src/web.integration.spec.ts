@@ -279,9 +279,15 @@ describe('Front Guidé construit et chaîne réelle', () => {
     const page = await context.newPage();
     try {
       await login(page, 'manager');
+      const loadedSites = page.waitForResponse(
+        (response) => new URL(response.url()).pathname === '/api/v1/sites',
+      );
       await page.getByRole('link', { name: 'Planning', exact: true }).click();
-      const site = page.getByLabel('Site', { exact: true });
-      await site.locator(`option[value="${demo.siteId}"]`).waitFor({ state: 'attached' });
+      expect((await loadedSites).status()).toBe(200);
+      const site = page.getByRole('combobox', { name: 'Site', exact: true });
+      await site.waitFor({ timeout: 8000 }).catch(async () => {
+        throw new Error('Choix du site indisponible : ' + (await page.locator('body').innerText()));
+      });
       expect(await site.inputValue()).toBe(demo.siteId);
       await page.getByLabel('Jour de la semaine').fill(demo.weekStartsOn);
       await noViolations(page);
@@ -291,11 +297,11 @@ describe('Front Guidé construit et chaîne réelle', () => {
           url.searchParams.get('site') === demo.siteId &&
           url.searchParams.get('semaine') === demo.weekStartsOn,
       );
-      await page
-        .locator('.week-grid')
-        .waitFor({ timeout: 30_000 })
-        .catch(() => generateWeek(page));
-      await page.locator('.week-grid').waitFor();
+      const grid = page.locator('.week-grid');
+      const start = page.getByRole('button', { name: 'Générer le planning', exact: true });
+      await grid.or(start).waitFor();
+      if (await start.isVisible()) await generateWeek(page);
+      await grid.waitFor();
 
       const options = await page.locator('.team select option').allInnerTexts();
       expect(options).not.toContain('Semaine complète');
