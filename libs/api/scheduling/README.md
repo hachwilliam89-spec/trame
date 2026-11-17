@@ -120,7 +120,8 @@ Rôles admin et manager ; erreurs en `application/problem+json`.
   `Last-Event-ID`, maintien à 20 s, fermeture à l'expiration du jeton, attente d'un client lent.
   Chaque événement donne l'état atteint (`RUNNING`, `SUCCEEDED` avec l'issue, `FAILED` avec le
   code), sans le planning, lu ensuite par la génération. Trois événements au plus par génération,
-  gardés avec elle : ni purge ni expiration, contrairement au diagnostic.
+  gardés aussi longtemps qu'elle et supprimés avec elle (purge des organisations de démo) : ni
+  purge ni expiration propres, contrairement au diagnostic.
 
 ## Vérifications
 

@@ -244,7 +244,8 @@ model ScheduleGeneration {
 }
 
 /// Progression d'une génération pour le flux SSE : l'état atteint, sans le planning. Trois
-/// événements au plus par génération, gardés avec elle.
+/// événements au plus par génération, gardés aussi longtemps qu'elle et supprimés avec elle
+/// (purge des organisations de démo).
 model ScheduleGenerationEvent {
   id             String             @id @db.Uuid
   organizationId String             @map("organization_id") @db.Uuid
@@ -254,7 +255,7 @@ model ScheduleGenerationEvent {
   resultStatus   String?            @map("result_status") @db.VarChar(16)
   failure        String?            @db.VarChar(32)
   occurredAt     DateTime           @map("occurred_at") @db.Timestamptz(3)
-  generation     ScheduleGeneration @relation(fields: [generationId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  generation     ScheduleGeneration @relation(fields: [generationId, organizationId], references: [id, organizationId], onDelete: Cascade)
 
   @@unique([generationId, sequence])
   @@index([organizationId, generationId, sequence], map: "schedule_generation_events_progress_idx")

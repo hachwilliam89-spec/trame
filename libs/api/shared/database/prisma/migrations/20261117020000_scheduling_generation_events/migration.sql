@@ -22,7 +22,7 @@ CREATE INDEX "schedule_generation_events_progress_idx" ON "scheduling"."schedule
 CREATE UNIQUE INDEX "schedule_generation_events_generation_id_sequence_key" ON "scheduling"."schedule_generation_events"("generation_id", "sequence");
 
 -- AddForeignKey
-ALTER TABLE "scheduling"."schedule_generation_events" ADD CONSTRAINT "schedule_generation_events_generation_id_organization_id_fkey" FOREIGN KEY ("generation_id", "organization_id") REFERENCES "scheduling"."schedule_generations"("id", "organization_id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "scheduling"."schedule_generation_events" ADD CONSTRAINT "schedule_generation_events_generation_id_organization_id_fkey" FOREIGN KEY ("generation_id", "organization_id") REFERENCES "scheduling"."schedule_generations"("id", "organization_id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 
 -- Invariants non représentés par Prisma ; les migrations restent leur source de vérité.
