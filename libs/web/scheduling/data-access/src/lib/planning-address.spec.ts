@@ -51,6 +51,15 @@ describe('retour au planning après la connexion', () => {
     expect(storage.getItem(PLANNING_RETURN_KEY)).toBeNull();
   });
 
+  it('rouvre le choix d’une semaine quand la connexion a été lancée depuis Planning', () => {
+    const storage = memoryStorage();
+
+    rememberPlanningReturn(storage, '/planning', '');
+
+    expect(planningReturnAddress(storage)).toBe('/planning');
+    expect(planningReturnAddress(storage)).toBe('/');
+  });
+
   it('revient à l’accueil depuis une autre page ou une adresse invalide', () => {
     const storage = memoryStorage();
     storage.setItem(

@@ -4,7 +4,7 @@ export interface PlanningAddress {
   weekStartsOn: string;
 }
 
-/** Clé de `sessionStorage` : le site et la semaine à rouvrir au retour de la connexion. */
+/** Clé de `sessionStorage` : le planning à rouvrir au retour de la connexion. */
 export const PLANNING_RETURN_KEY = 'trame.retour-planning';
 
 const PLANNING_PATH = '/planning';
@@ -24,19 +24,24 @@ export function readPlanningAddress(
 }
 
 /**
- * Avant la connexion : retient le site et la semaine de la page, rien d'autre. Keycloak revient
- * toujours sur `/oidc-callback`, qui perdrait sinon l'adresse demandée.
+ * Avant la connexion : retient le choix du planning ou l'adresse d'une semaine valide. Keycloak
+ * revient toujours sur `/oidc-callback`, qui perdrait sinon l'adresse demandée.
  */
 export function rememberPlanningReturn(
   storage: ReturnStorage,
   pathname: string,
   search: string,
 ): void {
+  if (pathname !== PLANNING_PATH) {
+    storage.removeItem(PLANNING_RETURN_KEY);
+    return;
+  }
   const query = new URLSearchParams(search);
-  const address =
-    pathname === PLANNING_PATH
-      ? readPlanningAddress(query.get('site'), query.get('semaine'))
-      : undefined;
+  if (!query.has('site') && !query.has('semaine')) {
+    storage.setItem(PLANNING_RETURN_KEY, PLANNING_PATH);
+    return;
+  }
+  const address = readPlanningAddress(query.get('site'), query.get('semaine'));
   if (address === undefined) {
     storage.removeItem(PLANNING_RETURN_KEY);
     return;
@@ -48,6 +53,7 @@ export function rememberPlanningReturn(
 export function planningReturnAddress(storage: ReturnStorage): string {
   const stored = storage.getItem(PLANNING_RETURN_KEY);
   storage.removeItem(PLANNING_RETURN_KEY);
+  if (stored === PLANNING_PATH) return PLANNING_PATH;
   const address = parseStoredAddress(stored);
   if (address === undefined) return '/';
   const query = new URLSearchParams({ site: address.siteId, semaine: address.weekStartsOn });

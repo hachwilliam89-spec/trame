@@ -27,6 +27,13 @@ interface CivilDate {
   day: number;
 }
 
+/** Lundi de la semaine contenant un jour civil ISO choisi dans le calendrier. */
+export function mondayOfDay(day: string): string {
+  const midnight = toUtcMidnight(day);
+  const daysSinceMonday = (new Date(midnight).getUTCDay() + 6) % DAYS_IN_WEEK;
+  return isoDateOf(civilDateOf(midnight - daysSinceMonday * DAY_IN_MILLISECONDS));
+}
+
 /** Les sept jours d'une semaine qui commence un lundi. */
 export function weekDays(weekStartsOn: string): WeekDay[] {
   const monday = toUtcMidnight(weekStartsOn);

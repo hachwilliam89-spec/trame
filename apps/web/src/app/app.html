@@ -1,13 +1,32 @@
 <a class="skip-link" href="#main">Aller au contenu</a>
 <div class="app-window">
   <header class="app-header">
-    <picture
-      ><source media="(prefers-color-scheme: dark)" srcset="/trame-logo-dark.svg" />
-      <img src="/trame-logo.svg" width="127" height="36" alt="Trame"
-    /></picture>
+    <a class="brand-home" routerLink="/" aria-label="Trame, accueil">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="/trame-logo-dark.svg" />
+        <img src="/trame-logo.svg" width="127" height="36" alt="Trame" />
+      </picture>
+    </a>
+    @if (session.status() === 'authenticated') {
+    <nav class="app-navigation" aria-label="Navigation principale">
+      <a
+        routerLink="/"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        ariaCurrentWhenActive="page"
+      >
+        Diagnostic
+      </a>
+      @if (canOpenPlanning()) {
+      <a routerLink="/planning" routerLinkActive="active" ariaCurrentWhenActive="page">Planning</a>
+      }
+    </nav>
+    }
     <div class="context">
-      <span class="environment">Espace de démonstration</span>@if (session.identity(); as identity)
-      {<span class="account">{{ roleLabel() }}</span>}
+      <span class="environment">Espace de démonstration</span>@if (session.identity()) {<span
+        class="account"
+        >{{ roleLabel() }}</span
+      >}
     </div>
   </header>
   <main id="main" class="main-content">

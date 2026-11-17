@@ -1,0 +1,43 @@
+<section class="planning-notice planning-picker" aria-labelledby="planning-picker-title">
+  <h1 id="planning-picker-title">Planning</h1>
+  @if (!canOpenPlanning()) {
+  <p>Le planning est réservé aux managers et administrateurs.</p>
+  } @else if (sites.isLoading()) {
+  <p role="status">Chargement des sites…</p>
+  } @else if (sites.error()) {
+  <p role="alert">Impossible de charger les sites.</p>
+  <button type="button" class="quiet-button" (click)="sites.reload()">Réessayer</button>
+  } @else if (sites.hasValue() && sites.value().length > 0) {
+  <form (submit)="open($event)">
+    <div class="planning-field">
+      <label for="planning-site">Site</label>
+      <select
+        id="planning-site"
+        name="site"
+        required
+        [value]="siteId()"
+        (change)="siteId.set($any($event.target).value)"
+      >
+        <option value="" disabled>Choisir un site</option>
+        @for (site of sites.value(); track site.id) {
+        <option [value]="site.id">{{ site.name }}</option>
+        }
+      </select>
+    </div>
+    <div class="planning-field">
+      <label for="planning-day">Jour de la semaine</label>
+      <input
+        id="planning-day"
+        type="date"
+        name="jour"
+        required
+        [value]="day()"
+        (input)="day.set($any($event.target).value)"
+      />
+    </div>
+    <button type="submit" class="action">Ouvrir la semaine</button>
+  </form>
+  } @else {
+  <p>Aucun site n’est configuré dans votre organisation.</p>
+  }
+</section>

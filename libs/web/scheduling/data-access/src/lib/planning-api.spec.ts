@@ -51,6 +51,28 @@ describe('Client HTTP du planning', () => {
     expect(sent?.options.redirect).toBe('error');
   });
 
+  it('lit les sites de l’organisation avec le jeton et suit le curseur', async () => {
+    const first = {
+      id: SITE,
+      code: 'DEMO',
+      name: 'Entrepôt',
+      timeZone: 'Europe/Paris',
+      createdAt: CREATED_AT,
+    };
+    const second = { ...first, id: CURSOR, code: 'NORD' };
+    const { requests, request } = fakeFetch((url) =>
+      url.searchParams.has('cursor')
+        ? Response.json({ items: [second], nextCursor: null })
+        : Response.json({ items: [first], nextCursor: CURSOR }),
+    );
+    const api = new PlanningApi(async () => 'token', '/api/v1', request);
+
+    await expect(api.listSites(signal)).resolves.toEqual([first, second]);
+    expect(requests.map((sent) => sent.url.pathname)).toEqual(['/api/v1/sites', '/api/v1/sites']);
+    expect(new Headers(requests[0]?.options.headers).get('authorization')).toBe('Bearer token');
+    expect(requests[1]?.url.searchParams.get('cursor')).toBe(CURSOR);
+  });
+
   it('parcourt toutes les pages des salariés du site', async () => {
     const first = '0190f0a0-0000-7000-8000-000000000041';
     const second = '0190f0a0-0000-7000-8000-000000000042';

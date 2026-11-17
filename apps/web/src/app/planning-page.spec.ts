@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
-import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import type { ScheduleGenerationV1 } from '@trame/shared/contracts/scheduling';
 import { PlanningState, type PlanningCatalog } from '@trame/web/scheduling/data-access';
@@ -139,6 +139,7 @@ describe('Page Planning', () => {
     await TestBed.configureTestingModule({
       imports: [PlanningPage],
       providers: [
+        provideRouter([]),
         { provide: PlanningState, useValue: planning },
         { provide: ActivatedRoute, useValue: { queryParamMap: query } },
       ],

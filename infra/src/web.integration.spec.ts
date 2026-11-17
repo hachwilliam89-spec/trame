@@ -273,12 +273,24 @@ describe('Front Guidé construit et chaîne réelle', () => {
     }, 90_000);
   }
 
-  it('montre la vue Jour par défaut sur un écran étroit', async () => {
+  it('ouvre le planning depuis la navigation mobile et montre la vue Jour par défaut', async () => {
     const browser = await launchTestBrowser(chromium);
     const context = await browser.newContext({ viewport: { width: 375, height: 900 } });
     const page = await context.newPage();
     try {
-      await openPlanningAsManager(page);
+      await login(page, 'manager');
+      await page.getByRole('link', { name: 'Planning', exact: true }).click();
+      const site = page.getByLabel('Site', { exact: true });
+      await site.locator(`option[value="${demo.siteId}"]`).waitFor({ state: 'attached' });
+      expect(await site.inputValue()).toBe(demo.siteId);
+      await page.getByLabel('Jour de la semaine').fill(demo.weekStartsOn);
+      await noViolations(page);
+      await page.getByRole('button', { name: 'Ouvrir la semaine' }).click();
+      await page.waitForURL(
+        (url) =>
+          url.searchParams.get('site') === demo.siteId &&
+          url.searchParams.get('semaine') === demo.weekStartsOn,
+      );
       await page
         .locator('.week-grid')
         .waitFor({ timeout: 30_000 })
@@ -289,6 +301,8 @@ describe('Front Guidé construit et chaîne réelle', () => {
       expect(options).not.toContain('Semaine complète');
       expect(await page.locator('.week-grid thead th').count()).toBe(3);
       await noViolations(page);
+      await page.getByRole('link', { name: 'Trame, accueil', exact: true }).click();
+      await page.getByRole('heading', { name: 'Tester le moteur', exact: true }).waitFor();
     } finally {
       await browser.close();
     }
