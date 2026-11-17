@@ -2,13 +2,22 @@ import { type DynamicModule, Module, type ModuleMetadata } from '@nestjs/common'
 import {
   GetScheduleGeneration,
   GetWeekScheduleGenerations,
+  ReadScheduleGenerationProgress,
+  type ScheduleGenerationProgress,
   type ScheduleGenerations,
   StartScheduleGeneration,
   type WeekPlanningSource,
 } from '@trame/api/scheduling/application';
 import { CLOCK, type Clock } from '@trame/platform/clock';
 import { ID_GENERATOR, type IdGenerator } from '@trame/platform/ids';
-import { SCHEDULE_GENERATIONS, WEEK_PLANNING_SOURCE } from './generation.tokens';
+import {
+  SCHEDULE_GENERATION_PROGRESS,
+  SCHEDULE_GENERATIONS,
+  WEEK_PLANNING_SOURCE,
+} from './generation.tokens';
+import { ScheduleGenerationProgressController } from './http/schedule-generation-progress.controller';
+import { ScheduleGenerationsController } from './http/schedule-generations.controller';
+import { PrismaScheduleGenerationProgress } from './persistence/prisma-schedule-generation-progress';
 import { PrismaScheduleGenerations } from './persistence/prisma-schedule-generations';
 
 type ImportedModule = NonNullable<ModuleMetadata['imports']>[number];
@@ -19,8 +28,8 @@ export interface ScheduleGenerationModuleOptions {
 }
 
 /**
- * Génération du planning d'une semaine (US-061). Le lancement par HTTP n'arrive qu'avec la PR 6b,
- * quand le relais sait router la demande et recevoir son résultat.
+ * Génération du planning d'une semaine (US-061) : lancement, lecture et progression par HTTP. Le
+ * relais publie la demande et reçoit le résultat (`ScheduleTransport`).
  * Requiert `DatabaseModule`, `ClockModule` et `IdsModule` dans l'application.
  */
 @Module({})
@@ -29,8 +38,16 @@ export class ScheduleGenerationModule {
     return {
       module: ScheduleGenerationModule,
       imports: [options.weekPlanning],
+      controllers: [ScheduleGenerationsController, ScheduleGenerationProgressController],
       providers: [
         { provide: SCHEDULE_GENERATIONS, useClass: PrismaScheduleGenerations },
+        { provide: SCHEDULE_GENERATION_PROGRESS, useClass: PrismaScheduleGenerationProgress },
+        {
+          provide: ReadScheduleGenerationProgress,
+          inject: [SCHEDULE_GENERATION_PROGRESS],
+          useFactory: (progress: ScheduleGenerationProgress) =>
+            new ReadScheduleGenerationProgress(progress),
+        },
         {
           provide: StartScheduleGeneration,
           inject: [SCHEDULE_GENERATIONS, WEEK_PLANNING_SOURCE, CLOCK, ID_GENERATOR],

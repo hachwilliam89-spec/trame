@@ -67,6 +67,7 @@ describe('Enregistrement des générations (PostgreSQL)', () => {
   });
   beforeEach(async () => {
     await prisma.outboxMessage.deleteMany();
+    await prisma.scheduleGenerationEvent.deleteMany();
     await prisma.scheduleGeneration.deleteMany();
     const source = new InMemoryWeekPlanningSource();
     source.define(organizationId, planning);
