@@ -4,6 +4,7 @@ import {
   Module,
   type ModuleMetadata,
 } from '@nestjs/common';
+import { Database, PrismaDatabase } from './database';
 import { DatabaseReadiness } from './database-readiness';
 import { DATABASE_OPTIONS, type DatabaseOptions, PrismaService } from './prisma.service';
 
@@ -13,7 +14,7 @@ export interface DatabaseModuleAsyncOptions {
   useFactory(...args: unknown[]): DatabaseOptions | Promise<DatabaseOptions>;
 }
 
-/** Fournit `PrismaService` et l'indicateur `DatabaseReadiness`. */
+/** Fournit `PrismaService`, la base des dépôts (`Database`) et l'indicateur `DatabaseReadiness`. */
 @Module({})
 export class DatabaseModule {
   static forRootAsync(options: DatabaseModuleAsyncOptions): DynamicModule {
@@ -24,9 +25,10 @@ export class DatabaseModule {
       providers: [
         { provide: DATABASE_OPTIONS, inject: options.inject ?? [], useFactory: options.useFactory },
         PrismaService,
+        { provide: Database, useClass: PrismaDatabase },
         DatabaseReadiness,
       ],
-      exports: [PrismaService, DatabaseReadiness],
+      exports: [PrismaService, Database, DatabaseReadiness],
     };
   }
 }
