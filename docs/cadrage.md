@@ -324,13 +324,13 @@ Une seule résolution à la fois par environnement (file RabbitMQ consommée ave
 
 ## 16. Roadmap et calendrier
 
-| Version  | Contenu                                                                                                                                                                         |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **v0.1** | Socle (CI/CD, déploiement, doc, observabilité de base), organisation et personnel, règles, besoins saisis, génération hebdo pour un site, édition avec la PE, publication, démo |
-| **v0.2** | PWA employé, absences saisies par l'employé et échanges, re-planification, temps réel (co-édition, notifications), jours fériés, coupures des temps partiels                    |
-| **v0.3** | Prévision de charge, scénarios what-if, diagnostic d'infaisabilité lisible, benchmarks                                                                                          |
-| **v0.4** | Assistant IA : tools exposés via MCP, RAG juridique sur pgvector, évals en CI                                                                                                   |
-| **v1.0** | Multi-sites, multi-tenant (Row Level Security), app Android, observabilité complète, durcissement                                                                               |
+| Version  | Contenu                                                                                                                                                                                                                          |
+| -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **v0.1** | Socle (CI/CD, déploiement, doc, observabilité de base), organisation et personnel, règles, besoins saisis, absences, génération hebdo pour un site, brouillon et édition avec la PE, réparation après absence, publication, démo |
+| **v0.2** | PWA employé, absences saisies par l'employé et échanges, temps réel (co-édition, notifications), jours fériés, coupures des temps partiels                                                                                       |
+| **v0.3** | Prévision de charge, scénarios what-if, diagnostic d'infaisabilité lisible, benchmarks                                                                                                                                           |
+| **v0.4** | Assistant IA : tools exposés via MCP, RAG juridique sur pgvector, évals en CI                                                                                                                                                    |
+| **v1.0** | Multi-sites, multi-tenant (Row Level Security), app Android, observabilité complète, durcissement                                                                                                                                |
 
 **Expérimentation IA autorisée le 4 novembre 2026** : tester Jev comme pilote d'un agent
 sur des cas fictifs de remplacement après absence, avec une boucle d'outils bornée et des

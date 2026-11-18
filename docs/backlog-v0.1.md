@@ -47,13 +47,24 @@ La stack Grafana complète (US-007) est reportée avant l'ouverture de la démo 
 **Ordre révisé le 15 novembre 2026**, décidé par Kim sur la recommandation de Claude, une fois le staging en service. La recherche de stage a commencé : la démo doit montrer le cœur métier au plus tôt. Le chemin vers la démo passe par une tranche verticale, en trois jalons. Les stories et leurs règles ne changent pas. Seul leur ordre change, et chaque story de gestion est coupée en deux : le modèle et sa persistance d'abord, l'écran ensuite.
 
 1. **Jalon 1 — Générer et voir** ([#69](https://github.com/hachwilliam89-spec/trame/issues/69)) : un jeu de démo réduit, le modèle des employés, des contrats et des besoins, un premier jeu de règles dans le moteur, le lancement d'une génération et la grille en lecture seule, avec la couverture chiffrée. Premières parties d'US-031, 032, 050, 040, 061, 060, 062, 071 et 090.
-2. **Jalon 2 — Modifier et comprendre** : d'abord une équipe de nuit et les règles du travail de nuit (US-061), puis la PE et une modification évaluée (US-070, US-072). La nuit fait partie du métier d'un entrepôt, mais ses règles, dont le statut de travailleur de nuit calculé, se livrent entières : le jalon 1 reste en 2×8 de jour. Le reste de son contenu est fixé à l'ouverture de son issue.
+2. **Jalon 2 — Absence, ajustement, réparation, publication** (ordre révisé le 18 novembre 2026, voir plus bas) : le parcours d'une absence de dernière minute, jusqu'au planning publié, puis l'équipe de nuit.
 3. **Jalon 3 — Ouvrir** : une organisation par visiteur (US-021, US-090), les sauvegardes avec test de restauration (US-008), puis la protection et l'ouverture (US-092).
 
 Deux écarts par rapport à l'ordre du 6 novembre :
 
 - les sauvegardes (US-008) passent du début du métier à l'avant-ouverture, le staging ne portant que des données fictives ;
-- les écrans de gestion (US-031 à US-050), la publication (US-080) et la vue employé viennent après les jalons.
+- les écrans de gestion (US-031 à US-050) et la vue employé viennent après les jalons. Depuis la révision du 18 novembre, la saisie minimale des absences (US-033) et la publication (US-080) en sortent : elles font partie du jalon 2.
+
+**Ordre révisé le 18 novembre 2026**, décidé par Kim. La maquette « Trame — planning moderne » (thèmes clair et sombre, mobile) raconte une absence de dernière minute, son ajustement, sa réparation, puis la publication. Le jalon 2 suit ce parcours avant l'équipe de nuit, en six capacités :
+
+1. les absences, saisies par le manager et prises en compte dans une génération (US-033) ;
+2. le brouillon, la version de référence et la gestion des modifications concurrentes (US-073). Il précède toute modification : il fixe où elles sont enregistrées et comment on les annule ;
+3. la PE et la modification manuelle évaluée, avec ses motifs de refus (US-070, US-072) ;
+4. la réparation automatique, avec des changements limités (US-074) ;
+5. la publication et l'historique des versions (US-080) ;
+6. l'équipe de nuit et les règles du travail de nuit (US-061). La nuit fait partie du métier d'un entrepôt, mais ses règles, dont le statut de travailleur de nuit calculé, se livrent entières : d'ici là, le planning reste en 2×8 de jour.
+
+Chaque capacité est livrée côté back, puis son écran s'intègre aussitôt dans le front, par petites tranches utilisables : pas de grande intégration finale, et chaque contrat est vite confronté à l'écran qui l'utilise. La maquette précise les besoins, elle ne fige pas les règles métier : les contrats restent versionnés (ADR-0018). L'explication fine d'un manque (pourquoi aucun candidat ne peut le combler) reste en v0.3 : le jalon 2 affiche le manque chiffré d'US-062.
 
 Garde-fous : chaque contexte suit le module de référence, les données de démo passent par les use cases, et chaque règle est une classe unique avec son test de cohérence (ADR-0020).
 
@@ -70,19 +81,21 @@ Garde-fous : chaque contexte suit le module de référence, les données de dém
 | 26    | 061 | Modèle CP-SAT v1                             | M        |
 | 27    | 060 | Lancer une génération                        | M        |
 | 28    | 062 | Score et explication de base                 | M        |
-| 29    | 070 | PE synchrone                                 | M        |
-| 30    | 071 | Grille de planning                           | M        |
-| 31    | 072 | Drag & drop avec PE                          | M        |
-| 32    | 080 | Publier un planning                          | M        |
-| 33    | 021 | Comptes démo (une organisation par visiteur) | M        |
-| 34    | 090 | Données de démo                              | M        |
-| 35    | 007 | Observabilité de base et alertes             | S        |
-| 36    | 092 | Protection et ouverture de la démo publique  | M        |
-| 37    | 093 | Licence, sécurité et mentions légales        | M        |
-| 38    | 091 | README vitrine et vidéo                      | M        |
-| 39    | 014 | Quality gate et tests de mutation            | S        |
-| 40    | 041 | Pondération des règles souples               | S        |
-| 41    | 081 | Consultation par l'employé                   | S        |
+| 29    | 073 | Brouillon et version de référence            | M        |
+| 30    | 070 | PE synchrone                                 | M        |
+| 31    | 071 | Grille de planning                           | M        |
+| 32    | 072 | Drag & drop avec PE                          | M        |
+| 33    | 074 | Réparer un planning après une absence        | M        |
+| 34    | 080 | Publier un planning                          | M        |
+| 35    | 021 | Comptes démo (une organisation par visiteur) | M        |
+| 36    | 090 | Données de démo                              | M        |
+| 37    | 007 | Observabilité de base et alertes             | S        |
+| 38    | 092 | Protection et ouverture de la démo publique  | M        |
+| 39    | 093 | Licence, sécurité et mentions légales        | M        |
+| 40    | 091 | README vitrine et vidéo                      | M        |
+| 41    | 014 | Quality gate et tests de mutation            | S        |
+| 42    | 041 | Pondération des règles souples               | S        |
+| 43    | 081 | Consultation par l'employé                   | S        |
 
 Les stories M, prises dans cet ordre, forment le **chemin critique vers la démo publique**. La démo est datée quelques semaines avant la recherche d'entreprise.
 
@@ -326,6 +339,8 @@ Scénario: Aller-retour complet
 ### US-012 — Maquettes des écrans clés
 
 > Première tranche validée le 5 novembre 2026 : version **Guidé**, connexion et diagnostic, états de progression et résultat, reprise/expiration. Les autres écrans restent à maquetter.
+>
+> Grille de planning maquettée le 18 novembre 2026 dans Claude : « Trame — planning moderne », en thèmes clair et sombre, et sur mobile. Elle sert de référence à US-071 et aux écrans du jalon 2.
 
 - Maquettes Figma de : la grille de planning, la génération avec sa progression, l'explication d'un planning, les trois états de la PE pendant un drag & drop, la vue employé (PWA).
 - Elles fixent la direction visuelle (palette Trame, typographie, densité) et alimentent les tokens d'US-010.
@@ -474,6 +489,44 @@ Scénario: Habilitation expirée
 
 - Saisie minimale par le manager en v0.1 (par l'employé en v0.2) : période, motif (catégorie, sans détail médical).
 - Indispensable avant la génération : les absences sont une entrée du moteur, et l'absence de dernière minute est au cœur du produit.
+- Première capacité du jalon 2 (révision du 18 novembre 2026) : le modèle, la persistance, l'écriture et la lecture par l'API, la prise en compte par le moteur, puis la saisie dans l'écran du planning.
+- Scénarios proposés le 18 novembre 2026, à valider avec Kim (Definition of Ready) :
+
+```gherkin
+Scénario: Une absence retire le salarié des créneaux qu'elle couvre
+  Étant donné Inès Fabre, cariste, absente du mardi 24 au mercredi 25 novembre pour un congé
+  Quand le manager lance la génération de la semaine du 23 novembre
+  Alors aucun créneau du mardi 24 ni du mercredi 25 ne lui est affecté
+  Et ses cases de ces deux jours indiquent l'absence
+
+Scénario: Absence sur une partie de la journée
+  Étant donné Yanis Morel absent le jeudi 26 novembre de 6 h à 10 h
+  Quand le manager lance la génération de la semaine
+  Alors le créneau du matin (6 h – 13 h 20) du jeudi ne lui est pas affecté
+  Et le créneau de l'après-midi (13 h 30 – 20 h 50) du jeudi reste possible
+
+Scénario: Motif par catégorie, sans détail médical
+  Quand le manager saisit une absence
+  Alors il choisit son motif parmi des catégories : congé, arrêt de travail, formation, autre
+  Et aucun champ libre ne permet d'y ajouter un détail médical
+
+Scénario: Période incohérente refusée
+  Quand le manager saisit une absence dont la fin précède le début
+  Alors la saisie est refusée avec le motif « la fin doit suivre le début »
+
+Scénario: Absence déclarée après la génération
+  Étant donné un planning de la semaine du 23 novembre où Camille Laurent tient le samedi 28 au matin
+  Quand le manager déclare Camille Laurent absente le samedi 28
+  Alors le planning signale le créneau touché par l'absence
+  Et aucune affectation n'est modifiée tant que le manager n'a pas choisi d'ajuster ou de réparer
+
+Scénario: Absence d'une autre organisation
+  Étant donné un manager d'une autre organisation
+  Quand il lit ou saisit une absence d'Inès Fabre
+  Alors l'API répond 404
+```
+
+- Les instants sont stockés en UTC et lus dans le fuseau du site (ADR-0019) : une absence couvre un créneau dès qu'elle en chevauche une partie.
 
 ---
 
@@ -610,6 +663,7 @@ Scénario: Seuil annuel atteint
 - Pour chaque planning : sous-effectif chiffré par créneau et par compétence (« 3 caristes CACES requis samedi matin, 2 affectés »), pénalités par règle souple, répartition des heures par employé.
 - Pour un job `INFEASIBLE` : les familles de règles en conflit, à la granularité fixée par le spike US-064. Elles sont lues dans le Composite de règles d'US-061.
 - Affichage lisible côté manager : « Pourquoi ce planning ? ».
+- Découpage (révision du 18 novembre 2026) : le jalon 2 affiche le manque chiffré par créneau et par compétence, déjà calculé (« 2 caristes affectés sur 3 »). Expliquer pourquoi aucun candidat ne peut combler un manque demande une analyse supplémentaire : une règle qui écarte un candidat ne prouve pas, à elle seule, qu'aucun planning complet n'existe. Ce diagnostic fin reste en v0.3 (cadrage, §8). Les panneaux « Pourquoi ce manque » et « Pistes » de la maquette l'attendent.
 
 ---
 
@@ -643,7 +697,8 @@ Scénario: Délai de prévenance
 - Vue semaine, par employé ou par poste. Couverture visible par créneau (manque ou excès).
 - État géré par NgRx SignalStore (annuler, rétablir, mises à jour optimistes).
 - Pattern envisagé : **Commande**. Chaque modification (affecter, retirer, déplacer un shift) est un objet qui porte son inverse : la pile d'annulation, la mise à jour optimiste et son retour arrière en cas d'erreur reposent sur le même objet, traduit en requête d'évaluation pour la PE en US-072.
-- Conforme aux maquettes d'US-012 et performante avec 40 employés × 7 jours.
+- Conforme à la maquette « Trame — planning moderne » (US-012) et performante avec 40 employés × 7 jours : en-tête de semaine et navigation, chiffres de la semaine, couverture par créneau en tête de chaque jour, salariés groupés par poste, heures face aux bornes du contrat, recherche d'un salarié, panneau du créneau choisi, thèmes clair et sombre, mobile.
+- Intégrée par tranches, après chaque capacité back du jalon 2. Les actions dont le back n'existe pas encore ne sont pas affichées.
 
 ### US-072 — Drag & drop avec PE
 
@@ -657,13 +712,87 @@ Scénario: Retour instantané
 
 - Navigation au clavier possible (accessibilité). Annuler et rétablir, avec les Commandes d'US-071.
 
+### US-073 — Brouillon et version de référence
+
+- Une génération réussie ouvre le brouillon de la semaine, rattaché à sa version de référence : la génération dont il part, puis la dernière version publiée (US-080).
+- Les modifications sont enregistrées côté serveur, dans le brouillon, comme des Commandes (US-071) qui portent leur inverse : annuler et rétablir reposent sur le même objet.
+- Chaque écriture porte la version du brouillon qu'elle modifie (verrou optimiste). Une écriture sur une version dépassée est refusée avec la version courante : rien n'est écrasé en silence.
+- Prérequis des modifications (US-070, US-072), de la réparation (US-074) et de la publication (US-080).
+
+```gherkin
+Scénario: Une génération ouvre un brouillon
+  Étant donné la génération réussie de la semaine du 23 novembre
+  Alors un brouillon de cette semaine existe, rattaché à cette génération
+  Et seuls les managers de l'organisation le voient
+
+Scénario: Modification enregistrée puis annulée
+  Étant donné le brouillon de la semaine du 23 novembre
+  Quand le manager retire Camille Laurent du samedi 28 au matin
+  Alors le brouillon passe à sa version suivante avec cette modification
+  Quand il annule cette modification
+  Alors Camille Laurent retrouve le samedi 28 au matin
+
+Scénario: Modifications concurrentes
+  Étant donné deux managers sur la version 4 du brouillon
+  Quand le premier enregistre une modification
+  Et que le second enregistre une autre modification, toujours sur la version 4
+  Alors la seconde est refusée, avec la version courante à recharger
+  Et la modification du premier est conservée
+
+Scénario: Nouvelle génération sur un brouillon modifié
+  Étant donné un brouillon modifié à la main
+  Quand le manager relance la génération
+  Alors il confirme l'abandon de ses modifications, ou renonce à la génération
+```
+
+### US-074 — Réparer un planning après une absence
+
+- Le moteur recalcule la semaine à partir du brouillon : chaque changement par rapport à lui est pénalisé (re-planification, cadrage §8), et le brouillon lui est fourni en hints.
+- Les affectations verrouillées par le manager ne changent jamais.
+- Le résultat est une proposition : la liste des changements, avant et après, et les manques restants. Rien n'est appliqué sans la validation du manager.
+- Une fois validée, la proposition entre dans le brouillon comme une seule modification annulable (US-073).
+- Pattern envisagé : **Stratégie** pour le mode de résolution (génération complète ou réparation), qui partage le modèle et les règles d'US-061.
+
+```gherkin
+Scénario: Remplacer une cariste absente
+  Étant donné le brouillon de la semaine du 23 novembre où Inès Fabre tient le lundi 23 au matin
+  Et Inès Fabre déclarée absente le lundi 23
+  Quand le manager demande une réparation
+  Alors la proposition affecte à sa place un cariste habilité et disponible
+  Et elle présente chaque changement, avant et après
+  Et le nombre de changements est le plus petit qui permette cette couverture
+
+Scénario: Affectations verrouillées
+  Étant donné Yanis Morel verrouillé sur le samedi 28 au matin
+  Quand la réparation est calculée
+  Alors Yanis Morel reste affecté au samedi 28 au matin
+
+Scénario: Rien n'est appliqué sans validation
+  Étant donné une proposition de réparation
+  Quand le manager la refuse
+  Alors le brouillon reste inchangé
+
+Scénario: Proposition validée
+  Étant donné une proposition de réparation
+  Quand le manager la valide
+  Alors ses changements entrent dans le brouillon en une seule modification annulable
+
+Scénario: Manque impossible à combler
+  Étant donné qu'aucun cariste habilité n'est disponible le lundi 23 au matin
+  Quand la réparation est calculée
+  Alors la proposition garde ce manque, chiffré
+  Et elle ne déplace personne inutilement
+```
+
 ---
 
 ## E8 — Publication
 
 ### US-080 — Publier un planning
 
+- La publication part du brouillon (US-073), qui devient la nouvelle version de référence.
 - La version publiée est figée et datée. Une modification ultérieure crée une nouvelle version.
+- Un manque restant peut être accepté explicitement à la publication, avec un motif. Il reste visible dans la version publiée.
 - Historique des versions avec leurs différences.
 - Journal des modifications après publication : qui, quand, quoi, motif.
 
