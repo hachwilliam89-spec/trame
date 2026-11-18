@@ -1,10 +1,12 @@
 # Marque Trame
 
-La palette Encre et vermillon est partagée par la vitrine, le diagnostic et le planning. Le vermillon repère les actions et le lilas et le bleu distinguent les créneaux. L’ambre indique un manque de couverture. Chaque état garde un libellé. Les couleurs claires et sombres suivent le thème du navigateur.
+La palette Encre et vermillon est partagée par la vitrine, le diagnostic et le planning. Le vermillon repère les actions et le lilas et le bleu distinguent les créneaux : le matin est le plus clair, l’après-midi plus soutenu, avec un filet bleu en thème sombre. L’ambre indique un manque de couverture. Chaque état garde un libellé. Les couleurs claires et sombres suivent le thème du navigateur.
 
 ## Logo
 
 Les variantes servies par `apps/web/public` reprennent les cinq T tissés et le mot-symbole du kit `docs/brand/logo-v2/` avec les couleurs Encre et vermillon. La géométrie est commune aux variantes. Le relief vient du support CSS du symbole dans le bandeau de la vitrine.
+
+En petit (en-tête, favicon), le logo passe à trois couleurs : le T et le ⊥ en vermillon (la chaîne), le ⊢ et le ⊣ en bleu (la trame), le T central en encre sur fond clair et en crème sur fond sombre. Le symbole du bandeau garde ses cinq couleurs.
 
 ## Polices
 
