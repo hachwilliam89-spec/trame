@@ -55,16 +55,56 @@ export async function queryDatabase(databaseUrl: string, sql: string): Promise<u
   }
 }
 
-/** Un port libre sur 127.0.0.1, choisi par le système. */
-export async function reserveFreePort(): Promise<number> {
+/**
+ * Plage des ports réservés pour les stacks de test. Elle reste sous la plage éphémère de Linux
+ * (32768 à 60999), où le système choisit le port d'un `listen(0)` et où Docker choisit les ports
+ * publiés sans numéro, ceux de Testcontainers notamment. Un port pris dans la plage éphémère
+ * pouvait être attribué à un autre conteneur entre sa réservation et le démarrage de la stack :
+ * `docker compose up` échouait alors sur « port is already allocated ».
+ */
+export const RESERVED_PORTS = { first: 20_000, last: 32_767 } as const;
+
+const MAX_ATTEMPTS = 50;
+
+/** Ports déjà rendus par ce processus : une même stack ne reçoit jamais deux fois le même. */
+const portsHandedOut = new Set<number>();
+
+function randomReservedPort(): number {
+  const rangeSize = RESERVED_PORTS.last - RESERVED_PORTS.first + 1;
+  return RESERVED_PORTS.first + Math.floor(Math.random() * rangeSize);
+}
+
+/** Vrai si l'on peut écouter sur ce port de 127.0.0.1 ; le port est relâché aussitôt. */
+async function canListenOn(port: number): Promise<boolean> {
   const server = createServer();
-  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
-  const address = server.address();
-  await new Promise<void>((resolve) => server.close(() => resolve()));
-  if (address === null || typeof address === 'string') {
-    throw new Error('Port libre introuvable');
+  const listening = await new Promise<boolean>((resolve) => {
+    server.once('error', () => resolve(false));
+    server.listen(port, '127.0.0.1', () => resolve(true));
+  });
+  if (listening) {
+    await new Promise<void>((resolve) => server.close(() => resolve()));
   }
-  return address.port;
+  return listening;
+}
+
+/**
+ * Un port libre sur 127.0.0.1, dans `RESERVED_PORTS`. `nextCandidate` ne sert qu'aux tests,
+ * pour imposer les ports essayés.
+ */
+export async function reserveFreePort(
+  nextCandidate: () => number = randomReservedPort,
+): Promise<number> {
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+    const port = nextCandidate();
+    if (!portsHandedOut.has(port) && (await canListenOn(port))) {
+      portsHandedOut.add(port);
+      return port;
+    }
+  }
+  throw new Error(
+    `Aucun port libre entre ${RESERVED_PORTS.first} et ${RESERVED_PORTS.last} ` +
+      `après ${MAX_ATTEMPTS} essais`,
+  );
 }
 
 /** Vrai si une connexion TCP s'ouvre : quelqu'un écoute à cette adresse et ce port. */
