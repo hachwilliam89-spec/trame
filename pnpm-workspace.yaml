@@ -17,6 +17,19 @@ allowBuilds:
   protobufjs: false
   ssh2: false
 
+# Avis acceptés temporairement par `pnpm audit` en CI (US-003), faute de version corrigée publiée.
+# Chaque entrée porte sa justification et sa condition de retrait ; une issue la suit.
+# Toutes les autres vulnérabilités hautes et critiques continuent de bloquer.
+auditConfig:
+  ignoreGhsas:
+    # GHSA-fc5q-39xc-vjpf : ReDoS de picomatch <= 4.0.7 par des glob patterns forgés.
+    # Aucune version corrigée au 18 novembre 2026 (dernière publiée : 4.0.7).
+    # picomatch n'est tiré que par l'outillage de construction et de test (Nx, Vite, Vitest,
+    # Jest, Angular CLI, Astro, knip), qui ne reçoit que des patterns écrits dans le dépôt.
+    # `pnpm audit --prod` ne le trouve pas : il est absent des images livrées.
+    # À retirer dès qu'une version corrigée de picomatch est publiée.
+    - GHSA-fc5q-39xc-vjpf
+
 # Correctifs de sécurité imposés aux dépendances transitives (pnpm audit en CI, US-003).
 # À retirer quand la dépendance directe embarque elle-même une version corrigée.
 overrides:
