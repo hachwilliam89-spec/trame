@@ -201,6 +201,21 @@ jobs:
       - name: Dépendances Node (vulnérabilités hautes et critiques)
         run: pnpm audit --audit-level high
 
+      # L'exception GHSA-fc5q-39xc-vjpf (pnpm-workspace.yaml) suppose picomatch limité à
+      # l'outillage de construction et de test. S'il entrait dans les dépendances d'exécution,
+      # l'audit resterait vert : ce contrôle échoue à sa place. `pnpm why` lit le lockfile,
+      # sans installation. À retirer avec l'exception.
+      - name: picomatch absent des dépendances d'exécution
+        run: |
+          paths="$(pnpm why picomatch --prod)"
+          if [ -n "$paths" ]; then
+            echo "$paths"
+            echo "::error::picomatch est entré dans les dépendances d'exécution."
+            echo "L'exception GHSA-fc5q-39xc-vjpf de pnpm-workspace.yaml ne tient plus."
+            exit 1
+          fi
+          echo "picomatch reste limité à l'outillage de construction et de test."
+
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           version-file: apps/engine/pyproject.toml
