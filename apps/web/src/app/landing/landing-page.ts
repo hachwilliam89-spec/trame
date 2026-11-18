@@ -1,4 +1,5 @@
-import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
+import { ThemePreference } from '../theme/theme-preference';
 
 /**
  * Accueil d'un visiteur sans compte.
@@ -16,6 +17,8 @@ export class LandingPage {
   /** Le fournisseur d'identité ne répond pas : le bouton de connexion laisse place à l'alerte. */
   readonly connectionUnavailable = input(false);
   readonly loginRequested = output();
+  /** Le symbole du hero suit le thème choisi, pas seulement celui du système. */
+  protected readonly theme = inject(ThemePreference).theme;
 
   protected requestLogin(): void {
     this.loginRequested.emit();

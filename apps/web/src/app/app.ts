@@ -17,14 +17,17 @@ import {
 } from '@trame/web/scheduling/data-access';
 import { browserStorage } from './browser-storage';
 import { LandingPage } from './landing/landing-page';
+import { ThemePreference } from './theme/theme-preference';
+import { ThemeSwitch } from './theme/theme-switch';
 @Component({
   selector: 'tr-root',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, LandingPage],
+  imports: [RouterLink, RouterLinkActive, RouterOutlet, LandingPage, ThemeSwitch],
   templateUrl: './app.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class App {
   protected readonly session = inject(WebSession);
+  protected readonly theme = inject(ThemePreference).theme;
   private readonly diagnostic = inject(DiagnosticState);
   private readonly planning = inject(PlanningState);
   protected readonly actionError = signal('');

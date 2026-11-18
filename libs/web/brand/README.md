@@ -1,6 +1,6 @@
 # Marque Trame
 
-La palette Encre et vermillon est partagée par la vitrine, le diagnostic et le planning. Le vermillon repère les actions et le lilas et le bleu distinguent les créneaux : le matin est le plus clair, l’après-midi plus soutenu, avec un filet bleu en thème sombre. L’ambre indique un manque de couverture. Chaque état garde un libellé. Les couleurs claires et sombres suivent le thème du navigateur.
+La palette Encre et vermillon est partagée par la vitrine, le diagnostic et le planning. Le vermillon repère les actions et le lilas et le bleu distinguent les créneaux : le matin est le plus clair, l’après-midi plus soutenu, avec un filet bleu en thème sombre. L’ambre indique un manque de couverture. Chaque état garde un libellé. Le thème se choisit dans l’en-tête : Clair, Sombre ou Système (par défaut). Le choix est conservé dans `localStorage` (`trame.theme`) et posé sur `<html>` par l’attribut `data-theme` : `public/theme-init.js` l’applique avant le premier rendu, puis `ThemePreference` le suit. Les jetons `light-dark()`, le hero et les logos s’y conforment sans rechargement.
 
 ## Logo
 

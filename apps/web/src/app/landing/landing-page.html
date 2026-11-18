@@ -14,10 +14,13 @@
   </div>
   <div class="hero-art" aria-hidden="true">
     <div class="hero-plate">
-      <picture>
-        <source media="(prefers-color-scheme: light)" srcset="/trame-mark-light.svg" />
-        <img class="hero-mark" src="/trame-mark.svg" width="180" height="180" alt="" />
-      </picture>
+      <img
+        class="hero-mark"
+        [src]="theme() === 'light' ? '/trame-mark-light.svg' : '/trame-mark.svg'"
+        width="180"
+        height="180"
+        alt=""
+      />
     </div>
   </div>
 </section>

@@ -65,3 +65,14 @@
   /* Ombre franche du symbole penché ; les panneaux n'ont pas d'ombre, seulement un filet. */
   --shadow-weave: 6px 6px 0 var(--weave-ground-deep);
 }
+
+/*
+ * Choix du thème : `theme-init.js` puis `ThemePreference` posent `data-theme` sur <html>.
+ * `light-dark()` suit alors ce choix plutôt que celui du système.
+ */
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+:root[data-theme='dark'] {
+  color-scheme: dark;
+}
