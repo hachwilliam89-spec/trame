@@ -301,6 +301,14 @@ tr-planning-page .week-grid .shift + .shift,
 tr-planning-page .employee-assignment + .employee-assignment {
   margin-block-start: 4px;
 }
+/* L’après-midi garde sa forme sur la grille sombre ; le survol et la sélection gardent leur propre contour. */
+tr-planning-page :is(.week-grid .shift, .swatch).tone-2 {
+  box-shadow: inset 0 0 0 1px var(--shift-aprem-edge);
+}
+/* La pastille claire du matin reste visible dans la légende ; les barres de la grille gardent leur fond seul. */
+tr-planning-page .swatch.tone-1 {
+  box-shadow: inset 0 0 0 1px var(--shift-matin-edge);
+}
 tr-planning-page .week-grid .shift:hover {
   box-shadow: inset 0 -2px currentColor;
 }

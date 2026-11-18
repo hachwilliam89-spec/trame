@@ -123,9 +123,13 @@
     0 28px 48px #060817a3,
     inset 0 0 0 5px #a5acc122;
 }
-.hero-mark {
+.hero-plate picture {
   display: block;
   width: 73%;
+}
+.hero-mark {
+  display: block;
+  width: 100%;
   height: auto;
   filter: drop-shadow(3px 4px 0 #101422) drop-shadow(1px 4px 6px #11172599);
 }
@@ -145,6 +149,68 @@
   .landing-hero .hero-action:hover {
     transform: translate(-2px, -2px);
     box-shadow: 6px 6px 0 #8b352e;
+  }
+}
+
+/* Thème clair : même composition, couleurs de la page. La bande vermillon relie les deux thèmes. */
+@media (prefers-color-scheme: light) {
+  .landing-hero {
+    border-bottom-color: #a22d21;
+    background: radial-gradient(ellipse at 64% 18%, #fffaf3, transparent 61%), #f6efe5;
+    box-shadow: inset 0 0 0 1px #e2d7ca;
+    color: #191e30;
+  }
+  .landing-hero .eyebrow {
+    color: #a22d21;
+  }
+  .hero-pitch {
+    color: #595766;
+  }
+  .landing-hero .hero-action {
+    background: #a22d21;
+    border-color: #a22d21;
+    box-shadow: 4px 4px 0 #5e1a13;
+    color: #fffaf3;
+  }
+  .landing-hero .hero-action:hover {
+    background: #191e30;
+    border-color: #191e30;
+    color: #fffaf3;
+  }
+  .hero-secondary {
+    color: #191e30;
+  }
+  .hero-secondary:hover,
+  .hero-secondary:focus-visible {
+    color: #a22d21;
+  }
+  .landing-hero :focus-visible {
+    outline-color: #46548a;
+  }
+  .hero-art::before {
+    border-color: #cbbfb1;
+    background:
+      repeating-linear-gradient(0deg, #191e3012 0 1px, transparent 1px 16px),
+      repeating-linear-gradient(90deg, #191e3012 0 1px, transparent 1px 16px);
+  }
+  .hero-art::after {
+    box-shadow: 0 12px 22px #191e3024;
+  }
+  .hero-plate {
+    border-color: #d2c6ba;
+    background: linear-gradient(138deg, #fffdf9, #fbf4ea 40%, #f3eadf 84%);
+    box-shadow:
+      8px 8px 0 #d6c8b8,
+      0 18px 32px #191e3022,
+      inset 0 0 0 5px #191e3008;
+  }
+  .hero-mark {
+    filter: drop-shadow(2px 3px 0 #d9ccbd);
+  }
+}
+@media (prefers-color-scheme: light) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .landing-hero .hero-action:hover {
+    box-shadow: 6px 6px 0 #5e1a13;
   }
 }
 
@@ -289,6 +355,7 @@
 .shift-bar.afternoon {
   background: var(--shift-aprem);
   color: var(--shift-aprem-ink);
+  box-shadow: inset 0 0 0 1px var(--shift-aprem-edge);
 }
 .shift-bar.rest {
   justify-content: center;
