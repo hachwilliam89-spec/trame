@@ -2,10 +2,12 @@
 <div class="app-window">
   <header class="app-header">
     <a class="brand-home" routerLink="/" aria-label="Trame, accueil">
-      <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="/trame-logo-dark.svg" />
-        <img src="/trame-logo.svg" width="127" height="36" alt="Trame" />
-      </picture>
+      <img
+        [src]="theme() === 'dark' ? '/trame-logo-dark.svg' : '/trame-logo.svg'"
+        width="127"
+        height="36"
+        alt="Trame"
+      />
     </a>
     @if (session.status() === 'authenticated') {
     <nav class="app-navigation" aria-label="Navigation principale">
@@ -23,6 +25,7 @@
     </nav>
     }
     <div class="context">
+      <tr-theme-switch />
       <span class="environment">Espace de démonstration</span>@if (session.identity()) {<span
         class="account"
         >{{ roleLabel() }}</span

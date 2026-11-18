@@ -114,6 +114,49 @@ p {
   gap: 16px;
   flex-wrap: wrap;
 }
+/* Sélecteur de thème : des boutons radio natifs présentés en segments. */
+.theme-switch {
+  display: inline-flex;
+  gap: 2px;
+  margin: 0;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--soft);
+}
+.theme-option {
+  position: relative;
+  display: inline-flex;
+}
+.theme-option input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.theme-option span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding-inline: var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+.theme-option:hover span {
+  color: var(--ink);
+}
+.theme-option input:checked + span {
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line-strong);
+  color: var(--ink);
+}
+.theme-option input:focus-visible + span {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
 .environment,
 .status {
   display: inline-flex;
