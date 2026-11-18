@@ -24,11 +24,15 @@
   --error: light-dark(#922c48, #ffbac8);
   --error-soft: light-dark(#f7dfe6, #412432);
 
-  /* Créneaux */
-  --shift-matin: light-dark(#eae3f4, #393250);
-  --shift-matin-ink: light-dark(#422b58, #efe1ff);
-  --shift-aprem: light-dark(#dce9ef, #223c4d);
-  --shift-aprem-ink: light-dark(#183a4a, #d4f1fa);
+  /* Créneaux : le matin est le plus clair, l’après-midi plus soutenu. Le libellé porte le sens. */
+  --shift-matin: light-dark(#eee6f7, #54497a);
+  --shift-matin-ink: light-dark(#422b58, #f5ecff);
+  --shift-aprem: light-dark(#a9cadb, #1a2e3b);
+  --shift-aprem-ink: light-dark(#14303d, #d4f1fa);
+  /* Filet de la pastille du matin en clair, dans la légende seulement. */
+  --shift-matin-edge: light-dark(#a894c6, transparent);
+  /* Filet de l’après-midi en sombre : son fond est proche de celui de la grille. */
+  --shift-aprem-edge: light-dark(transparent, #46708a);
 
   /* Bandeaux de marque, indépendants du thème système */
   --weave-ground: #181d31;
