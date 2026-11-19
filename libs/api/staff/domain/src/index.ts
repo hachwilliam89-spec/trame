@@ -16,6 +16,7 @@ export {
   type DayValuation,
   EqualShareReference,
   type EqualShareReferenceProperties,
+  type ValuedDay,
 } from './lib/absence/equal-share-reference';
 export {
   PlanningReference,

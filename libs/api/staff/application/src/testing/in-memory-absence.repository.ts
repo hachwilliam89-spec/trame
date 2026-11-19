@@ -1,4 +1,4 @@
-import type { Absence, AbsenceWeekReference } from '@trame/api/staff/domain';
+import type { Absence, AbsenceWeekReference, ValuedDay } from '@trame/api/staff/domain';
 import type { AbsenceRepository } from '../lib/ports/absence.repository';
 import type { InMemoryAbsenceWeekReferenceRepository } from './in-memory-absence-week-reference.repository';
 import type { InMemoryEmployeeRepository } from './in-memory-employee.repository';
@@ -26,6 +26,7 @@ export class InMemoryAbsenceRepository implements AbsenceRepository {
   async update(
     absence: Absence,
     referencesToFreeze: readonly AbsenceWeekReference[],
+    valuedDays: readonly ValuedDay[],
   ): Promise<boolean> {
     const index = this.absences.findIndex(
       (stored) => stored.organizationId === absence.organizationId && stored.id === absence.id,
@@ -35,15 +36,20 @@ export class InMemoryAbsenceRepository implements AbsenceRepository {
     }
     this.absences[index] = absence;
     this.freeze(referencesToFreeze);
+    this.discardValuationsOfDaysWithoutAbsence(absence, valuedDays);
     return true;
   }
 
-  async remove(organizationId: string, absenceId: string): Promise<boolean> {
+  async remove(absence: Absence, valuedDays: readonly ValuedDay[]): Promise<boolean> {
     const before = this.absences.length;
     this.absences = this.absences.filter(
-      (absence) => absence.organizationId !== organizationId || absence.id !== absenceId,
+      (stored) => stored.organizationId !== absence.organizationId || stored.id !== absence.id,
     );
-    return this.absences.length < before;
+    if (this.absences.length === before) {
+      return false;
+    }
+    this.discardValuationsOfDaysWithoutAbsence(absence, valuedDays);
+    return true;
   }
 
   async listBySiteOverlapping(
@@ -83,6 +89,24 @@ export class InMemoryAbsenceRepository implements AbsenceRepository {
   private freeze(referencesToFreeze: readonly AbsenceWeekReference[]): void {
     for (const reference of referencesToFreeze) {
       this.references.addIfAbsent(reference);
+    }
+  }
+
+  /** Comme la base : la durée d'un jour qu'aucune absence de l'employé ne touche plus disparaît. */
+  private discardValuationsOfDaysWithoutAbsence(
+    written: Absence,
+    valuedDays: readonly ValuedDay[],
+  ): void {
+    for (const valuedDay of valuedDays) {
+      const isStillAbsent = this.absences.some(
+        (absence) =>
+          absence.organizationId === written.organizationId &&
+          absence.employeeId === written.employeeId &&
+          absence.overlaps(valuedDay.bounds.start, valuedDay.bounds.end),
+      );
+      if (!isStillAbsent) {
+        this.references.discardDayValuation(written.organizationId, written.employeeId, valuedDay);
+      }
     }
   }
 }

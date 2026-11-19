@@ -107,7 +107,7 @@ describe('absences sur PostgreSQL (US-033, jalon 2)', () => {
       reason: 'SICK_LEAVE',
     });
 
-    expect(await absences.update(moved, [])).toBe(true);
+    expect(await absences.update(moved, [], [])).toBe(true);
 
     const found = await absences.findById(ORGANIZATION_A, leave.id);
     expect(found?.startsAt.toString()).toBe('2026-11-26T23:00:00Z');
@@ -118,8 +118,8 @@ describe('absences sur PostgreSQL (US-033, jalon 2)', () => {
     const mistake = absenceOf(ines, '2026-11-24T00:00', '2026-11-25T00:00');
     await absences.add(mistake, []);
 
-    expect(await absences.remove(ORGANIZATION_A, mistake.id)).toBe(true);
-    expect(await absences.remove(ORGANIZATION_A, mistake.id)).toBe(false);
+    expect(await absences.remove(mistake, [])).toBe(true);
+    expect(await absences.remove(mistake, [])).toBe(false);
     expect(await absences.findById(ORGANIZATION_A, mistake.id)).toBeUndefined();
   });
 
@@ -129,8 +129,8 @@ describe('absences sur PostgreSQL (US-033, jalon 2)', () => {
     const seenFromB = Absence.create({ ...leave, organizationId: ORGANIZATION_B });
 
     expect(await absences.findById(ORGANIZATION_B, leave.id)).toBeUndefined();
-    expect(await absences.update(seenFromB, [])).toBe(false);
-    expect(await absences.remove(ORGANIZATION_B, leave.id)).toBe(false);
+    expect(await absences.update(seenFromB, [], [])).toBe(false);
+    expect(await absences.remove(seenFromB, [])).toBe(false);
     expect(await idsOfTheWeek(ORGANIZATION_B)).toEqual([]);
     expect(await idsOfTheWeek()).toEqual([leave.id]);
   });

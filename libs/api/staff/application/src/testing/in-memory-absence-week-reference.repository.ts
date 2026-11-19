@@ -1,8 +1,19 @@
-import { type AbsenceWeekReference, EqualShareReference } from '@trame/api/staff/domain';
-import type { AbsenceWeekReferenceRepository } from '../lib/ports/absence-week-reference.repository';
+import {
+  type AbsenceWeekReference,
+  EqualShareReference,
+  type ValuedDay,
+} from '@trame/api/staff/domain';
+import type {
+  AbsenceWeekReferenceRepository,
+  DayValuationSaveOutcome,
+} from '../lib/ports/absence-week-reference.repository';
 import type { InMemoryEmployeeRepository } from './in-memory-employee.repository';
 
-/** Dépôt en mémoire, pour les tests. Le site d'une référence est celui de son employé. */
+/**
+ * Dépôt en mémoire, pour les tests. Le site d'une référence est celui de son employé. Les tests
+ * s'exécutent sans écriture concurrente : `saveDayValuation` ne revérifie pas, comme la base, que
+ * le jour a encore une absence au moment d'écrire.
+ */
 export class InMemoryAbsenceWeekReferenceRepository implements AbsenceWeekReferenceRepository {
   private readonly references = new Map<string, AbsenceWeekReference>();
 
@@ -48,7 +59,7 @@ export class InMemoryAbsenceWeekReferenceRepository implements AbsenceWeekRefere
   async saveDayValuation(
     reference: EqualShareReference,
     day: Temporal.PlainDate,
-  ): Promise<boolean> {
+  ): Promise<DayValuationSaveOutcome> {
     const valuation = reference.dayValuations.get(day.toString());
     if (valuation === undefined) {
       throw new RangeError(`La référence ne donne aucune durée au ${day.toString()}.`);
@@ -56,13 +67,25 @@ export class InMemoryAbsenceWeekReferenceRepository implements AbsenceWeekRefere
     const key = keyOf(reference.organizationId, reference.employeeId, reference.weekStartsOn);
     const stored = this.references.get(key);
     if (!(stored instanceof EqualShareReference)) {
-      return false;
+      return 'REFERENCE_NOT_FOUND';
     }
     // Comme la base : seule la durée de ce jour change, les autres restent celles enregistrées.
     const dayValuations = new Map(stored.dayValuations);
     dayValuations.set(day.toString(), valuation);
     this.references.set(key, EqualShareReference.freeze({ ...stored, dayValuations }));
-    return true;
+    return 'SAVED';
+  }
+
+  /** Efface la durée d'un jour, comme le fait la base quand ce jour n'a plus d'absence. */
+  discardDayValuation(organizationId: string, employeeId: string, valuedDay: ValuedDay): void {
+    const key = keyOf(organizationId, employeeId, valuedDay.weekStartsOn);
+    const stored = this.references.get(key);
+    if (!(stored instanceof EqualShareReference)) {
+      return;
+    }
+    const dayValuations = new Map(stored.dayValuations);
+    dayValuations.delete(valuedDay.day.toString());
+    this.references.set(key, EqualShareReference.freeze({ ...stored, dayValuations }));
   }
 }
 

@@ -18,6 +18,7 @@ import {
   type PlanningReferenceSource,
   SetAbsenceDayValuation,
   UpdateAbsence,
+  ValuedDaysLookup,
 } from '@trame/api/staff/application';
 import { CLOCK, type Clock } from '@trame/platform/clock';
 import { ID_GENERATOR, type IdGenerator } from '@trame/platform/ids';
@@ -117,19 +118,36 @@ const absenceProviders: Provider[] = [
     ) => new DeclareAbsence(employees, absences, freezer, clock, ids),
   },
   {
+    provide: ValuedDaysLookup,
+    inject: [ORGANIZATION_CATALOG, ABSENCE_WEEK_REFERENCE_REPOSITORY],
+    useFactory: (catalog: OrganizationCatalog, references: AbsenceWeekReferenceRepository) =>
+      new ValuedDaysLookup(catalog, references),
+  },
+  {
     provide: UpdateAbsence,
-    inject: [EMPLOYEE_REPOSITORY, ABSENCE_REPOSITORY, AbsenceWeekReferenceFreezer, CLOCK],
+    inject: [
+      EMPLOYEE_REPOSITORY,
+      ABSENCE_REPOSITORY,
+      AbsenceWeekReferenceFreezer,
+      ValuedDaysLookup,
+      CLOCK,
+    ],
     useFactory: (
       employees: EmployeeRepository,
       absences: AbsenceRepository,
       freezer: AbsenceWeekReferenceFreezer,
+      valuedDays: ValuedDaysLookup,
       clock: Clock,
-    ) => new UpdateAbsence(employees, absences, freezer, clock),
+    ) => new UpdateAbsence(employees, absences, freezer, valuedDays, clock),
   },
   {
     provide: DeleteAbsence,
-    inject: [ABSENCE_REPOSITORY],
-    useFactory: (absences: AbsenceRepository) => new DeleteAbsence(absences),
+    inject: [EMPLOYEE_REPOSITORY, ABSENCE_REPOSITORY, ValuedDaysLookup],
+    useFactory: (
+      employees: EmployeeRepository,
+      absences: AbsenceRepository,
+      valuedDays: ValuedDaysLookup,
+    ) => new DeleteAbsence(employees, absences, valuedDays),
   },
   {
     provide: ListWeekAbsences,

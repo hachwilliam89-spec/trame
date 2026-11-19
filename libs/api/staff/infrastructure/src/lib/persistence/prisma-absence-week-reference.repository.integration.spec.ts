@@ -126,10 +126,13 @@ describe('références de valorisation des absences sur PostgreSQL (US-033)', ()
       absenceOf(camille, '2026-11-26T06:00', '2026-11-26T08:00'),
       absenceOf(camille, '2026-11-26T09:00', '2026-11-26T10:00'),
     ];
+    for (const absence of thursdayMornings) {
+      await absences.add(absence, []);
+    }
 
     expect(await references.find(ORGANIZATION_A, camille, MONDAY)).toEqual(equalShareOf(camille));
     const valued = equalShareOf(camille).withDayValuation(thursday, 180, thursdayMornings);
-    expect(await references.saveDayValuation(valued, thursday)).toBe(true);
+    expect(await references.saveDayValuation(valued, thursday)).toBe('SAVED');
     const found = await references.find(ORGANIZATION_A, camille, MONDAY);
     expect(found).toEqual(valued);
     expect(found?.value(thursdayMornings)).toEqual({ status: 'VALUED', absenceMinutes: 180 });
@@ -147,6 +150,9 @@ describe('références de valorisation des absences sur PostgreSQL (US-033)', ()
       absenceOf(camille, '2026-11-26T06:00', '2026-11-26T10:00'),
       absenceOf(camille, '2026-11-27T14:00', '2026-11-27T16:00'),
     ];
+    for (const absence of partialAbsences) {
+      await absences.add(absence, []);
+    }
 
     await Promise.all([
       references.saveDayValuation(read.withDayValuation(thursday, 180, partialAbsences), thursday),
@@ -157,6 +163,87 @@ describe('références de valorisation des absences sur PostgreSQL (US-033)', ()
     expect(found?.value([tuesdayOf(camille), ...partialAbsences])).toEqual({
       status: 'VALUED',
       absenceMinutes: 280 + 180 + 120,
+    });
+  });
+
+  describe('durée d’un jour resté sans absence', () => {
+    const THURSDAY = Temporal.PlainDate.from('2026-11-26');
+
+    /** Camille absente le jeudi de 14 h à 16 h, valorisée 2 h par convention. */
+    async function valuedThursdayAfternoon() {
+      const afternoon = absenceOf(camille, '2026-11-26T14:00', '2026-11-26T16:00');
+      await absences.add(afternoon, [equalShareOf(camille)]);
+      const valued = equalShareOf(camille).withDayValuation(THURSDAY, 120, [afternoon]);
+      expect(await references.saveDayValuation(valued, THURSDAY)).toBe('SAVED');
+      return { afternoon, valued };
+    }
+
+    it('efface la durée dans la transaction qui supprime la dernière absence du jour', async () => {
+      const { afternoon, valued } = await valuedThursdayAfternoon();
+
+      expect(await absences.remove(afternoon, valued.valuedDays())).toBe(true);
+
+      expect(await references.find(ORGANIZATION_A, camille, MONDAY)).toEqual(equalShareOf(camille));
+    });
+
+    it('garde la durée tant qu’une autre absence touche le jour', async () => {
+      const { afternoon, valued } = await valuedThursdayAfternoon();
+      await absences.add(absenceOf(camille, '2026-11-26T15:00', '2026-11-26T16:00'), []);
+
+      expect(await absences.remove(afternoon, valued.valuedDays())).toBe(true);
+
+      expect(await references.find(ORGANIZATION_A, camille, MONDAY)).toEqual(valued);
+    });
+
+    it('efface la durée quand les deux absences du jour sont supprimées en même temps', async () => {
+      const early = absenceOf(camille, '2026-11-26T14:00', '2026-11-26T15:00');
+      const late = absenceOf(camille, '2026-11-26T15:00', '2026-11-26T16:00');
+      await absences.add(early, [equalShareOf(camille)]);
+      await absences.add(late, []);
+      const valued = equalShareOf(camille).withDayValuation(THURSDAY, 120, [early, late]);
+      expect(await references.saveDayValuation(valued, THURSDAY)).toBe('SAVED');
+
+      await Promise.all([
+        absences.remove(early, valued.valuedDays()),
+        absences.remove(late, valued.valuedDays()),
+      ]);
+
+      expect(await references.find(ORGANIZATION_A, camille, MONDAY)).toEqual(equalShareOf(camille));
+    });
+
+    it('efface la durée quand une modification déplace la dernière absence hors du jour', async () => {
+      const { afternoon, valued } = await valuedThursdayAfternoon();
+      const movedToFriday = afternoon.changeTo({
+        startsAt: parisInstant('2026-11-27T14:00'),
+        endsAt: parisInstant('2026-11-27T16:00'),
+        reason: 'LEAVE',
+      });
+
+      expect(await absences.update(movedToFriday, [], valued.valuedDays())).toBe(true);
+
+      expect(await references.find(ORGANIZATION_A, camille, MONDAY)).toEqual(equalShareOf(camille));
+    });
+
+    it('n’enregistre pas une durée dont le jour a perdu sa dernière absence avant l’écriture', async () => {
+      const afternoon = absenceOf(camille, '2026-11-26T14:00', '2026-11-26T16:00');
+      await absences.add(afternoon, [equalShareOf(camille)]);
+      const valued = equalShareOf(camille).withDayValuation(THURSDAY, 120, [afternoon]);
+      await absences.remove(afternoon, []);
+
+      expect(await references.saveDayValuation(valued, THURSDAY)).toBe('DAY_WITHOUT_ABSENCE');
+      expect(await references.find(ORGANIZATION_A, camille, MONDAY)).toEqual(equalShareOf(camille));
+    });
+
+    it('BDD isolation : n’écrit pas de durée sur la référence d’une autre organisation', async () => {
+      const { afternoon } = await valuedThursdayAfternoon();
+      const seenFromB = EqualShareReference.freeze({
+        ...equalShareOf(camille),
+        organizationId: ORGANIZATION_B,
+      }).withDayValuation(THURSDAY, 60, [
+        Absence.create({ ...afternoon, organizationId: ORGANIZATION_B }),
+      ]);
+
+      expect(await references.saveDayValuation(seenFromB, THURSDAY)).toBe('REFERENCE_NOT_FOUND');
     });
   });
 
@@ -187,11 +274,13 @@ describe('références de valorisation des absences sur PostgreSQL (US-033)', ()
     const tuesday = tuesdayOf(camille);
     await absences.add(tuesday, []);
 
-    expect(await absences.update(tuesday, [planningReferenceOf(camille)])).toBe(true);
+    expect(await absences.update(tuesday, [planningReferenceOf(camille)], [])).toBe(true);
     expect(await references.find(ORGANIZATION_A, camille, MONDAY)).toBeDefined();
 
     const missing = tuesdayOf(employeeAtOtherSite);
-    expect(await absences.update(missing, [planningReferenceOf(employeeAtOtherSite)])).toBe(false);
+    expect(await absences.update(missing, [planningReferenceOf(employeeAtOtherSite)], [])).toBe(
+      false,
+    );
     expect(await references.find(ORGANIZATION_A, employeeAtOtherSite, MONDAY)).toBeUndefined();
   });
 

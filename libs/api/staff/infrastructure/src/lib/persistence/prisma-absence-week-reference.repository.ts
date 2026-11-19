@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { Database, plainDateToDate } from '@trame/api/database';
-import type { AbsenceWeekReferenceRepository } from '@trame/api/staff/application';
+import type {
+  AbsenceWeekReferenceRepository,
+  DayValuationSaveOutcome,
+} from '@trame/api/staff/application';
 import type { AbsenceWeekReference, EqualShareReference } from '@trame/api/staff/domain';
-import { toAbsenceWeekReference, toDayValuationRecord } from './absence-week-reference-record';
+import { toAbsenceWeekReference } from './absence-week-reference-record';
+import { lockEqualShareReference, setValuationOfDayWithAbsence } from './day-valuation-statements';
 
 /** Références de valorisation dans `staff.absence_week_references`. */
 @Injectable()
@@ -41,26 +45,26 @@ export class PrismaAbsenceWeekReferenceRepository implements AbsenceWeekReferenc
   async saveDayValuation(
     reference: EqualShareReference,
     day: Temporal.PlainDate,
-  ): Promise<boolean> {
+  ): Promise<DayValuationSaveOutcome> {
     const valuation = reference.dayValuations.get(day.toString());
     if (valuation === undefined) {
       throw new RangeError(`La référence ne donne aucune durée au ${day.toString()}.`);
     }
-    const dayValuationJson = JSON.stringify(toDayValuationRecord(valuation));
-    // Une seule instruction remplace la durée de ce jour : l'UPDATE verrouille la ligne, et une
-    // écriture concurrente repart de la valeur que celle-ci laisse. Réécrire toute la colonne
-    // depuis une lecture antérieure effacerait la durée d'un autre jour. Prisma ne sait pas
-    // modifier une seule clé d'une colonne JSON.
-    const updated = await this.database.client.$executeRaw`
-      UPDATE staff.absence_week_references
-      SET day_valuations = jsonb_set(
-        day_valuations, ARRAY[${day.toString()}::text], ${dayValuationJson}::jsonb
-      )
-      WHERE organization_id = ${reference.organizationId}::uuid
-        AND employee_id = ${reference.employeeId}::uuid
-        AND week_starts_on = ${reference.weekStartsOn.toString()}::date
-        AND method = ${reference.method}
-    `;
-    return updated === 1;
+    return this.database.transaction(async (transaction) => {
+      const isLocked = await lockEqualShareReference(
+        transaction,
+        reference.organizationId,
+        reference.employeeId,
+        reference.weekStartsOn,
+      );
+      if (!isLocked) {
+        return 'REFERENCE_NOT_FOUND';
+      }
+      const isSaved = await setValuationOfDayWithAbsence(transaction, reference, day, valuation);
+      if (!isSaved) {
+        return 'DAY_WITHOUT_ABSENCE';
+      }
+      return 'SAVED';
+    });
   }
 }

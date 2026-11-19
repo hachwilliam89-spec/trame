@@ -1,4 +1,9 @@
-import { type Absence, EqualShareReference, weekBounds } from '@trame/api/staff/domain';
+import {
+  type Absence,
+  EqualShareReference,
+  NoPartialAbsenceOnDayError,
+  weekBounds,
+} from '@trame/api/staff/domain';
 import { findEmployeeOrThrow } from '../ensure-employee-exists';
 import type { AbsenceWeekReferenceRepository } from '../ports/absence-week-reference.repository';
 import type { AbsenceRepository } from '../ports/absence.repository';
@@ -41,8 +46,13 @@ export class SetAbsenceDayValuation {
     }
     const absences = await this.absencesOfWeek(command, reference);
     const valued = reference.withDayValuation(command.day, command.valuedMinutes, absences);
-    if (!(await this.references.saveDayValuation(valued, command.day))) {
+    const outcome = await this.references.saveDayValuation(valued, command.day);
+    if (outcome === 'REFERENCE_NOT_FOUND') {
       throw new NoEqualShareReferenceError();
+    }
+    // La dernière absence du jour a disparu entre la lecture et l'écriture.
+    if (outcome === 'DAY_WITHOUT_ABSENCE') {
+      throw new NoPartialAbsenceOnDayError();
     }
   }
 

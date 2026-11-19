@@ -357,6 +357,43 @@ describe('valorisation sans planning de référence : parts égales sur les jour
     expect(reference.value([sunday])).toEqual({ status: 'VALUED', absenceMinutes: 28 * HOURS });
   });
 
+  it('donne les jours valorisés avec leurs bornes à l’heure du site, 25 h au passage à l’heure d’hiver', () => {
+    const weekOf19October = Temporal.PlainDate.from('2026-10-19');
+    const sunday = weekOf19October.add({ days: 6 });
+    const reference = EqualShareReference.freeze({
+      organizationId: ORGANIZATION,
+      employeeId: CAMILLE,
+      weekStartsOn: weekOf19October,
+      frozenAt: FROZEN_AT,
+      timeZone: PARIS,
+      weeklyMinimumMinutes: 28 * HOURS,
+      activityDays: [sunday],
+    });
+    const sundayMorning = Absence.create({
+      id: '0190f0a0-0000-7000-8000-0000000000b3',
+      organizationId: ORGANIZATION,
+      employeeId: CAMILLE,
+      startsAt: Temporal.Instant.from('2026-10-25T06:00:00+01:00'),
+      endsAt: Temporal.Instant.from('2026-10-25T10:00:00+01:00'),
+      reason: 'LEAVE',
+      createdAt: FROZEN_AT,
+    });
+
+    const valuedDays = reference.withDayValuation(sunday, HOURS, [sundayMorning]).valuedDays();
+
+    expect(valuedDays).toEqual([
+      {
+        weekStartsOn: weekOf19October,
+        day: sunday,
+        bounds: {
+          start: Temporal.Instant.from('2026-10-24T22:00:00Z'),
+          end: Temporal.Instant.from('2026-10-25T23:00:00Z'),
+        },
+      },
+    ]);
+    expect(camilleByEqualShare().valuedDays()).toEqual([]);
+  });
+
   it('refuse une convention sans jour d’activité, ou avec un jour hors de la semaine', () => {
     expect(() => camilleByEqualShare([])).toThrow(RangeError);
     expect(() => camilleByEqualShare([Temporal.PlainDate.from('2026-11-30')])).toThrow(RangeError);

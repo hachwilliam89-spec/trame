@@ -7,13 +7,24 @@ import {
   instantToDate,
 } from '@trame/api/database';
 import type { AbsenceRepository } from '@trame/api/staff/application';
-import { Absence, type AbsenceReason, type AbsenceWeekReference } from '@trame/api/staff/domain';
+import {
+  Absence,
+  type AbsenceReason,
+  type AbsenceWeekReference,
+  type ValuedDay,
+} from '@trame/api/staff/domain';
 import { toAbsenceWeekReferenceRecord } from './absence-week-reference-record';
+import {
+  discardValuationsOfDaysWithoutAbsence,
+  lockWeeksOfValuedDays,
+} from './day-valuation-statements';
 
 /**
  * Absences dans `staff.absences`. Le site d'une absence est celui de son employé. Les références
  * qu'une absence fige s'écrivent dans la même transaction : une référence déjà présente pour le
- * salarié et la semaine, même écrite à l'instant par une autre requête, est gardée.
+ * salarié et la semaine, même écrite à l'instant par une autre requête, est gardée. Une
+ * modification ou une suppression efface, dans sa transaction, la durée des jours qu'elle laisse
+ * sans absence (`day-valuation-statements.ts`).
  */
 @Injectable()
 export class PrismaAbsenceRepository implements AbsenceRepository {
@@ -36,8 +47,15 @@ export class PrismaAbsenceRepository implements AbsenceRepository {
   async update(
     absence: Absence,
     referencesToFreeze: readonly AbsenceWeekReference[],
+    valuedDays: readonly ValuedDay[],
   ): Promise<boolean> {
     return this.database.transaction(async (transaction) => {
+      await lockWeeksOfValuedDays(
+        transaction,
+        absence.organizationId,
+        absence.employeeId,
+        valuedDays,
+      );
       const { count } = await transaction.absence.updateMany({
         where: { id: absence.id, organizationId: absence.organizationId },
         data: {
@@ -50,15 +68,38 @@ export class PrismaAbsenceRepository implements AbsenceRepository {
         return false;
       }
       await freeze(transaction, referencesToFreeze);
+      await discardValuationsOfDaysWithoutAbsence(
+        transaction,
+        absence.organizationId,
+        absence.employeeId,
+        valuedDays,
+      );
       return true;
     });
   }
 
-  async remove(organizationId: string, absenceId: string): Promise<boolean> {
-    const { count } = await this.database.client.absence.deleteMany({
-      where: { id: absenceId, organizationId },
+  async remove(absence: Absence, valuedDays: readonly ValuedDay[]): Promise<boolean> {
+    return this.database.transaction(async (transaction) => {
+      await lockWeeksOfValuedDays(
+        transaction,
+        absence.organizationId,
+        absence.employeeId,
+        valuedDays,
+      );
+      const { count } = await transaction.absence.deleteMany({
+        where: { id: absence.id, organizationId: absence.organizationId },
+      });
+      if (count !== 1) {
+        return false;
+      }
+      await discardValuationsOfDaysWithoutAbsence(
+        transaction,
+        absence.organizationId,
+        absence.employeeId,
+        valuedDays,
+      );
+      return true;
     });
-    return count === 1;
   }
 
   async listBySiteOverlapping(

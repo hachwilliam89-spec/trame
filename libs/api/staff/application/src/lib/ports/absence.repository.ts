@@ -1,4 +1,4 @@
-import type { Absence, AbsenceWeekReference } from '@trame/api/staff/domain';
+import type { Absence, AbsenceWeekReference, ValuedDay } from '@trame/api/staff/domain';
 
 /** Absences enregistrées. Chaque lecture et chaque écriture sont limitées à une organisation. */
 export interface AbsenceRepository {
@@ -13,13 +13,25 @@ export interface AbsenceRepository {
   findById(organizationId: string, absenceId: string): Promise<Absence | undefined>;
 
   /**
-   * Remplace la période et le motif, et fige les références comme `add`. Faux si l'absence
-   * n'existe plus dans son organisation : rien n'est alors écrit.
+   * Remplace la période et le motif, et fige les références comme `add`. Dans la même
+   * transaction, efface la durée de chaque jour de `valuedDays` qu'aucune absence de l'employé
+   * ne touche plus. Faux si l'absence n'existe plus dans son organisation : rien n'est alors
+   * écrit.
    */
-  update(absence: Absence, referencesToFreeze: readonly AbsenceWeekReference[]): Promise<boolean>;
+  update(
+    absence: Absence,
+    referencesToFreeze: readonly AbsenceWeekReference[],
+    valuedDays: readonly ValuedDay[],
+  ): Promise<boolean>;
 
-  /** Faux si l'absence n'existait pas dans cette organisation. */
-  remove(organizationId: string, absenceId: string): Promise<boolean>;
+  /**
+   * Supprime l'absence et, dans la même transaction, efface la durée de chaque jour de
+   * `valuedDays` qu'aucune autre absence de l'employé ne touche. Le contrôle se fait après la
+   * suppression, dans la transaction : une absence du même jour supprimée ou déplacée en même
+   * temps par une autre requête est prise en compte. Faux si l'absence n'existait pas dans son
+   * organisation.
+   */
+  remove(absence: Absence, valuedDays: readonly ValuedDay[]): Promise<boolean>;
 
   /**
    * Absences des employés du site qui couvrent au moins un instant de `[from, to[`, triées par

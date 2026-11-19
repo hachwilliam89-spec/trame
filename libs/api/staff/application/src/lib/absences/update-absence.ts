@@ -6,6 +6,7 @@ import type { AbsenceRepository } from '../ports/absence.repository';
 import type { EmployeeRepository } from '../ports/employee.repository';
 import type { AbsenceWeekReferenceFreezer } from './absence-week-reference-freezer';
 import { findAbsenceOfEmployee } from './find-absence-of-employee';
+import type { ValuedDaysLookup } from './valued-days-lookup';
 
 export interface UpdateAbsenceCommand {
   organizationId: string;
@@ -20,13 +21,15 @@ export interface UpdateAbsenceCommand {
 /**
  * Change la période ou le motif d'une absence. L'employé et l'instant de déclaration restent.
  * Une semaine déjà valorisée garde sa référence ; une semaine nouvellement touchée, ou encore
- * « à définir », fige la sienne à cet instant.
+ * « à définir », fige la sienne à cet instant. Un jour valorisé que l'absence quitte, et
+ * qu'aucune autre ne touche, perd sa durée dans la même transaction.
  */
 export class UpdateAbsence {
   constructor(
     private readonly employees: EmployeeRepository,
     private readonly absences: AbsenceRepository,
     private readonly freezer: AbsenceWeekReferenceFreezer,
+    private readonly valuedDays: ValuedDaysLookup,
     private readonly clock: Clock,
   ) {}
 
@@ -48,7 +51,8 @@ export class UpdateAbsence {
       command.employeeId,
     );
     const references = await this.freezer.referencesToFreeze(employee, changed, this.clock.now());
-    const stillExists = await this.absences.update(changed, references);
+    const valuedDays = await this.valuedDays.touchedBy(employee, absence);
+    const stillExists = await this.absences.update(changed, references, valuedDays);
     if (!stillExists) {
       throw new AbsenceNotFoundError();
     }

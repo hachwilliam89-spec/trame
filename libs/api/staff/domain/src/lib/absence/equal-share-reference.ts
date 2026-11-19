@@ -26,6 +26,17 @@ export interface DayValuation {
   readonly coveredPeriods: readonly InstantInterval[];
 }
 
+/**
+ * Jour dont une durée est enregistrée. Si plus aucune absence du salarié ne touche ses bornes, la
+ * durée disparaît : une absence saisie plus tard aux mêmes heures ne la reprend pas.
+ */
+export interface ValuedDay {
+  readonly weekStartsOn: Temporal.PlainDate;
+  readonly day: Temporal.PlainDate;
+  /** Le jour, de minuit à minuit à l'heure du site. */
+  readonly bounds: InstantInterval;
+}
+
 type DayCoverage = 'NONE' | 'PART_OF_DAY' | 'WHOLE_DAY';
 
 export interface EqualShareReferenceProperties extends FrozenReferenceProperties {
@@ -147,16 +158,26 @@ export class EqualShareReference implements AbsenceWeekReference {
     return { status: 'VALUED', absenceMinutes };
   }
 
-  private isActivityDay(day: Temporal.PlainDate): boolean {
-    return this.activityDays.some((activityDay) => activityDay.equals(day));
+  /** Jours dont une durée est enregistrée, avec leurs bornes. */
+  valuedDays(): ValuedDay[] {
+    const valuedDays: ValuedDay[] = [];
+    for (const isoDay of this.dayValuations.keys()) {
+      const day = Temporal.PlainDate.from(isoDay);
+      valuedDays.push({ weekStartsOn: this.weekStartsOn, day, bounds: this.boundsOf(day) });
+    }
+    return valuedDays;
   }
 
   /** Le jour, de minuit à minuit à l'heure du site : 23 h ou 25 h un jour de changement d'heure. */
-  private boundsOf(day: Temporal.PlainDate): InstantInterval {
+  boundsOf(day: Temporal.PlainDate): InstantInterval {
     return {
       start: day.toZonedDateTime({ timeZone: this.timeZone }).toInstant(),
       end: day.add({ days: 1 }).toZonedDateTime({ timeZone: this.timeZone }).toInstant(),
     };
+  }
+
+  private isActivityDay(day: Temporal.PlainDate): boolean {
+    return this.activityDays.some((activityDay) => activityDay.equals(day));
   }
 
   /** Périodes d'absence comprises dans le jour, triées et sans recouvrement. */
