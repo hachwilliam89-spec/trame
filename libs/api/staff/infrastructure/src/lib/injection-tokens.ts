@@ -1,3 +1,6 @@
+/** Jeton du dépôt des absences. */
+export const ABSENCE_REPOSITORY = Symbol('ABSENCE_REPOSITORY');
+
 /** Jeton du dépôt des contrats de travail. */
 export const CONTRACT_REPOSITORY = Symbol('CONTRACT_REPOSITORY');
 

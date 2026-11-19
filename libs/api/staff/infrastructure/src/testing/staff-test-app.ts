@@ -2,6 +2,7 @@ import { type DynamicModule, type INestApplication, Module } from '@nestjs/commo
 import { Test } from '@nestjs/testing';
 import { CreateContract, CreateEmployee } from '@trame/api/staff/application';
 import {
+  InMemoryAbsenceRepository,
   InMemoryContractRepository,
   InMemoryEmployeeRepository,
   InMemoryOrganizationCatalog,
@@ -17,6 +18,7 @@ import { ID_GENERATOR, IdsModule, SequentialIdGenerator } from '@trame/platform/
 import { ProblemDetailsModule } from '@trame/platform/problem-details';
 import request from 'supertest';
 import {
+  ABSENCE_REPOSITORY,
   CONTRACT_REPOSITORY,
   EMPLOYEE_REPOSITORY,
   ORGANIZATION_CATALOG,
@@ -79,6 +81,7 @@ class TestOrganizationCatalogModule {
  */
 export async function createStaffTestApp(): Promise<StaffTestApp> {
   const catalog = new InMemoryOrganizationCatalog();
+  const employees = new InMemoryEmployeeRepository();
   const moduleRef = await Test.createTestingModule({
     imports: [
       ProblemDetailsModule,
@@ -93,9 +96,11 @@ export async function createStaffTestApp(): Promise<StaffTestApp> {
     .overrideProvider(ID_GENERATOR)
     .useValue(new SequentialIdGenerator())
     .overrideProvider(EMPLOYEE_REPOSITORY)
-    .useValue(new InMemoryEmployeeRepository())
+    .useValue(employees)
     .overrideProvider(CONTRACT_REPOSITORY)
     .useValue(new InMemoryContractRepository())
+    .overrideProvider(ABSENCE_REPOSITORY)
+    .useValue(new InMemoryAbsenceRepository(employees))
     .compile();
 
   const app = moduleRef.createNestApplication({ logger: false });
@@ -110,7 +115,21 @@ export async function createStaffTestApp(): Promise<StaffTestApp> {
 
 /** Requête `GET` au nom d'un utilisateur, ou anonyme sans utilisateur. */
 export function getAs(app: INestApplication, actor: Actor | undefined, path: string): request.Test {
-  const test = request(app.getHttpServer()).get(path);
+  return sendAs(app, actor, 'get', path);
+}
+
+/** Requête au nom d'un utilisateur, ou anonyme sans utilisateur, avec un corps JSON éventuel. */
+export function sendAs(
+  app: INestApplication,
+  actor: Actor | undefined,
+  method: 'get' | 'post' | 'put' | 'delete',
+  path: string,
+  body?: object,
+): request.Test {
+  let test = request(app.getHttpServer())[method](path);
+  if (body !== undefined) {
+    test = test.send(body);
+  }
   if (actor === undefined) {
     return test;
   }

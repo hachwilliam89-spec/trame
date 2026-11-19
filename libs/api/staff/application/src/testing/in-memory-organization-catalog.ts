@@ -2,11 +2,12 @@ import type { OrganizationCatalog } from '../lib/ports/organization-catalog';
 
 /** Catalogue en mémoire, pour les tests : les sites et les compétences y sont déclarés à la main. */
 export class InMemoryOrganizationCatalog implements OrganizationCatalog {
-  private readonly sites = new Set<string>();
+  /** Fuseau de chaque site, par organisation et site. */
+  private readonly sites = new Map<string, string>();
   private readonly skills = new Set<string>();
 
-  addSite(organizationId: string, siteId: string): void {
-    this.sites.add(keyOf(organizationId, siteId));
+  addSite(organizationId: string, siteId: string, timeZone = 'Europe/Paris'): void {
+    this.sites.set(keyOf(organizationId, siteId), timeZone);
   }
 
   addSkill(organizationId: string, skillId: string): void {
@@ -15,6 +16,10 @@ export class InMemoryOrganizationCatalog implements OrganizationCatalog {
 
   async hasSite(organizationId: string, siteId: string): Promise<boolean> {
     return this.sites.has(keyOf(organizationId, siteId));
+  }
+
+  async timeZoneOfSite(organizationId: string, siteId: string): Promise<string | undefined> {
+    return this.sites.get(keyOf(organizationId, siteId));
   }
 
   async hasAllSkills(organizationId: string, skillIds: readonly string[]): Promise<boolean> {

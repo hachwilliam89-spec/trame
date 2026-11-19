@@ -18,5 +18,6 @@ export * from './scheduling/schedule-requested.v1';
 export * from './scheduling/schedule-reported.v1';
 export * from './scheduling/schedule-topology.v1';
 export * from './scheduling/schedule-generation.v1';
+export * from './staff/absence.v1';
 export * from './staff/employee.v1';
 export * from './staff/employment-contract.v1';
