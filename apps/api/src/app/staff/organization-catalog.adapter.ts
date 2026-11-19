@@ -27,6 +27,18 @@ export class OrganizationCatalogAdapter implements OrganizationCatalog {
     );
   }
 
+  async timeZoneOfSite(organizationId: string, siteId: string): Promise<string | undefined> {
+    try {
+      const site = await this.getSite.execute({ organizationId, siteId });
+      return site.timeZone.id;
+    } catch (error) {
+      if (error instanceof SiteNotFoundError) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
   async hasAllSkills(organizationId: string, skillIds: readonly string[]): Promise<boolean> {
     return allExist(skillIds, (skillId) =>
       resourceExists(

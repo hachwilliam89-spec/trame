@@ -111,6 +111,7 @@ model Employee {
   createdAt      DateTime                @map("created_at") @db.Timestamptz(3)
   qualifications EmployeeQualification[]
   contracts      Contract[]
+  absences       Absence[]
 
   @@unique([id, organizationId])
   @@index([organizationId, siteId, id])
@@ -151,6 +152,25 @@ model Contract {
 
   @@index([organizationId, employeeId, id])
   @@map("contracts")
+  @@schema("staff")
+}
+
+/// Absence d'un employé (US-033) : une période en instants UTC, lus dans le fuseau du site
+/// (ADR-0019), et un motif par catégorie, sans texte libre. La fin est exclue. La clé composite
+/// impose à l'absence l'organisation de son employé.
+model Absence {
+  id             String   @id @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  employeeId     String   @map("employee_id") @db.Uuid
+  startsAt       DateTime @map("starts_at") @db.Timestamptz(3)
+  endsAt         DateTime @map("ends_at") @db.Timestamptz(3)
+  /// `LEAVE`, `SICK_LEAVE`, `TRAINING` ou `OTHER`.
+  reason         String   @db.VarChar(16)
+  createdAt      DateTime @map("created_at") @db.Timestamptz(3)
+  employee       Employee @relation(fields: [employeeId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@index([organizationId, employeeId, startsAt])
+  @@map("absences")
   @@schema("staff")
 }
 

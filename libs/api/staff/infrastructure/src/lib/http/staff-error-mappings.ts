@@ -1,14 +1,18 @@
 import {
+  AbsenceNotFoundError,
   EmployeeNotFoundError,
   SiteNotFoundError,
   SkillNotFoundError,
 } from '@trame/api/staff/application';
 import {
   DuplicateQualificationError,
+  InvalidAbsencePeriodError,
+  InvalidAbsenceReasonError,
   InvalidContractPeriodError,
   InvalidEmployeeFirstNameError,
   InvalidEmployeeLastNameError,
   InvalidWeeklyVolumeError,
+  InvalidWeekStartError,
   OverlappingContractError,
 } from '@trame/api/staff/domain';
 import type { ErrorMapping } from '@trame/platform/problem-details';
@@ -18,6 +22,7 @@ import type { ErrorMapping } from '@trame/platform/problem-details';
  * l'application figure ici : une erreur oubliée deviendrait un 500.
  */
 export const staffErrorMappings: ErrorMapping[] = [
+  { error: AbsenceNotFoundError, status: 404 },
   { error: EmployeeNotFoundError, status: 404 },
   { error: SiteNotFoundError, status: 404 },
   { error: SkillNotFoundError, status: 404 },
@@ -36,4 +41,7 @@ export const staffErrorMappings: ErrorMapping[] = [
   },
   { error: InvalidContractPeriodError, pointer: '#/endsOn', code: 'invalid_contract_period' },
   { error: OverlappingContractError, pointer: '#/startsOn', code: 'overlapping_contract' },
+  { error: InvalidAbsencePeriodError, pointer: '#/endsAt', code: 'invalid_absence_period' },
+  { error: InvalidAbsenceReasonError, pointer: '#/reason', code: 'invalid_absence_reason' },
+  { error: InvalidWeekStartError, pointer: '#/weekStartsOn', code: 'invalid_week_start' },
 ];

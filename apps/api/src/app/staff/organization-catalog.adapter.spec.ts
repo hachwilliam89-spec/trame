@@ -38,6 +38,20 @@ describe('OrganizationCatalogAdapter', () => {
     expect(await adapter.hasSite(ORGANIZATION_B, site.id)).toBe(false);
   });
 
+  it('donne le fuseau d’un site de l’organisation, et de lui seul (US-033)', async () => {
+    const { createSite, adapter } = setUp();
+    const site = await createSite.execute({
+      organizationId: ORGANIZATION_A,
+      code: 'NOUMEA',
+      name: 'Entrepôt de Nouméa',
+      timeZone: 'Pacific/Noumea',
+    });
+
+    expect(await adapter.timeZoneOfSite(ORGANIZATION_A, site.id)).toBe('Pacific/Noumea');
+    expect(await adapter.timeZoneOfSite(ORGANIZATION_A, UNKNOWN_ID)).toBeUndefined();
+    expect(await adapter.timeZoneOfSite(ORGANIZATION_B, site.id)).toBeUndefined();
+  });
+
   it('exige que toutes les compétences existent dans l’organisation', async () => {
     const { createSkill, adapter } = setUp();
     const category3 = await createSkill.execute({

@@ -1,4 +1,17 @@
 export {
+  ABSENCE_REASONS,
+  Absence,
+  type AbsencePeriod,
+  type AbsenceProperties,
+  type AbsenceReason,
+} from './lib/absence/absence';
+export { type WeekBounds, weekBounds } from './lib/absence/absence-week';
+export {
+  InvalidAbsencePeriodError,
+  InvalidAbsenceReasonError,
+  InvalidWeekStartError,
+} from './lib/absence/absence.errors';
+export {
   Contract,
   type ContractProperties,
   ensureNoOverlappingContract,

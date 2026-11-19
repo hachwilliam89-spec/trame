@@ -487,10 +487,22 @@ Scénario: Habilitation expirée
 
 ### US-033 — Indisponibilités et absences
 
-- Saisie minimale par le manager en v0.1 (par l'employé en v0.2) : période, motif (catégorie, sans détail médical).
-- Indispensable avant la génération : les absences sont une entrée du moteur, et l'absence de dernière minute est au cœur du produit.
-- Première capacité du jalon 2 (révision du 18 novembre 2026) : le modèle, la persistance, l'écriture et la lecture par l'API, la prise en compte par le moteur, puis la saisie dans l'écran du planning.
-- Scénarios proposés le 18 novembre 2026, à valider avec Kim (Definition of Ready) :
+> **Première partie livrée au jalon 2** ([#105](https://github.com/hachwilliam89-spec/trame/issues/105)) : la saisie des absences par le manager, avec le modèle, la persistance, la déclaration, la modification et la suppression par l'API (`/api/v1/employees/:employeeId/absences`), et la lecture des absences d'un site sur une semaine (`GET /api/v1/absences`). Restent à faire, dans cet ordre : la valorisation figée, la prise en compte par le moteur et la génération, puis la saisie dans l'écran du planning.
+
+- Saisie par le manager en v0.1 (par l'employé en v0.2) : une période, et un motif par catégorie (congé, arrêt de travail, formation, autre), sans champ libre ni détail médical.
+- Indispensable avant la génération : les absences sont une entrée du moteur, et l'absence de dernière minute est au cœur du produit. Première capacité du jalon 2.
+- Scénarios, plan et interprétations validés par Kim le 18 novembre 2026 (#105).
+- Une absence enregistrée ne modifie aucune affectation existante ; les générations suivantes en tiennent compte. Son effet sur un planning existant (affectations incompatibles, règles concernées, couverture) est évalué par le moteur avec la PE (US-070). D'ici là, l'écran affiche « Absence enregistrée · planning existant non réévalué », sans présenter le planning comme toujours valide.
+- Le manager modifie les dates ou le motif d'une absence, et supprime une absence saisie par erreur.
+- Minimum restant de la semaine = max(0, minimum contractuel − minutes d'absence valorisées). C'est une convention du modèle de planification, cadrée pour la démo : ni une règle de paie, ni un décompte légal des absences. Heures planifiées et heures d'absence s'affichent séparément.
+- **Avec un planning de référence.** La référence d'un salarié pour une semaine est figée à sa première absence de la semaine : la dernière génération réussie à cet instant, avec ses affectations et leurs pauses. Aucune génération ne la change ensuite ; le planning publié deviendra la référence prioritaire (US-080). Les minutes valorisées sont le temps de ces affectations couvert par l'union des absences actives, pauses effectivement recouvertes retranchées, sans prorata. Un repos ne réduit rien, et chaque minute ne compte qu'une fois : supprimer une absence ne retire pas les minutes qu'une autre couvre encore.
+- **Sans planning de référence.** Convention de démonstration « parts égales sur les jours d'activité », nommée dans le résultat avec ses paramètres. Part journalière = minimum contractuel ÷ jours où le site a des besoins dans la semaine, figée à la déclaration. Un jour entier d'absence vaut sa part ; un jour couvert en partie demande une durée explicite, par salarié et par jour, plafonnée à la part.
+- **Valorisation « à définir ».** Semaine sans jour d'activité, ou jour partiel sans durée : la valorisation est signalée « à définir », et retentée à chaque saisie ou modification d'une absence du salarié dans la semaine. L'absence reste enregistrée. À la génération, le salarié est exclu de la semaine avec le motif `ABSENCE_VALUATION_TO_DEFINE`, au lieu d'un minimum gardé entier ou levé en silence. La répartition contractuelle viendra avec les jours travaillables d'US-032.
+- Les instants sont stockés en UTC et lus dans le fuseau du site (ADR-0019). La fin est exclue : une journée entière d'absence va de minuit à minuit le lendemain, et une absence couvre un créneau dès qu'elle en chevauche une partie.
+
+Données : semaine du lundi 23 novembre 2026, entrepôt de démonstration (Europe/Paris), besoins du lundi au samedi. Créneau du matin 6 h – 13 h 20, pause 10 h – 10 h 20 (7 h effectives). Créneau de l'après-midi 13 h 30 – 20 h 50, pause 17 h – 17 h 20. Camille Laurent et Yanis Morel à temps plein, minimum 28 h ; Inès Fabre à temps partiel, minimum 14 h.
+
+#### Saisie
 
 ```gherkin
 Scénario: Une absence retire le salarié des créneaux qu'elle couvre
@@ -517,16 +529,121 @@ Scénario: Période incohérente refusée
 Scénario: Absence déclarée après la génération
   Étant donné un planning de la semaine du 23 novembre où Camille Laurent tient le samedi 28 au matin
   Quand le manager déclare Camille Laurent absente le samedi 28
-  Alors le planning signale le créneau touché par l'absence
-  Et aucune affectation n'est modifiée tant que le manager n'a pas choisi d'ajuster ou de réparer
+  Alors l'absence est enregistrée avec la mention « planning existant non réévalué »
+  Et aucune affectation du planning existant n'est modifiée
+  Et la génération suivante de la semaine ne lui affecte pas le samedi 28
+
+Scénario: Supprimer une absence saisie par erreur
+  Étant donné Inès Fabre déclarée absente le mardi 24 par erreur
+  Quand le manager supprime cette absence
+  Alors la génération suivante peut de nouveau lui affecter le mardi 24
 
 Scénario: Absence d'une autre organisation
   Étant donné un manager d'une autre organisation
-  Quand il lit ou saisit une absence d'Inès Fabre
+  Quand il lit, saisit, modifie ou supprime une absence d'Inès Fabre
   Alors l'API répond 404
 ```
 
-- Les instants sont stockés en UTC et lus dans le fuseau du site (ADR-0019) : une absence couvre un créneau dès qu'elle en chevauche une partie.
+#### Valorisation avec un planning de référence
+
+```gherkin
+Contexte:
+  Étant donné une génération réussie de la semaine du 23 novembre
+  Et dans ce planning, Camille Laurent travaille le matin du lundi au jeudi (4 × 7 h = 28 h)
+  Et se repose le vendredi et le samedi
+  Et cette génération est la dernière réussie quand sa première absence de la semaine est déclarée
+
+Scénario: Journée prévue travaillée
+  Quand le manager la déclare absente le mardi 24
+  Alors 7 h d'absence sont valorisées
+  Et son minimum restant de la semaine est de 21 h
+
+Scénario: Absence sur un jour de repos
+  Quand le manager la déclare absente le vendredi 27
+  Alors aucune heure d'absence n'est valorisée
+  Et son minimum restant reste de 28 h
+
+Scénario: Semaine entière
+  Quand le manager la déclare absente du lundi 23 au dimanche 29
+  Alors 28 h d'absence sont valorisées
+  Et son minimum restant est de 0 h
+
+Scénario: Absence partielle hors pause
+  Quand le manager la déclare absente le mercredi 25 de 6 h à 10 h
+  Alors 4 h d'absence sont valorisées
+
+Scénario: Absence partielle qui recouvre la pause
+  Quand le manager la déclare absente le mercredi 25 de 6 h à 11 h
+  Alors 4 h 40 d'absence sont valorisées, la pause de 10 h à 10 h 20 retranchée
+
+Scénario: Absences qui se chevauchent
+  Étant donné Camille Laurent en congé le mardi 24
+  Quand le manager la déclare aussi en arrêt de travail du mardi 24 au mercredi 25
+  Alors 14 h d'absence sont valorisées, le mardi n'étant compté qu'une fois
+
+Scénario: Supprimer une absence chevauchée
+  Étant donné Camille Laurent en congé le mardi 24, et en arrêt de travail du mardi 24 au mercredi 25
+  Quand le manager supprime le congé
+  Alors 14 h d'absence restent valorisées, l'arrêt couvrant toujours le mardi
+
+Scénario: Modifier les dates d'une absence
+  Étant donné Camille Laurent absente le mardi 24
+  Quand le manager déplace cette absence au vendredi 27
+  Alors elle est valorisée sur la même référence
+  Et aucune heure d'absence n'est valorisée, le vendredi étant un repos
+
+Scénario: Générations répétées
+  Étant donné Camille Laurent absente le mardi 24, avec 7 h d'absence valorisées
+  Quand le manager relance deux fois la génération de la semaine
+  Et qu'aucune de ces générations ne lui affecte le mardi 24
+  Alors la référence de sa valorisation reste la génération du contexte
+  Et 7 h d'absence restent valorisées
+
+Scénario: Génération terminée après la déclaration
+  Étant donné une nouvelle génération de la semaine lancée avant la déclaration de l'absence
+  Quand cette génération se termine après la déclaration
+  Alors la référence reste la dernière génération réussie au moment de la déclaration
+```
+
+#### Valorisation sans planning de référence
+
+```gherkin
+Contexte:
+  Étant donné aucune génération réussie de la semaine du 23 novembre
+  Et des besoins sur six jours, du lundi au samedi
+
+Scénario: Journées entières par convention
+  Quand le manager déclare Camille Laurent absente le mardi 24 et le mercredi 25
+  Alors la part journalière est de 4 h 40 (28 h ÷ 6 jours d'activité)
+  Et 9 h 20 d'absence sont valorisées, son minimum restant étant de 18 h 40
+  Et le résultat nomme la convention « parts égales sur les jours d'activité », avec 28 h et 6 jours
+
+Scénario: Semaine entière sans référence
+  Quand le manager déclare Camille Laurent absente du lundi 23 au dimanche 29
+  Alors son minimum restant de la semaine est de 0 h
+
+Scénario: Absence partielle sans référence
+  Quand le manager déclare Camille Laurent absente le jeudi 26 de 6 h à 10 h
+  Alors l'absence est enregistrée
+  Et la valorisation du jeudi 26 est « à définir », avec une durée à donner d'au plus 4 h 40
+  Quand le manager donne une durée de 3 h
+  Alors 3 h d'absence sont valorisées
+
+Scénario: Durée valorisée au-delà de la part journalière
+  Quand le manager donne une durée de 5 h pour l'absence partielle du jeudi 26
+  Alors la durée est refusée avec le motif « au plus la part journalière, 4 h 40 »
+
+Scénario: Convention figée
+  Étant donné Camille Laurent absente le mardi 24, valorisée sur 6 jours d'activité
+  Quand le manager retire les besoins du samedi, puis lance la génération
+  Alors la part journalière reste de 4 h 40
+
+Scénario: Semaine sans jour d'activité
+  Étant donné aucune génération et aucun besoin pour la semaine du 30 novembre
+  Quand le manager déclare Camille Laurent absente le lundi 30
+  Alors l'absence est enregistrée, avec une valorisation « à définir » signalée
+  Et une génération de cette semaine l'exclut, avec ce motif, au lieu de compter son absence pour zéro
+```
 
 ---
 

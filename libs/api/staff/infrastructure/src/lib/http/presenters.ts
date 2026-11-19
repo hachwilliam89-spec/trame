@@ -1,5 +1,6 @@
-import type { Contract, Employee, Qualification } from '@trame/api/staff/domain';
+import type { Absence, Contract, Employee, Qualification } from '@trame/api/staff/domain';
 import type {
+  AbsenceV1,
   EmployeeQualificationV1,
   EmployeeV1,
   EmploymentContractV1,
@@ -34,5 +35,16 @@ export function toEmploymentContractV1(contract: Contract): EmploymentContractV1
     startsOn: contract.startsOn.toString(),
     endsOn: contract.endsOn === undefined ? null : contract.endsOn.toString(),
     createdAt: contract.createdAt.toString(),
+  };
+}
+
+export function toAbsenceV1(absence: Absence): AbsenceV1 {
+  return {
+    id: absence.id,
+    employeeId: absence.employeeId,
+    startsAt: absence.startsAt.toString(),
+    endsAt: absence.endsAt.toString(),
+    reason: absence.reason,
+    createdAt: absence.createdAt.toString(),
   };
 }
