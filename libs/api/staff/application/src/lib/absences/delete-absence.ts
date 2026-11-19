@@ -3,7 +3,7 @@ import { AbsenceNotFoundError } from '../not-found.errors';
 import type { AbsenceRepository } from '../ports/absence.repository';
 import type { EmployeeRepository } from '../ports/employee.repository';
 import { findAbsenceOfEmployee } from './find-absence-of-employee';
-import type { ValuedDaysLookup } from './valued-days-lookup';
+import type { AbsenceWeeksLookup } from './absence-weeks-lookup';
 
 export interface DeleteAbsenceCommand {
   organizationId: string;
@@ -19,7 +19,7 @@ export class DeleteAbsence {
   constructor(
     private readonly employees: EmployeeRepository,
     private readonly absences: AbsenceRepository,
-    private readonly valuedDays: ValuedDaysLookup,
+    private readonly weeks: AbsenceWeeksLookup,
   ) {}
 
   async execute(command: DeleteAbsenceCommand): Promise<void> {
@@ -34,8 +34,8 @@ export class DeleteAbsence {
       command.organizationId,
       command.employeeId,
     );
-    const valuedDays = await this.valuedDays.touchedBy(employee, absence);
-    const removed = await this.absences.remove(absence, valuedDays);
+    const weeks = await this.weeks.touchedBy(employee, absence);
+    const removed = await this.absences.remove(absence, weeks);
     if (!removed) {
       throw new AbsenceNotFoundError();
     }

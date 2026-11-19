@@ -15,13 +15,13 @@ import { InMemoryOrganizationCatalog } from '../../testing/in-memory-organizatio
 import { InMemoryPlanningReferenceSource } from '../../testing/in-memory-planning-reference-source';
 import { EmployeeNotFoundError, SiteNotFoundError } from '../not-found.errors';
 import { AbsenceWeekReferenceFreezer } from './absence-week-reference-freezer';
+import { AbsenceWeeksLookup } from './absence-weeks-lookup';
 import { DeclareAbsence } from './declare-absence';
 import { DeleteAbsence } from './delete-absence';
 import { NoEqualShareReferenceError } from './absence-valuation.errors';
 import { GetWeekAbsenceValuations } from './get-week-absence-valuations';
 import { SetAbsenceDayValuation } from './set-absence-day-valuation';
 import { UpdateAbsence } from './update-absence';
-import { ValuedDaysLookup } from './valued-days-lookup';
 
 const ORGANIZATION_A = '0190f0a0-0000-7000-8000-00000000000a';
 const ORGANIZATION_B = '0190f0a0-0000-7000-8000-00000000000b';
@@ -94,7 +94,7 @@ async function setUp() {
   const source = new InMemoryPlanningReferenceSource();
   const clock = new FixedClock('2026-11-18T15:00:00Z');
   const freezer = new AbsenceWeekReferenceFreezer(catalog, contracts, references, source);
-  const valuedDays = new ValuedDaysLookup(catalog, references);
+  const weeks = new AbsenceWeeksLookup(catalog);
   return {
     clock,
     source,
@@ -105,8 +105,8 @@ async function setUp() {
       clock,
       new SequentialIdGenerator(),
     ),
-    updateAbsence: new UpdateAbsence(employees, absences, freezer, valuedDays, clock),
-    deleteAbsence: new DeleteAbsence(employees, absences, valuedDays),
+    updateAbsence: new UpdateAbsence(employees, absences, freezer, weeks, clock),
+    deleteAbsence: new DeleteAbsence(employees, absences, weeks),
     getValuations: new GetWeekAbsenceValuations(catalog, absences, references),
     setDayValuation: new SetAbsenceDayValuation(employees, absences, references),
   };

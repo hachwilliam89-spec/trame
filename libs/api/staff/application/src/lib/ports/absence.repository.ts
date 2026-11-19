@@ -1,4 +1,4 @@
-import type { Absence, AbsenceWeekReference, ValuedDay } from '@trame/api/staff/domain';
+import type { Absence, AbsenceWeekReference } from '@trame/api/staff/domain';
 
 /** Absences enregistrées. Chaque lecture et chaque écriture sont limitées à une organisation. */
 export interface AbsenceRepository {
@@ -13,25 +13,25 @@ export interface AbsenceRepository {
   findById(organizationId: string, absenceId: string): Promise<Absence | undefined>;
 
   /**
-   * Remplace la période et le motif, et fige les références comme `add`. Dans la même
-   * transaction, efface la durée de chaque jour de `valuedDays` qu'aucune absence de l'employé
-   * ne touche plus. Faux si l'absence n'existe plus dans son organisation : rien n'est alors
-   * écrit.
+   * Remplace la période et le motif, et fige les références comme `add`. Efface aussi, comme
+   * `remove`, la durée des jours valorisés de `weeksBefore` (semaines que touchait l'absence)
+   * qu'aucune absence de l'employé ne touche plus. Faux si l'absence n'existe plus dans son
+   * organisation : rien n'est alors écrit.
    */
   update(
     absence: Absence,
     referencesToFreeze: readonly AbsenceWeekReference[],
-    valuedDays: readonly ValuedDay[],
+    weeksBefore: readonly Temporal.PlainDate[],
   ): Promise<boolean>;
 
   /**
-   * Supprime l'absence et, dans la même transaction, efface la durée de chaque jour de
-   * `valuedDays` qu'aucune autre absence de l'employé ne touche. Le contrôle se fait après la
-   * suppression, dans la transaction : une absence du même jour supprimée ou déplacée en même
-   * temps par une autre requête est prise en compte. Faux si l'absence n'existait pas dans son
-   * organisation.
+   * Supprime l'absence et, dans la même transaction, efface la durée de chaque jour valorisé des
+   * semaines `weeks` qu'aucune autre absence de l'employé ne touche. La transaction verrouille
+   * d'abord la référence de chaque semaine, puis relit ses jours valorisés et les absences : une
+   * durée enregistrée, ou une absence du même jour supprimée, en même temps par une autre
+   * requête est prise en compte. Faux si l'absence n'existait pas dans son organisation.
    */
-  remove(absence: Absence, valuedDays: readonly ValuedDay[]): Promise<boolean>;
+  remove(absence: Absence, weeks: readonly Temporal.PlainDate[]): Promise<boolean>;
 
   /**
    * Absences des employés du site qui couvrent au moins un instant de `[from, to[`, triées par

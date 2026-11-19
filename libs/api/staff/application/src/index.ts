@@ -1,5 +1,6 @@
 export { NoEqualShareReferenceError } from './lib/absences/absence-valuation.errors';
 export { AbsenceWeekReferenceFreezer } from './lib/absences/absence-week-reference-freezer';
+export { AbsenceWeeksLookup } from './lib/absences/absence-weeks-lookup';
 export {
   type EmployeeAbsenceValuation,
   GetWeekAbsenceValuations,
@@ -13,7 +14,6 @@ export { DeclareAbsence, type DeclareAbsenceCommand } from './lib/absences/decla
 export { DeleteAbsence, type DeleteAbsenceCommand } from './lib/absences/delete-absence';
 export { ListWeekAbsences, type ListWeekAbsencesQuery } from './lib/absences/list-week-absences';
 export { UpdateAbsence, type UpdateAbsenceCommand } from './lib/absences/update-absence';
-export { ValuedDaysLookup } from './lib/absences/valued-days-lookup';
 export { CreateContract, type CreateContractCommand } from './lib/contracts/create-contract';
 export { ListContracts, type ListContractsQuery } from './lib/contracts/list-contracts';
 export { CreateEmployee, type CreateEmployeeCommand } from './lib/employees/create-employee';

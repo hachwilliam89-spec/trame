@@ -18,11 +18,11 @@ import {
   SiteNotFoundError,
 } from '../not-found.errors';
 import { AbsenceWeekReferenceFreezer } from './absence-week-reference-freezer';
+import { AbsenceWeeksLookup } from './absence-weeks-lookup';
 import { DeclareAbsence, type DeclareAbsenceCommand } from './declare-absence';
 import { DeleteAbsence } from './delete-absence';
 import { ListWeekAbsences } from './list-week-absences';
 import { UpdateAbsence } from './update-absence';
-import { ValuedDaysLookup } from './valued-days-lookup';
 
 const ORGANIZATION_A = '0190f0a0-0000-7000-8000-00000000000a';
 const ORGANIZATION_B = '0190f0a0-0000-7000-8000-00000000000b';
@@ -58,7 +58,7 @@ async function setUp() {
     references,
     new InMemoryPlanningReferenceSource(),
   );
-  const valuedDays = new ValuedDaysLookup(catalog, references);
+  const weeks = new AbsenceWeeksLookup(catalog);
   return {
     declareAbsence: new DeclareAbsence(
       employees,
@@ -67,8 +67,8 @@ async function setUp() {
       clock,
       new SequentialIdGenerator(),
     ),
-    updateAbsence: new UpdateAbsence(employees, absences, freezer, valuedDays, clock),
-    deleteAbsence: new DeleteAbsence(employees, absences, valuedDays),
+    updateAbsence: new UpdateAbsence(employees, absences, freezer, weeks, clock),
+    deleteAbsence: new DeleteAbsence(employees, absences, weeks),
     listWeekAbsences: new ListWeekAbsences(catalog, absences),
   };
 }

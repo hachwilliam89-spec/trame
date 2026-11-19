@@ -7,16 +7,11 @@ import {
   instantToDate,
 } from '@trame/api/database';
 import type { AbsenceRepository } from '@trame/api/staff/application';
-import {
-  Absence,
-  type AbsenceReason,
-  type AbsenceWeekReference,
-  type ValuedDay,
-} from '@trame/api/staff/domain';
+import { Absence, type AbsenceReason, type AbsenceWeekReference } from '@trame/api/staff/domain';
 import { toAbsenceWeekReferenceRecord } from './absence-week-reference-record';
 import {
   discardValuationsOfDaysWithoutAbsence,
-  lockWeeksOfValuedDays,
+  lockValuedDaysOfWeeks,
 } from './day-valuation-statements';
 
 /**
@@ -47,14 +42,14 @@ export class PrismaAbsenceRepository implements AbsenceRepository {
   async update(
     absence: Absence,
     referencesToFreeze: readonly AbsenceWeekReference[],
-    valuedDays: readonly ValuedDay[],
+    weeksBefore: readonly Temporal.PlainDate[],
   ): Promise<boolean> {
     return this.database.transaction(async (transaction) => {
-      await lockWeeksOfValuedDays(
+      const valuedDays = await lockValuedDaysOfWeeks(
         transaction,
         absence.organizationId,
         absence.employeeId,
-        valuedDays,
+        weeksBefore,
       );
       const { count } = await transaction.absence.updateMany({
         where: { id: absence.id, organizationId: absence.organizationId },
@@ -78,13 +73,13 @@ export class PrismaAbsenceRepository implements AbsenceRepository {
     });
   }
 
-  async remove(absence: Absence, valuedDays: readonly ValuedDay[]): Promise<boolean> {
+  async remove(absence: Absence, weeks: readonly Temporal.PlainDate[]): Promise<boolean> {
     return this.database.transaction(async (transaction) => {
-      await lockWeeksOfValuedDays(
+      const valuedDays = await lockValuedDaysOfWeeks(
         transaction,
         absence.organizationId,
         absence.employeeId,
-        valuedDays,
+        weeks,
       );
       const { count } = await transaction.absence.deleteMany({
         where: { id: absence.id, organizationId: absence.organizationId },

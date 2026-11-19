@@ -1,14 +1,15 @@
-import type { DatabaseClient } from '@trame/api/database';
-import type { DayValuation, EqualShareReference, ValuedDay } from '@trame/api/staff/domain';
-import { toDayValuationRecord } from './absence-week-reference-record';
+import { type DatabaseClient, plainDateToDate } from '@trame/api/database';
+import { type DayValuation, EqualShareReference, type ValuedDay } from '@trame/api/staff/domain';
+import { toAbsenceWeekReference, toDayValuationRecord } from './absence-week-reference-record';
 
 /*
  * Instructions qui gardent la durée d'un jour partiel en accord avec les absences (US-033), dans
  * la transaction de l'écriture. Chaque transaction verrouille d'abord la référence de convention
- * de la semaine : deux écritures sur la même semaine de l'employé passent l'une après l'autre, et
- * les instructions de la seconde relisent les absences que la première a laissées. Sans ce
- * verrou, deux suppressions simultanées des deux absences d'un jour verraient chacune l'autre
- * absence encore là, et la durée survivrait au jour vide.
+ * de la semaine, puis relit ce qu'elle vérifie (jours valorisés, absences) : deux écritures sur
+ * la même semaine de l'employé passent l'une après l'autre, et la seconde voit ce que la première
+ * a laissé. Sans ce verrou, une durée saisie pendant la suppression de la dernière absence du
+ * jour, ou deux suppressions simultanées des deux absences d'un jour, laisseraient une durée à un
+ * jour vide.
  */
 
 /** Verrouille la référence de convention de l'employé pour la semaine. Faux si elle n'existe pas. */
@@ -30,18 +31,42 @@ export async function lockEqualShareReference(
 }
 
 /**
- * Verrouille les références des jours valorisés, semaine après semaine dans l'ordre : deux
- * transactions qui touchent les mêmes semaines les prennent dans le même ordre, sans s'interbloquer.
+ * Verrouille les références de convention de ces semaines, dans l'ordre des semaines pour que deux
+ * transactions ne s'interbloquent pas, puis relit leurs jours valorisés. Relus après le verrou,
+ * ils comprennent une durée qu'une autre requête vient d'enregistrer.
  */
-export async function lockWeeksOfValuedDays(
+export async function lockValuedDaysOfWeeks(
   transaction: DatabaseClient,
   organizationId: string,
   employeeId: string,
-  valuedDays: readonly ValuedDay[],
-): Promise<void> {
-  for (const weekStartsOn of distinctWeeksInOrder(valuedDays)) {
-    await lockEqualShareReference(transaction, organizationId, employeeId, weekStartsOn);
+  weeks: readonly Temporal.PlainDate[],
+): Promise<ValuedDay[]> {
+  const valuedDays: ValuedDay[] = [];
+  for (const weekStartsOn of distinctInOrder(weeks)) {
+    const isLocked = await lockEqualShareReference(
+      transaction,
+      organizationId,
+      employeeId,
+      weekStartsOn,
+    );
+    if (!isLocked) {
+      continue;
+    }
+    const record = await transaction.absenceWeekReference.findUniqueOrThrow({
+      where: {
+        organizationId_employeeId_weekStartsOn: {
+          organizationId,
+          employeeId,
+          weekStartsOn: plainDateToDate(weekStartsOn),
+        },
+      },
+    });
+    const reference = toAbsenceWeekReference(record);
+    if (reference instanceof EqualShareReference) {
+      valuedDays.push(...reference.valuedDays());
+    }
   }
+  return valuedDays;
 }
 
 /** Efface la durée de chaque jour qu'aucune absence de l'employé ne touche plus. */
@@ -104,13 +129,13 @@ export async function setValuationOfDayWithAbsence(
   return updated === 1;
 }
 
-function distinctWeeksInOrder(valuedDays: readonly ValuedDay[]): Temporal.PlainDate[] {
-  const weeks: Temporal.PlainDate[] = [];
-  for (const valuedDay of valuedDays) {
-    const isAlreadyListed = weeks.some((week) => week.equals(valuedDay.weekStartsOn));
+function distinctInOrder(weeks: readonly Temporal.PlainDate[]): Temporal.PlainDate[] {
+  const distinct: Temporal.PlainDate[] = [];
+  for (const week of weeks) {
+    const isAlreadyListed = distinct.some((listed) => listed.equals(week));
     if (!isAlreadyListed) {
-      weeks.push(valuedDay.weekStartsOn);
+      distinct.push(week);
     }
   }
-  return weeks.sort((first, second) => Temporal.PlainDate.compare(first, second));
+  return distinct.sort((first, second) => Temporal.PlainDate.compare(first, second));
 }

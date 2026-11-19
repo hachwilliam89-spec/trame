@@ -179,9 +179,9 @@ describe('références de valorisation des absences sur PostgreSQL (US-033)', ()
     }
 
     it('efface la durée dans la transaction qui supprime la dernière absence du jour', async () => {
-      const { afternoon, valued } = await valuedThursdayAfternoon();
+      const { afternoon } = await valuedThursdayAfternoon();
 
-      expect(await absences.remove(afternoon, valued.valuedDays())).toBe(true);
+      expect(await absences.remove(afternoon, [MONDAY])).toBe(true);
 
       expect(await references.find(ORGANIZATION_A, camille, MONDAY)).toEqual(equalShareOf(camille));
     });
@@ -190,7 +190,7 @@ describe('références de valorisation des absences sur PostgreSQL (US-033)', ()
       const { afternoon, valued } = await valuedThursdayAfternoon();
       await absences.add(absenceOf(camille, '2026-11-26T15:00', '2026-11-26T16:00'), []);
 
-      expect(await absences.remove(afternoon, valued.valuedDays())).toBe(true);
+      expect(await absences.remove(afternoon, [MONDAY])).toBe(true);
 
       expect(await references.find(ORGANIZATION_A, camille, MONDAY)).toEqual(valued);
     });
@@ -203,23 +203,20 @@ describe('références de valorisation des absences sur PostgreSQL (US-033)', ()
       const valued = equalShareOf(camille).withDayValuation(THURSDAY, 120, [early, late]);
       expect(await references.saveDayValuation(valued, THURSDAY)).toBe('SAVED');
 
-      await Promise.all([
-        absences.remove(early, valued.valuedDays()),
-        absences.remove(late, valued.valuedDays()),
-      ]);
+      await Promise.all([absences.remove(early, [MONDAY]), absences.remove(late, [MONDAY])]);
 
       expect(await references.find(ORGANIZATION_A, camille, MONDAY)).toEqual(equalShareOf(camille));
     });
 
     it('efface la durée quand une modification déplace la dernière absence hors du jour', async () => {
-      const { afternoon, valued } = await valuedThursdayAfternoon();
+      const { afternoon } = await valuedThursdayAfternoon();
       const movedToFriday = afternoon.changeTo({
         startsAt: parisInstant('2026-11-27T14:00'),
         endsAt: parisInstant('2026-11-27T16:00'),
         reason: 'LEAVE',
       });
 
-      expect(await absences.update(movedToFriday, [], valued.valuedDays())).toBe(true);
+      expect(await absences.update(movedToFriday, [], [MONDAY])).toBe(true);
 
       expect(await references.find(ORGANIZATION_A, camille, MONDAY)).toEqual(equalShareOf(camille));
     });

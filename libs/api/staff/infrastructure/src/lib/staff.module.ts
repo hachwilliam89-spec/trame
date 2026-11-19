@@ -3,6 +3,7 @@ import {
   type AbsenceRepository,
   type AbsenceWeekReferenceRepository,
   AbsenceWeekReferenceFreezer,
+  AbsenceWeeksLookup,
   type ContractRepository,
   CreateContract,
   CreateEmployee,
@@ -18,7 +19,6 @@ import {
   type PlanningReferenceSource,
   SetAbsenceDayValuation,
   UpdateAbsence,
-  ValuedDaysLookup,
 } from '@trame/api/staff/application';
 import { CLOCK, type Clock } from '@trame/platform/clock';
 import { ID_GENERATOR, type IdGenerator } from '@trame/platform/ids';
@@ -118,10 +118,9 @@ const absenceProviders: Provider[] = [
     ) => new DeclareAbsence(employees, absences, freezer, clock, ids),
   },
   {
-    provide: ValuedDaysLookup,
-    inject: [ORGANIZATION_CATALOG, ABSENCE_WEEK_REFERENCE_REPOSITORY],
-    useFactory: (catalog: OrganizationCatalog, references: AbsenceWeekReferenceRepository) =>
-      new ValuedDaysLookup(catalog, references),
+    provide: AbsenceWeeksLookup,
+    inject: [ORGANIZATION_CATALOG],
+    useFactory: (catalog: OrganizationCatalog) => new AbsenceWeeksLookup(catalog),
   },
   {
     provide: UpdateAbsence,
@@ -129,25 +128,25 @@ const absenceProviders: Provider[] = [
       EMPLOYEE_REPOSITORY,
       ABSENCE_REPOSITORY,
       AbsenceWeekReferenceFreezer,
-      ValuedDaysLookup,
+      AbsenceWeeksLookup,
       CLOCK,
     ],
     useFactory: (
       employees: EmployeeRepository,
       absences: AbsenceRepository,
       freezer: AbsenceWeekReferenceFreezer,
-      valuedDays: ValuedDaysLookup,
+      weeks: AbsenceWeeksLookup,
       clock: Clock,
-    ) => new UpdateAbsence(employees, absences, freezer, valuedDays, clock),
+    ) => new UpdateAbsence(employees, absences, freezer, weeks, clock),
   },
   {
     provide: DeleteAbsence,
-    inject: [EMPLOYEE_REPOSITORY, ABSENCE_REPOSITORY, ValuedDaysLookup],
+    inject: [EMPLOYEE_REPOSITORY, ABSENCE_REPOSITORY, AbsenceWeeksLookup],
     useFactory: (
       employees: EmployeeRepository,
       absences: AbsenceRepository,
-      valuedDays: ValuedDaysLookup,
-    ) => new DeleteAbsence(employees, absences, valuedDays),
+      weeks: AbsenceWeeksLookup,
+    ) => new DeleteAbsence(employees, absences, weeks),
   },
   {
     provide: ListWeekAbsences,

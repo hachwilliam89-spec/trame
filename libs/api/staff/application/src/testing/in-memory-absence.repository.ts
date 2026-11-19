@@ -1,4 +1,8 @@
-import type { Absence, AbsenceWeekReference, ValuedDay } from '@trame/api/staff/domain';
+import {
+  type Absence,
+  type AbsenceWeekReference,
+  EqualShareReference,
+} from '@trame/api/staff/domain';
 import type { AbsenceRepository } from '../lib/ports/absence.repository';
 import type { InMemoryAbsenceWeekReferenceRepository } from './in-memory-absence-week-reference.repository';
 import type { InMemoryEmployeeRepository } from './in-memory-employee.repository';
@@ -26,7 +30,7 @@ export class InMemoryAbsenceRepository implements AbsenceRepository {
   async update(
     absence: Absence,
     referencesToFreeze: readonly AbsenceWeekReference[],
-    valuedDays: readonly ValuedDay[],
+    weeksBefore: readonly Temporal.PlainDate[],
   ): Promise<boolean> {
     const index = this.absences.findIndex(
       (stored) => stored.organizationId === absence.organizationId && stored.id === absence.id,
@@ -36,11 +40,11 @@ export class InMemoryAbsenceRepository implements AbsenceRepository {
     }
     this.absences[index] = absence;
     this.freeze(referencesToFreeze);
-    this.discardValuationsOfDaysWithoutAbsence(absence, valuedDays);
+    await this.discardValuationsOfDaysWithoutAbsence(absence, weeksBefore);
     return true;
   }
 
-  async remove(absence: Absence, valuedDays: readonly ValuedDay[]): Promise<boolean> {
+  async remove(absence: Absence, weeks: readonly Temporal.PlainDate[]): Promise<boolean> {
     const before = this.absences.length;
     this.absences = this.absences.filter(
       (stored) => stored.organizationId !== absence.organizationId || stored.id !== absence.id,
@@ -48,7 +52,7 @@ export class InMemoryAbsenceRepository implements AbsenceRepository {
     if (this.absences.length === before) {
       return false;
     }
-    this.discardValuationsOfDaysWithoutAbsence(absence, valuedDays);
+    await this.discardValuationsOfDaysWithoutAbsence(absence, weeks);
     return true;
   }
 
@@ -93,11 +97,24 @@ export class InMemoryAbsenceRepository implements AbsenceRepository {
   }
 
   /** Comme la base : la durée d'un jour qu'aucune absence de l'employé ne touche plus disparaît. */
-  private discardValuationsOfDaysWithoutAbsence(
+  private async discardValuationsOfDaysWithoutAbsence(
     written: Absence,
-    valuedDays: readonly ValuedDay[],
-  ): void {
-    for (const valuedDay of valuedDays) {
+    weeks: readonly Temporal.PlainDate[],
+  ): Promise<void> {
+    for (const weekStartsOn of weeks) {
+      const reference = await this.references.find(
+        written.organizationId,
+        written.employeeId,
+        weekStartsOn,
+      );
+      if (reference instanceof EqualShareReference) {
+        this.discardValuationsOfWeek(written, reference);
+      }
+    }
+  }
+
+  private discardValuationsOfWeek(written: Absence, reference: EqualShareReference): void {
+    for (const valuedDay of reference.valuedDays()) {
       const isStillAbsent = this.absences.some(
         (absence) =>
           absence.organizationId === written.organizationId &&
