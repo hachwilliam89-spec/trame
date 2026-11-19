@@ -15,6 +15,7 @@ import {
   ScheduleRequestTooLargeError,
   SiteNotFoundError,
 } from './generation.errors';
+import { GetLatestWeekSchedule } from './get-latest-week-schedule';
 import { GetScheduleGeneration } from './get-schedule-generation';
 import { GetWeekScheduleGenerations } from './get-week-schedule-generations';
 import { StartScheduleGeneration } from './start-schedule-generation';
@@ -283,6 +284,43 @@ describe('Retrouver les générations', () => {
     const sameState =
       week.latestSchedule === undefined || week.latestAttempt?.status === 'SUCCEEDED';
     expect(sameState).toBe(true);
+  });
+
+  describe('dernier planning d’une semaine, pour les autres contextes (US-033)', () => {
+    it('rend la dernière génération terminée avec un planning, pas celle qui tourne encore', async () => {
+      const solved = await generation('solved', 0);
+      generations.finish(solved.id, {
+        status: 'FEASIBLE',
+        schedule: { assignments: [], shortfalls: [] },
+      });
+      const running = await generation('running', 5);
+      generations.start(running.id);
+
+      const latest = await new GetLatestWeekSchedule(generations).execute({
+        organizationId,
+        siteId: SITE_ID,
+        weekStartsOn: MONDAY,
+      });
+
+      expect(latest?.id).toBe(solved.id);
+    });
+
+    it('ne rend rien sans planning, ni pour une autre organisation', async () => {
+      const impossible = await generation('impossible', 0);
+      generations.finish(impossible.id, { status: 'INFEASIBLE', schedule: null });
+      const getLatest = new GetLatestWeekSchedule(generations);
+
+      expect(
+        await getLatest.execute({ organizationId, siteId: SITE_ID, weekStartsOn: MONDAY }),
+      ).toBeUndefined();
+      expect(
+        await getLatest.execute({
+          organizationId: anotherOrganizationId,
+          siteId: SITE_ID,
+          weekStartsOn: MONDAY,
+        }),
+      ).toBeUndefined();
+    });
   });
 
   it('rend une semaine vide sans génération, et refuse le site d’une autre organisation', async () => {

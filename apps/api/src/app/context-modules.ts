@@ -1,7 +1,7 @@
-import { DemandModule } from '@trame/api/demand/infrastructure';
 import { StaffModule } from '@trame/api/staff/infrastructure';
-import { DemandSiteCatalogModule } from './demand/demand-site-catalog.module';
+import { demandModule } from './demand/demand-context';
 import { StaffOrganizationCatalogModule } from './staff/staff-organization-catalog.module';
+import { StaffPlanningReferenceModule } from './staff/staff-planning-reference.module';
 
 /**
  * Une seule définition de chaque contexte paramétré : l'application et les adaptateurs entre
@@ -9,6 +9,7 @@ import { StaffOrganizationCatalogModule } from './staff/staff-organization-catal
  */
 export const staffModule = StaffModule.forRoot({
   organizationCatalog: StaffOrganizationCatalogModule,
+  planningReference: StaffPlanningReferenceModule,
 });
 
-export const demandModule = DemandModule.forRoot({ siteCatalog: DemandSiteCatalogModule });
+export { demandModule };

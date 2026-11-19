@@ -1,24 +1,28 @@
 import { Injectable } from '@nestjs/common';
-import { type Prisma, Database, dateToInstant, instantToDate } from '@trame/api/database';
+import {
+  type DatabaseClient,
+  type Prisma,
+  Database,
+  dateToInstant,
+  instantToDate,
+} from '@trame/api/database';
 import type { AbsenceRepository } from '@trame/api/staff/application';
-import { Absence, type AbsenceReason } from '@trame/api/staff/domain';
+import { Absence, type AbsenceReason, type AbsenceWeekReference } from '@trame/api/staff/domain';
+import { toAbsenceWeekReferenceRecord } from './absence-week-reference-record';
 
-/** Absences dans `staff.absences`. Le site d'une absence est celui de son employé. */
+/**
+ * Absences dans `staff.absences`. Le site d'une absence est celui de son employé. Les références
+ * qu'une absence fige s'écrivent dans la même transaction : une référence déjà présente pour le
+ * salarié et la semaine, même écrite à l'instant par une autre requête, est gardée.
+ */
 @Injectable()
 export class PrismaAbsenceRepository implements AbsenceRepository {
   constructor(private readonly database: Database) {}
 
-  async add(absence: Absence): Promise<void> {
-    await this.database.client.absence.create({
-      data: {
-        id: absence.id,
-        organizationId: absence.organizationId,
-        employeeId: absence.employeeId,
-        startsAt: instantToDate(absence.startsAt),
-        endsAt: instantToDate(absence.endsAt),
-        reason: absence.reason,
-        createdAt: instantToDate(absence.createdAt),
-      },
+  async add(absence: Absence, referencesToFreeze: readonly AbsenceWeekReference[]): Promise<void> {
+    await this.database.transaction(async (transaction) => {
+      await transaction.absence.create({ data: toAbsenceRecord(absence) });
+      await freeze(transaction, referencesToFreeze);
     });
   }
 
@@ -29,16 +33,25 @@ export class PrismaAbsenceRepository implements AbsenceRepository {
     return record === null ? undefined : toAbsence(record);
   }
 
-  async update(absence: Absence): Promise<boolean> {
-    const { count } = await this.database.client.absence.updateMany({
-      where: { id: absence.id, organizationId: absence.organizationId },
-      data: {
-        startsAt: instantToDate(absence.startsAt),
-        endsAt: instantToDate(absence.endsAt),
-        reason: absence.reason,
-      },
+  async update(
+    absence: Absence,
+    referencesToFreeze: readonly AbsenceWeekReference[],
+  ): Promise<boolean> {
+    return this.database.transaction(async (transaction) => {
+      const { count } = await transaction.absence.updateMany({
+        where: { id: absence.id, organizationId: absence.organizationId },
+        data: {
+          startsAt: instantToDate(absence.startsAt),
+          endsAt: instantToDate(absence.endsAt),
+          reason: absence.reason,
+        },
+      });
+      if (count !== 1) {
+        return false;
+      }
+      await freeze(transaction, referencesToFreeze);
+      return true;
     });
-    return count === 1;
   }
 
   async remove(organizationId: string, absenceId: string): Promise<boolean> {
@@ -65,6 +78,32 @@ export class PrismaAbsenceRepository implements AbsenceRepository {
     });
     return records.map(toAbsence);
   }
+}
+
+function toAbsenceRecord(absence: Absence): Prisma.AbsenceUncheckedCreateInput {
+  return {
+    id: absence.id,
+    organizationId: absence.organizationId,
+    employeeId: absence.employeeId,
+    startsAt: instantToDate(absence.startsAt),
+    endsAt: instantToDate(absence.endsAt),
+    reason: absence.reason,
+    createdAt: instantToDate(absence.createdAt),
+  };
+}
+
+/** `skipDuplicates` : la première référence figée pour le salarié et la semaine l'emporte. */
+async function freeze(
+  transaction: DatabaseClient,
+  referencesToFreeze: readonly AbsenceWeekReference[],
+): Promise<void> {
+  if (referencesToFreeze.length === 0) {
+    return;
+  }
+  await transaction.absenceWeekReference.createMany({
+    data: referencesToFreeze.map(toAbsenceWeekReferenceRecord),
+    skipDuplicates: true,
+  });
 }
 
 function toAbsence(record: Prisma.AbsenceModel): Absence {

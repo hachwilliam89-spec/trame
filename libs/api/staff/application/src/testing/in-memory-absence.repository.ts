@@ -1,15 +1,20 @@
-import type { Absence } from '@trame/api/staff/domain';
+import type { Absence, AbsenceWeekReference } from '@trame/api/staff/domain';
 import type { AbsenceRepository } from '../lib/ports/absence.repository';
+import type { InMemoryAbsenceWeekReferenceRepository } from './in-memory-absence-week-reference.repository';
 import type { InMemoryEmployeeRepository } from './in-memory-employee.repository';
 
 /** Dépôt en mémoire, pour les tests. Le site d'une absence est celui de son employé. */
 export class InMemoryAbsenceRepository implements AbsenceRepository {
   private absences: Absence[] = [];
 
-  constructor(private readonly employees: InMemoryEmployeeRepository) {}
+  constructor(
+    private readonly employees: InMemoryEmployeeRepository,
+    private readonly references: InMemoryAbsenceWeekReferenceRepository,
+  ) {}
 
-  async add(absence: Absence): Promise<void> {
+  async add(absence: Absence, referencesToFreeze: readonly AbsenceWeekReference[]): Promise<void> {
     this.absences.push(absence);
+    this.freeze(referencesToFreeze);
   }
 
   async findById(organizationId: string, absenceId: string): Promise<Absence | undefined> {
@@ -18,7 +23,10 @@ export class InMemoryAbsenceRepository implements AbsenceRepository {
     );
   }
 
-  async update(absence: Absence): Promise<boolean> {
+  async update(
+    absence: Absence,
+    referencesToFreeze: readonly AbsenceWeekReference[],
+  ): Promise<boolean> {
     const index = this.absences.findIndex(
       (stored) => stored.organizationId === absence.organizationId && stored.id === absence.id,
     );
@@ -26,6 +34,7 @@ export class InMemoryAbsenceRepository implements AbsenceRepository {
       return false;
     }
     this.absences[index] = absence;
+    this.freeze(referencesToFreeze);
     return true;
   }
 
@@ -54,6 +63,12 @@ export class InMemoryAbsenceRepository implements AbsenceRepository {
       }
     }
     return matching.sort(byStartThenId);
+  }
+
+  private freeze(referencesToFreeze: readonly AbsenceWeekReference[]): void {
+    for (const reference of referencesToFreeze) {
+      this.references.addIfAbsent(reference);
+    }
   }
 }
 

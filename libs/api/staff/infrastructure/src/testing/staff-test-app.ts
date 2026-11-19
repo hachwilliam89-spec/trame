@@ -3,9 +3,11 @@ import { Test } from '@nestjs/testing';
 import { CreateContract, CreateEmployee } from '@trame/api/staff/application';
 import {
   InMemoryAbsenceRepository,
+  InMemoryAbsenceWeekReferenceRepository,
   InMemoryContractRepository,
   InMemoryEmployeeRepository,
   InMemoryOrganizationCatalog,
+  InMemoryPlanningReferenceSource,
 } from '@trame/api/staff/application/testing';
 import { type Actor, AuthModule } from '@trame/platform/auth';
 import {
@@ -19,9 +21,11 @@ import { ProblemDetailsModule } from '@trame/platform/problem-details';
 import request from 'supertest';
 import {
   ABSENCE_REPOSITORY,
+  ABSENCE_WEEK_REFERENCE_REPOSITORY,
   CONTRACT_REPOSITORY,
   EMPLOYEE_REPOSITORY,
   ORGANIZATION_CATALOG,
+  PLANNING_REFERENCE_SOURCE,
 } from '../lib/injection-tokens';
 import { StaffModule } from '../lib/staff.module';
 
@@ -59,9 +63,22 @@ export interface StaffTestApp {
   app: INestApplication;
   /** Les sites et les compétences connus du contexte `organization`, déclarés par le test. */
   catalog: InMemoryOrganizationCatalog;
+  /** Ce que `scheduling` et `demand` répondent pour figer une référence, fixé par le test. */
+  planningReference: InMemoryPlanningReferenceSource;
   /** Les employés et leurs contrats sont créés par use case : l'API ne les écrit pas encore. */
   createEmployee: CreateEmployee;
   createContract: CreateContract;
+}
+
+@Module({})
+class TestPlanningReferenceModule {
+  static with(source: InMemoryPlanningReferenceSource): DynamicModule {
+    return {
+      module: TestPlanningReferenceModule,
+      providers: [{ provide: PLANNING_REFERENCE_SOURCE, useValue: source }],
+      exports: [PLANNING_REFERENCE_SOURCE],
+    };
+  }
 }
 
 @Module({})
@@ -81,14 +98,19 @@ class TestOrganizationCatalogModule {
  */
 export async function createStaffTestApp(): Promise<StaffTestApp> {
   const catalog = new InMemoryOrganizationCatalog();
+  const planningReference = new InMemoryPlanningReferenceSource();
   const employees = new InMemoryEmployeeRepository();
+  const references = new InMemoryAbsenceWeekReferenceRepository(employees);
   const moduleRef = await Test.createTestingModule({
     imports: [
       ProblemDetailsModule,
       AuthModule.forRoot({ resolveActor: testActorResolver }),
       ClockModule,
       IdsModule,
-      StaffModule.forRoot({ organizationCatalog: TestOrganizationCatalogModule.with(catalog) }),
+      StaffModule.forRoot({
+        organizationCatalog: TestOrganizationCatalogModule.with(catalog),
+        planningReference: TestPlanningReferenceModule.with(planningReference),
+      }),
     ],
   })
     .overrideProvider(CLOCK)
@@ -100,7 +122,9 @@ export async function createStaffTestApp(): Promise<StaffTestApp> {
     .overrideProvider(CONTRACT_REPOSITORY)
     .useValue(new InMemoryContractRepository())
     .overrideProvider(ABSENCE_REPOSITORY)
-    .useValue(new InMemoryAbsenceRepository(employees))
+    .useValue(new InMemoryAbsenceRepository(employees, references))
+    .overrideProvider(ABSENCE_WEEK_REFERENCE_REPOSITORY)
+    .useValue(references)
     .compile();
 
   const app = moduleRef.createNestApplication({ logger: false });
@@ -108,6 +132,7 @@ export async function createStaffTestApp(): Promise<StaffTestApp> {
   return {
     app,
     catalog,
+    planningReference,
     createEmployee: moduleRef.get(CreateEmployee, { strict: false }),
     createContract: moduleRef.get(CreateContract, { strict: false }),
   };

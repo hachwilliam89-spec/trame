@@ -487,7 +487,7 @@ Scénario: Habilitation expirée
 
 ### US-033 — Indisponibilités et absences
 
-> **Première partie livrée au jalon 2** ([#105](https://github.com/hachwilliam89-spec/trame/issues/105)) : la saisie des absences par le manager, avec le modèle, la persistance, la déclaration, la modification et la suppression par l'API (`/api/v1/employees/:employeeId/absences`), et la lecture des absences d'un site sur une semaine (`GET /api/v1/absences`). Restent à faire, dans cet ordre : la valorisation figée, la prise en compte par le moteur et la génération, puis la saisie dans l'écran du planning.
+> **Livré au jalon 2** ([#105](https://github.com/hachwilliam89-spec/trame/issues/105)) : la saisie des absences par le manager (modèle, persistance, déclaration, modification et suppression par l'API, lecture des absences d'un site sur une semaine), puis leur valorisation figée : la référence de chaque semaine se fige à la déclaration, la durée d'un jour couvert en partie se donne par `PUT /api/v1/employees/:employeeId/absence-days/:date`, et `GET /api/v1/absence-valuations` rend les minutes valorisées de chaque employé avec leur référence. Restent à faire, dans cet ordre : la prise en compte par le moteur et la génération, puis la saisie dans l'écran du planning.
 
 - Saisie par le manager en v0.1 (par l'employé en v0.2) : une période, et un motif par catégorie (congé, arrêt de travail, formation, autre), sans champ libre ni détail médical.
 - Indispensable avant la génération : les absences sont une entrée du moteur, et l'absence de dernière minute est au cœur du produit. Première capacité du jalon 2.

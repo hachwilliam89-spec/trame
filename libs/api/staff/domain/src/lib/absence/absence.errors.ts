@@ -31,3 +31,17 @@ export class InvalidWeekStartError extends DomainError {
     super('Une semaine commence un lundi.');
   }
 }
+
+export class NotAnActivityDayError extends DomainError {
+  constructor() {
+    super(
+      "Ce jour n'a pas de besoin sur le site cette semaine : il ne compte pas dans la convention.",
+    );
+  }
+}
+
+export class InvalidDayValuationError extends DomainError {
+  constructor(dailyShare: string) {
+    super(`Durée refusée : au plus la part journalière, ${dailyShare}.`);
+  }
+}

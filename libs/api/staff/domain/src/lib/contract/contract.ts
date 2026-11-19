@@ -6,6 +6,7 @@ import {
 
 /** Une semaine entière : 7 jours de 24 heures. Aucun volume hebdomadaire ne peut la dépasser. */
 const MINUTES_PER_WEEK = 7 * 24 * 60;
+const DAYS_PER_WEEK = 7;
 
 export interface ContractProperties {
   id: string;
@@ -53,6 +54,19 @@ export class Contract {
       throw new InvalidContractPeriodError();
     }
     return new Contract(properties);
+  }
+
+  /**
+   * Vrai si le contrat couvre la semaine entière, du lundi au dimanche : c'est son minimum qui
+   * vaut pour la semaine.
+   */
+  coversWeek(weekStartsOn: Temporal.PlainDate): boolean {
+    const sunday = weekStartsOn.add({ days: DAYS_PER_WEEK - 1 });
+    const startsInTime = Temporal.PlainDate.compare(this.startsOn, weekStartsOn) <= 0;
+    if (this.endsOn === undefined) {
+      return startsInTime;
+    }
+    return startsInTime && Temporal.PlainDate.compare(this.endsOn, sunday) >= 0;
   }
 
   /** Vrai si les deux contrats ont au moins un jour en commun. La date de fin est incluse. */

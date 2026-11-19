@@ -92,6 +92,26 @@ describe('contrats de travail sur PostgreSQL (US-032, jalon 1)', () => {
     expect(await contractIdsOfCamille()).toHaveLength(1);
   });
 
+  it('trouve le contrat qui couvre toute la semaine, et aucun pour une semaine en partie couverte (US-033)', async () => {
+    const fixedTerm = contractOfCamille('2025-01-01', '2026-11-25');
+    const permanent = contractOfCamille('2026-11-26');
+    await contracts.add(fixedTerm);
+    await contracts.add(permanent);
+    const weekOf = (monday: string) =>
+      contracts.findCoveringWeek(ORGANIZATION_A, camilleId, Temporal.PlainDate.from(monday));
+
+    expect((await weekOf('2026-11-16'))?.id).toBe(fixedTerm.id);
+    expect(await weekOf('2026-11-23')).toBeUndefined();
+    expect((await weekOf('2026-11-30'))?.id).toBe(permanent.id);
+    expect(
+      await contracts.findCoveringWeek(
+        ORGANIZATION_B,
+        camilleId,
+        Temporal.PlainDate.from('2026-11-30'),
+      ),
+    ).toBeUndefined();
+  });
+
   it('BDD isolation : ne liste pas les contrats depuis une autre organisation', async () => {
     await contracts.add(contractOfCamille('2026-01-01'));
 

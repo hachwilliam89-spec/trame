@@ -112,6 +112,7 @@ model Employee {
   qualifications EmployeeQualification[]
   contracts      Contract[]
   absences       Absence[]
+  absenceWeeks   AbsenceWeekReference[]
 
   @@unique([id, organizationId])
   @@index([organizationId, siteId, id])
@@ -171,6 +172,32 @@ model Absence {
 
   @@index([organizationId, employeeId, startsAt])
   @@map("absences")
+  @@schema("staff")
+}
+
+/// Référence figée qui valorise les absences d'un employé sur une semaine (US-033) : le planning
+/// de référence, ou la convention des parts égales sans planning. Figée à la première absence de
+/// la semaine, elle ne change plus ; seules les durées données par le manager s'y ajoutent.
+/// `generationId` désigne une génération du contexte `scheduling`, sans clé étrangère (ADR-0022).
+model AbsenceWeekReference {
+  organizationId       String   @map("organization_id") @db.Uuid
+  employeeId           String   @map("employee_id") @db.Uuid
+  weekStartsOn         DateTime @map("week_starts_on") @db.Date
+  /// `REFERENCE_PLANNING` ou `EQUAL_SHARE_OF_ACTIVITY_DAYS`.
+  method               String   @db.VarChar(32)
+  frozenAt             DateTime @map("frozen_at") @db.Timestamptz(3)
+  /// Planning de référence : la génération, et les shifts tenus avec leurs pauses.
+  generationId         String?  @map("generation_id") @db.Uuid
+  workedShifts         Json?    @map("worked_shifts") @db.JsonB
+  /// Convention : le fuseau du site, le minimum du contrat, les jours d'activité et les durées.
+  timeZone             String?  @map("time_zone") @db.VarChar(64)
+  weeklyMinimumMinutes Int?     @map("weekly_minimum_minutes")
+  activityDays         Json?    @map("activity_days") @db.JsonB
+  dayValuations        Json?    @map("day_valuations") @db.JsonB
+  employee             Employee @relation(fields: [employeeId, organizationId], references: [id, organizationId], onDelete: Cascade)
+
+  @@id([organizationId, employeeId, weekStartsOn])
+  @@map("absence_week_references")
   @@schema("staff")
 }
 
