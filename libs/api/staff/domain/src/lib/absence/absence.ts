@@ -1,4 +1,11 @@
-import { InvalidAbsencePeriodError, InvalidAbsenceReasonError } from './absence.errors';
+import {
+  AbsenceEndNotOnWholeMinuteError,
+  AbsenceStartNotOnWholeMinuteError,
+  InvalidAbsencePeriodError,
+  InvalidAbsenceReasonError,
+} from './absence.errors';
+
+const NANOSECONDS_PER_MINUTE = 60_000_000_000n;
 
 /**
  * Motif d'une absence, par catégorie : congé, arrêt de travail, formation, autre (US-033). Aucun
@@ -26,6 +33,8 @@ export interface AbsenceProperties extends AbsencePeriod {
 /**
  * Absence d'un employé, déclarée par le manager (US-033). La période est faite d'instants, lus
  * dans le fuseau du site (ADR-0019) : une journée entière va de minuit à minuit le lendemain.
+ * Ses instants tombent sur une minute entière, la précision des créneaux et des minutes d'absence :
+ * le stockage, à la milliseconde, les garde donc à l'identique.
  * Le domaine la conserve sans l'appliquer : écarter l'employé des créneaux qu'elle couvre est une
  * contrainte de planning, donc l'affaire du moteur seul (AGENTS.md, règle 5).
  */
@@ -50,6 +59,12 @@ export class Absence {
   }
 
   static create(properties: AbsenceProperties): Absence {
+    if (!isOnWholeMinute(properties.startsAt)) {
+      throw new AbsenceStartNotOnWholeMinuteError();
+    }
+    if (!isOnWholeMinute(properties.endsAt)) {
+      throw new AbsenceEndNotOnWholeMinuteError();
+    }
     if (Temporal.Instant.compare(properties.endsAt, properties.startsAt) <= 0) {
       throw new InvalidAbsencePeriodError();
     }
@@ -76,6 +91,10 @@ export class Absence {
     const endsAfterTheStart = Temporal.Instant.compare(this.endsAt, from) > 0;
     return startsBeforeTheEnd && endsAfterTheStart;
   }
+}
+
+function isOnWholeMinute(instant: Temporal.Instant): boolean {
+  return instant.epochNanoseconds % NANOSECONDS_PER_MINUTE === 0n;
 }
 
 function isAbsenceReason(reason: string): reason is AbsenceReason {

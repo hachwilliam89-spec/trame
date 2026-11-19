@@ -8,17 +8,33 @@ export const absenceReasonV1 = z.enum(['LEAVE', 'SICK_LEAVE', 'TRAINING', 'OTHER
 
 export type AbsenceReasonV1 = z.infer<typeof absenceReasonV1>;
 
+/** Secondes à zéro, juste avant le décalage : `…T06:00:00+01:00` ou `…T05:00:00Z`. */
+const ZERO_SECONDS = /:00(?:Z|[+-]\d{2}:\d{2})$/;
+
+/**
+ * Instant d'une absence, à la minute : secondes à zéro et sans fraction (`2026-11-24T06:00:00+01:00`).
+ * C'est la précision des créneaux, et celle des minutes d'absence que le moteur comptera. Elle tient
+ * dans le stockage, à la milliseconde : rien n'est tronqué entre la réponse et la relecture.
+ */
+const ABSENCE_INSTANT_FORMAT =
+  'Instant ISO 8601 avec décalage, à la minute : secondes à 00, sans fraction (2026-11-24T06:00:00+01:00).';
+
+/** Un seul message par champ : le format est vérifié d'abord, les secondes ensuite. */
+const absenceInstantV1 = z.iso
+  .datetime({ offset: true, precision: 0, error: ABSENCE_INSTANT_FORMAT, abort: true })
+  .regex(ZERO_SECONDS, ABSENCE_INSTANT_FORMAT);
+
 /**
  * Déclaration ou modification d'une absence : `POST /api/v1/employees/{employeeId}/absences`, et
- * `PUT /api/v1/employees/{employeeId}/absences/{absenceId}`. Les instants portent leur décalage :
- * l'API les stocke en UTC, et ils se lisent dans le fuseau du site (ADR-0019). Tout autre champ est
- * refusé.
+ * `PUT /api/v1/employees/{employeeId}/absences/{absenceId}`. Les instants portent leur décalage et
+ * tombent sur une minute entière : l'API les stocke en UTC, et ils se lisent dans le fuseau du site
+ * (ADR-0019). Tout autre champ est refusé.
  */
 export const absenceRequestV1 = z.strictObject({
   /** Début de l'absence (`2026-11-24T00:00:00+01:00`). */
-  startsAt: z.iso.datetime({ offset: true }),
+  startsAt: absenceInstantV1,
   /** Fin de l'absence, exclue : une journée entière d'absence finit à minuit le lendemain. */
-  endsAt: z.iso.datetime({ offset: true }),
+  endsAt: absenceInstantV1,
   reason: absenceReasonV1,
 });
 

@@ -6,6 +6,18 @@ export class InvalidAbsencePeriodError extends DomainError {
   }
 }
 
+export class AbsenceStartNotOnWholeMinuteError extends DomainError {
+  constructor() {
+    super('Une absence commence sur une minute entière.');
+  }
+}
+
+export class AbsenceEndNotOnWholeMinuteError extends DomainError {
+  constructor() {
+    super('Une absence finit sur une minute entière.');
+  }
+}
+
 export class InvalidAbsenceReasonError extends DomainError {
   constructor() {
     super(

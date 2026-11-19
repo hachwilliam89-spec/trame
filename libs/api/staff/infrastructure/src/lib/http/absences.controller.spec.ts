@@ -103,6 +103,44 @@ describe('API des absences (US-033, jalon 2)', () => {
       );
     });
 
+    it.each([
+      [
+        'des microsecondes qui disparaîtraient au stockage',
+        'startsAt',
+        {
+          startsAt: '2026-11-24T06:00:00.000100Z',
+          endsAt: '2026-11-24T06:00:00.000200Z',
+        },
+      ],
+      [
+        'dix chiffres après la virgule',
+        'startsAt',
+        {
+          startsAt: '2026-11-24T06:00:00.1234567890Z',
+          endsAt: '2026-11-24T10:00:00Z',
+        },
+      ],
+      [
+        'des secondes',
+        'endsAt',
+        {
+          startsAt: '2026-11-24T06:00:00Z',
+          endsAt: '2026-11-24T10:00:30Z',
+        },
+      ],
+    ])('refuse en 400 un instant avec %s, sans rien enregistrer', async (_case, field, period) => {
+      const response = await declare(testActors.managerOfA, { ...tuesdayAndWednesday, ...period });
+      const week = await sendAs(app, testActors.managerOfA, 'get', WEEK_OF_23_NOVEMBER);
+
+      expect(response.status).toBe(400);
+      expect(response.body.errors).toContainEqual({
+        pointer: `#/${field}`,
+        code: 'invalid_format',
+        detail: expect.stringContaining('à la minute'),
+      });
+      expect(week.body.absences).toEqual([]);
+    });
+
     it('accepte l’administrateur', async () => {
       expect((await declare(testActors.adminOfA)).status).toBe(201);
     });
@@ -166,6 +204,23 @@ describe('API des absences (US-033, jalon 2)', () => {
         endsAt: '2026-11-27T23:00:00Z',
         reason: 'SICK_LEAVE',
       });
+    });
+
+    it('refuse en 400 une modification vers un instant hors de la minute, et garde l’absence', async () => {
+      const declared = await declare();
+
+      const response = await sendAs(
+        app,
+        testActors.managerOfA,
+        'put',
+        `${absencesOf(ines.id)}/${declared.body.id}`,
+        { ...tuesdayAndWednesday, endsAt: '2026-11-26T00:00:00.000200Z' },
+      );
+      const week = await sendAs(app, testActors.managerOfA, 'get', WEEK_OF_23_NOVEMBER);
+
+      expect(response.status).toBe(400);
+      expect(response.body.errors).toEqual([expect.objectContaining({ pointer: '#/endsAt' })]);
+      expect(week.body.absences).toEqual([declared.body]);
     });
 
     it('BDD : supprime une absence saisie par erreur', async () => {

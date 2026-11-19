@@ -7,6 +7,8 @@ export {
 } from './lib/absence/absence';
 export { type WeekBounds, weekBounds } from './lib/absence/absence-week';
 export {
+  AbsenceEndNotOnWholeMinuteError,
+  AbsenceStartNotOnWholeMinuteError,
   InvalidAbsencePeriodError,
   InvalidAbsenceReasonError,
   InvalidWeekStartError,

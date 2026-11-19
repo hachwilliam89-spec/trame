@@ -5,6 +5,8 @@ import {
   SkillNotFoundError,
 } from '@trame/api/staff/application';
 import {
+  AbsenceEndNotOnWholeMinuteError,
+  AbsenceStartNotOnWholeMinuteError,
   DuplicateQualificationError,
   InvalidAbsencePeriodError,
   InvalidAbsenceReasonError,
@@ -41,6 +43,8 @@ export const staffErrorMappings: ErrorMapping[] = [
   },
   { error: InvalidContractPeriodError, pointer: '#/endsOn', code: 'invalid_contract_period' },
   { error: OverlappingContractError, pointer: '#/startsOn', code: 'overlapping_contract' },
+  { error: AbsenceStartNotOnWholeMinuteError, pointer: '#/startsAt', code: 'not_on_whole_minute' },
+  { error: AbsenceEndNotOnWholeMinuteError, pointer: '#/endsAt', code: 'not_on_whole_minute' },
   { error: InvalidAbsencePeriodError, pointer: '#/endsAt', code: 'invalid_absence_period' },
   { error: InvalidAbsenceReasonError, pointer: '#/reason', code: 'invalid_absence_reason' },
   { error: InvalidWeekStartError, pointer: '#/weekStartsOn', code: 'invalid_week_start' },

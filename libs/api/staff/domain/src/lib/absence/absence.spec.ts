@@ -1,5 +1,10 @@
 import { Absence, type AbsenceProperties } from './absence';
-import { InvalidAbsencePeriodError, InvalidAbsenceReasonError } from './absence.errors';
+import {
+  AbsenceEndNotOnWholeMinuteError,
+  AbsenceStartNotOnWholeMinuteError,
+  InvalidAbsencePeriodError,
+  InvalidAbsenceReasonError,
+} from './absence.errors';
 
 function instant(text: string): Temporal.Instant {
   return Temporal.Instant.from(text);
@@ -49,6 +54,41 @@ describe('Absence', () => {
 
     expect(() => Absence.create(properties)).toThrow(InvalidAbsencePeriodError);
     expect(() => Absence.create(properties)).toThrow('La fin doit suivre le début.');
+  });
+
+  it.each([
+    ['des microsecondes', '2026-11-24T06:00:00.000100Z'],
+    ['des millisecondes', '2026-11-24T06:00:00.100Z'],
+    ['des secondes', '2026-11-24T06:00:30Z'],
+  ])('refuse un début avec %s : une absence commence sur une minute entière', (_case, startsAt) => {
+    const properties = absenceProperties({ startsAt: instant(startsAt) });
+
+    expect(() => Absence.create(properties)).toThrow(AbsenceStartNotOnWholeMinuteError);
+    expect(() => Absence.create(properties)).toThrow(
+      'Une absence commence sur une minute entière.',
+    );
+  });
+
+  it('refuse une fin qui ne tombe pas sur une minute entière, même après un début valide', () => {
+    // 6 h 00 min 00,0001 s → 6 h 00 min 00,0002 s : une période qui ne survivrait pas au stockage.
+    const properties = absenceProperties({
+      startsAt: instant('2026-11-24T06:00:00Z'),
+      endsAt: instant('2026-11-24T06:00:00.000200Z'),
+    });
+
+    expect(() => Absence.create(properties)).toThrow(AbsenceEndNotOnWholeMinuteError);
+  });
+
+  it('refuse une modification vers des instants qui ne tombent pas sur une minute entière', () => {
+    const absence = Absence.create(absenceProperties());
+
+    expect(() =>
+      absence.changeTo({
+        startsAt: instant('2026-11-27T00:00:00.5Z'),
+        endsAt: instant('2026-11-28T00:00:00Z'),
+        reason: 'LEAVE',
+      }),
+    ).toThrow(AbsenceStartNotOnWholeMinuteError);
   });
 
   it('change de période et de motif sans changer d’employé ni de date de déclaration', () => {

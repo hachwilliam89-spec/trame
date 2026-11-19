@@ -104,6 +104,19 @@ describe('contrats du contexte staff', () => {
       ).toBe(true);
     });
 
+    it.each([
+      ['des millisecondes', '2026-11-24T06:00:00.100Z'],
+      ['des microsecondes', '2026-11-24T06:00:00.000100Z'],
+      ['dix chiffres après la virgule', '2026-11-24T06:00:00.1234567890Z'],
+      ['des secondes', '2026-11-24T06:00:30+01:00'],
+      ['des minutes sans secondes', '2026-11-24T06:00+01:00'],
+    ])('refuse un instant avec %s : une absence se saisit à la minute', (_case, startsAt) => {
+      const result = absenceRequestV1.safeParse({ ...tuesdayLeave, startsAt });
+
+      expect(result.success).toBe(false);
+      expect(result.error?.issues[0]?.path).toEqual(['startsAt']);
+    });
+
     it('propose quatre catégories de motif : congé, arrêt de travail, formation, autre', () => {
       expect(absenceReasonV1.options).toEqual(['LEAVE', 'SICK_LEAVE', 'TRAINING', 'OTHER']);
     });

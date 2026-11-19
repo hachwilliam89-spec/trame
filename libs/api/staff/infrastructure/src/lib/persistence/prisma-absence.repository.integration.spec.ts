@@ -87,6 +87,17 @@ describe('absences sur PostgreSQL (US-033, jalon 2)', () => {
     expect(found?.createdAt.toString()).toBe('2026-11-18T15:00:00.123Z');
   });
 
+  it('relit exactement les instants renvoyés à la déclaration, sans troncature', async () => {
+    const leave = absenceOf(ines, '2026-11-24T00:00', '2026-11-26T00:00');
+    await absences.add(leave);
+
+    const found = await absences.findById(ORGANIZATION_A, leave.id);
+
+    expect(found?.startsAt.equals(leave.startsAt)).toBe(true);
+    expect(found?.endsAt.equals(leave.endsAt)).toBe(true);
+    expect(found?.createdAt.equals(leave.createdAt)).toBe(true);
+  });
+
   it('remplace la période et le motif d’une absence', async () => {
     const leave = absenceOf(ines, '2026-11-24T00:00', '2026-11-25T00:00');
     await absences.add(leave);
@@ -156,6 +167,7 @@ describe('absences sur PostgreSQL (US-033, jalon 2)', () => {
   it.each([
     ['une fin égale au début', '2026-11-24T06:00:00+01:00', 'LEAVE'],
     ['un motif hors des catégories', '2026-11-24T10:00:00+01:00', 'MALADIE'],
+    ['une fin hors de la minute', '2026-11-24T10:00:00.001+01:00', 'LEAVE'],
   ])('la migration interdit %s', async (_case, endsAt, reason) => {
     const absenceId = ids.next();
 
