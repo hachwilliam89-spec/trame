@@ -10,6 +10,13 @@ export interface ContractRepository {
    */
   add(contract: Contract): Promise<void>;
 
+  /** Contrat qui couvre toute la semaine, du lundi au dimanche ; `undefined` s'il n'y en a pas. */
+  findCoveringWeek(
+    organizationId: string,
+    employeeId: string,
+    weekStartsOn: Temporal.PlainDate,
+  ): Promise<Contract | undefined>;
+
   /** Contrats de l'employé, par ordre de création. */
   listByEmployee(
     organizationId: string,

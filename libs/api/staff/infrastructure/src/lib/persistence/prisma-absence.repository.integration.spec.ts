@@ -76,7 +76,7 @@ describe('absences sur PostgreSQL (US-033, jalon 2)', () => {
 
   it('enregistre une absence et la relit avec sa période, son motif et sa date', async () => {
     const thursdayMorning = absenceOf(yanis, '2026-11-26T06:00', '2026-11-26T10:00', 'TRAINING');
-    await absences.add(thursdayMorning);
+    await absences.add(thursdayMorning, []);
 
     const found = await absences.findById(ORGANIZATION_A, thursdayMorning.id);
 
@@ -89,7 +89,7 @@ describe('absences sur PostgreSQL (US-033, jalon 2)', () => {
 
   it('relit exactement les instants renvoyés à la déclaration, sans troncature', async () => {
     const leave = absenceOf(ines, '2026-11-24T00:00', '2026-11-26T00:00');
-    await absences.add(leave);
+    await absences.add(leave, []);
 
     const found = await absences.findById(ORGANIZATION_A, leave.id);
 
@@ -100,14 +100,14 @@ describe('absences sur PostgreSQL (US-033, jalon 2)', () => {
 
   it('remplace la période et le motif d’une absence', async () => {
     const leave = absenceOf(ines, '2026-11-24T00:00', '2026-11-25T00:00');
-    await absences.add(leave);
+    await absences.add(leave, []);
     const moved = leave.changeTo({
       startsAt: Temporal.Instant.from('2026-11-27T00:00:00+01:00'),
       endsAt: Temporal.Instant.from('2026-11-28T00:00:00+01:00'),
       reason: 'SICK_LEAVE',
     });
 
-    expect(await absences.update(moved)).toBe(true);
+    expect(await absences.update(moved, [], [])).toBe(true);
 
     const found = await absences.findById(ORGANIZATION_A, leave.id);
     expect(found?.startsAt.toString()).toBe('2026-11-26T23:00:00Z');
@@ -116,21 +116,21 @@ describe('absences sur PostgreSQL (US-033, jalon 2)', () => {
 
   it('supprime une absence, une seule fois', async () => {
     const mistake = absenceOf(ines, '2026-11-24T00:00', '2026-11-25T00:00');
-    await absences.add(mistake);
+    await absences.add(mistake, []);
 
-    expect(await absences.remove(ORGANIZATION_A, mistake.id)).toBe(true);
-    expect(await absences.remove(ORGANIZATION_A, mistake.id)).toBe(false);
+    expect(await absences.remove(mistake, [])).toBe(true);
+    expect(await absences.remove(mistake, [])).toBe(false);
     expect(await absences.findById(ORGANIZATION_A, mistake.id)).toBeUndefined();
   });
 
   it('BDD isolation : ni lecture, ni modification, ni suppression depuis une autre organisation', async () => {
     const leave = absenceOf(ines, '2026-11-24T00:00', '2026-11-25T00:00');
-    await absences.add(leave);
+    await absences.add(leave, []);
     const seenFromB = Absence.create({ ...leave, organizationId: ORGANIZATION_B });
 
     expect(await absences.findById(ORGANIZATION_B, leave.id)).toBeUndefined();
-    expect(await absences.update(seenFromB)).toBe(false);
-    expect(await absences.remove(ORGANIZATION_B, leave.id)).toBe(false);
+    expect(await absences.update(seenFromB, [], [])).toBe(false);
+    expect(await absences.remove(seenFromB, [])).toBe(false);
     expect(await idsOfTheWeek(ORGANIZATION_B)).toEqual([]);
     expect(await idsOfTheWeek()).toEqual([leave.id]);
   });
@@ -152,7 +152,7 @@ describe('absences sur PostgreSQL (US-033, jalon 2)', () => {
       atOtherSite,
       fromLastWeek,
     ]) {
-      await absences.add(absence);
+      await absences.add(absence, []);
     }
 
     expect(await idsOfTheWeek()).toEqual([
@@ -162,6 +162,32 @@ describe('absences sur PostgreSQL (US-033, jalon 2)', () => {
       intoNextWeek.id,
     ]);
     expect(await idsOfTheWeek(ORGANIZATION_A, OTHER_SITE)).toEqual([atOtherSite.id]);
+  });
+
+  it('liste les absences d’un employé qui touchent une période, et aucune depuis une autre organisation', async () => {
+    const thursdayAfternoon = absenceOf(ines, '2026-11-26T14:00', '2026-11-26T16:00');
+    const thursdayMorning = absenceOf(ines, '2026-11-26T06:00', '2026-11-26T10:00');
+    const endsAtMonday = absenceOf(ines, '2026-11-22T00:00', '2026-11-23T00:00');
+    const ofYanis = absenceOf(yanis, '2026-11-26T06:00', '2026-11-26T10:00');
+    for (const absence of [thursdayAfternoon, endsAtMonday, ofYanis, thursdayMorning]) {
+      await absences.add(absence, []);
+    }
+
+    const ofInes = await absences.listByEmployeeOverlapping(
+      ORGANIZATION_A,
+      ines,
+      MONDAY,
+      NEXT_MONDAY,
+    );
+    const seenFromB = await absences.listByEmployeeOverlapping(
+      ORGANIZATION_B,
+      ines,
+      MONDAY,
+      NEXT_MONDAY,
+    );
+
+    expect(ofInes.map((absence) => absence.id)).toEqual([thursdayMorning.id, thursdayAfternoon.id]);
+    expect(seenFromB).toEqual([]);
   });
 
   it.each([
@@ -186,6 +212,6 @@ describe('absences sur PostgreSQL (US-033, jalon 2)', () => {
       organizationId: ORGANIZATION_B,
     });
 
-    await expect(absences.add(crossOrganization)).rejects.toThrow();
+    await expect(absences.add(crossOrganization, [])).rejects.toThrow();
   });
 });

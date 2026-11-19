@@ -25,6 +25,10 @@ export {
   type StartScheduleGenerationCommand,
 } from './lib/generation/start-schedule-generation';
 export {
+  GetLatestWeekSchedule,
+  type GetLatestWeekScheduleQuery,
+} from './lib/generation/get-latest-week-schedule';
+export {
   GetScheduleGeneration,
   type GetScheduleGenerationQuery,
 } from './lib/generation/get-schedule-generation';

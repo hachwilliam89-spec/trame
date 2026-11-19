@@ -1,5 +1,10 @@
 import type { TimeZone } from '../site/time-zone';
-import { type InstantInterval, minutesBetween, overlapMinutes } from './instant-interval';
+import {
+  type InstantInterval,
+  intersectionOf,
+  minutesBetween,
+  overlapMinutes,
+} from './instant-interval';
 import { instantOfLocalTime, isWholeMinute, wallClockMinutesBetween } from './local-time';
 import type { ShiftBreak } from './shift-break';
 import {
@@ -31,6 +36,12 @@ export interface ShiftDurations {
   breakMinutes: number;
   /** Amplitude moins la pause. */
   effectiveMinutes: number;
+  /**
+   * Partie de la pause comprise dans le créneau, en instants. Vide (début égal à la fin) quand un
+   * changement d'heure la repousse hors du créneau.
+   */
+  breakStartsAt: Temporal.Instant;
+  breakEndsAt: Temporal.Instant;
 }
 
 /** Créneau type d'un site (« Nuit », 22 h–6 h, pause de 30 min à 2 h), défini en heure locale. */
@@ -98,6 +109,7 @@ export class ShiftTemplate {
 
     const amplitudeMinutes = minutesBetween(shift.start, shift.end);
     const breakMinutes = overlapMinutes(shiftBreak, shift);
+    const breakWithinShift = intersectionOf(shiftBreak, shift);
 
     return {
       startsAt: shift.start,
@@ -105,6 +117,8 @@ export class ShiftTemplate {
       amplitudeMinutes,
       breakMinutes,
       effectiveMinutes: amplitudeMinutes - breakMinutes,
+      breakStartsAt: breakWithinShift.start,
+      breakEndsAt: breakWithinShift.end,
     };
   }
 

@@ -6,14 +6,19 @@ import {
 import { FixedClock } from '@trame/platform/clock';
 import { SequentialIdGenerator } from '@trame/platform/ids';
 import { anEmployee } from '../../testing/employee-builder';
+import { InMemoryAbsenceWeekReferenceRepository } from '../../testing/in-memory-absence-week-reference.repository';
 import { InMemoryAbsenceRepository } from '../../testing/in-memory-absence.repository';
+import { InMemoryContractRepository } from '../../testing/in-memory-contract.repository';
 import { InMemoryEmployeeRepository } from '../../testing/in-memory-employee.repository';
 import { InMemoryOrganizationCatalog } from '../../testing/in-memory-organization-catalog';
+import { InMemoryPlanningReferenceSource } from '../../testing/in-memory-planning-reference-source';
 import {
   AbsenceNotFoundError,
   EmployeeNotFoundError,
   SiteNotFoundError,
 } from '../not-found.errors';
+import { AbsenceWeekReferenceFreezer } from './absence-week-reference-freezer';
+import { AbsenceWeeksLookup } from './absence-weeks-lookup';
 import { DeclareAbsence, type DeclareAbsenceCommand } from './declare-absence';
 import { DeleteAbsence } from './delete-absence';
 import { ListWeekAbsences } from './list-week-absences';
@@ -44,16 +49,26 @@ async function setUp() {
   await employees.add(
     anEmployee().withId(EMPLOYEE_OF_B).inOrganization(ORGANIZATION_B).atSite(SITE_OF_B).build(),
   );
-  const absences = new InMemoryAbsenceRepository(employees);
+  const references = new InMemoryAbsenceWeekReferenceRepository(employees);
+  const absences = new InMemoryAbsenceRepository(employees, references);
+  const clock = new FixedClock(now);
+  const freezer = new AbsenceWeekReferenceFreezer(
+    catalog,
+    new InMemoryContractRepository(),
+    references,
+    new InMemoryPlanningReferenceSource(),
+  );
+  const weeks = new AbsenceWeeksLookup(catalog);
   return {
     declareAbsence: new DeclareAbsence(
       employees,
       absences,
-      new FixedClock(now),
+      freezer,
+      clock,
       new SequentialIdGenerator(),
     ),
-    updateAbsence: new UpdateAbsence(absences),
-    deleteAbsence: new DeleteAbsence(absences),
+    updateAbsence: new UpdateAbsence(employees, absences, freezer, weeks, clock),
+    deleteAbsence: new DeleteAbsence(employees, absences, weeks),
     listWeekAbsences: new ListWeekAbsences(catalog, absences),
   };
 }

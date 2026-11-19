@@ -1,6 +1,7 @@
 import {
   AbsenceNotFoundError,
   EmployeeNotFoundError,
+  NoEqualShareReferenceError,
   SiteNotFoundError,
   SkillNotFoundError,
 } from '@trame/api/staff/application';
@@ -11,10 +12,13 @@ import {
   InvalidAbsencePeriodError,
   InvalidAbsenceReasonError,
   InvalidContractPeriodError,
+  InvalidDayValuationError,
   InvalidEmployeeFirstNameError,
   InvalidEmployeeLastNameError,
   InvalidWeeklyVolumeError,
   InvalidWeekStartError,
+  NoPartialAbsenceOnDayError,
+  NotAnActivityDayError,
   OverlappingContractError,
 } from '@trame/api/staff/domain';
 import type { ErrorMapping } from '@trame/platform/problem-details';
@@ -25,6 +29,7 @@ import type { ErrorMapping } from '@trame/platform/problem-details';
  */
 export const staffErrorMappings: ErrorMapping[] = [
   { error: AbsenceNotFoundError, status: 404 },
+  { error: NoEqualShareReferenceError, status: 409 },
   { error: EmployeeNotFoundError, status: 404 },
   { error: SiteNotFoundError, status: 404 },
   { error: SkillNotFoundError, status: 404 },
@@ -48,4 +53,7 @@ export const staffErrorMappings: ErrorMapping[] = [
   { error: InvalidAbsencePeriodError, pointer: '#/endsAt', code: 'invalid_absence_period' },
   { error: InvalidAbsenceReasonError, pointer: '#/reason', code: 'invalid_absence_reason' },
   { error: InvalidWeekStartError, pointer: '#/weekStartsOn', code: 'invalid_week_start' },
+  { error: InvalidDayValuationError, pointer: '#/valuedMinutes', code: 'invalid_day_valuation' },
+  { error: NotAnActivityDayError, pointer: '#/date', code: 'not_an_activity_day' },
+  { error: NoPartialAbsenceOnDayError, pointer: '#/date', code: 'no_partial_absence' },
 ];

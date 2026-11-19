@@ -119,4 +119,24 @@ describe('Contract', () => {
     );
     expect(() => ensureNoOverlappingContract(existing, contractOver('2026-07-01'))).not.toThrow();
   });
+
+  describe('coversWeek', () => {
+    const MONDAY = Temporal.PlainDate.from('2026-11-23');
+
+    it.each([
+      ['un contrat sans fin commencé avant', '2026-01-01', undefined, true],
+      ['un contrat du lundi au dimanche', '2026-11-23', '2026-11-29', true],
+      ['un contrat commencé le mardi', '2026-11-24', undefined, false],
+      ['un contrat fini le samedi', '2026-01-01', '2026-11-28', false],
+    ])('couvre la semaine entière : %s → %s', (_case, startsOn, endsOn, expected) => {
+      const contract = Contract.create(
+        contractProperties({
+          startsOn: Temporal.PlainDate.from(startsOn),
+          endsOn: endsOn === undefined ? undefined : Temporal.PlainDate.from(endsOn),
+        }),
+      );
+
+      expect(contract.coversWeek(MONDAY)).toBe(expected);
+    });
+  });
 });

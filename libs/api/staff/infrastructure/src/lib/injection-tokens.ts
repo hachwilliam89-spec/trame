@@ -1,3 +1,9 @@
+/** Jeton du dépôt des références qui valorisent les absences. */
+export const ABSENCE_WEEK_REFERENCE_REPOSITORY = Symbol('ABSENCE_WEEK_REFERENCE_REPOSITORY');
+
+/** Port vers `scheduling` et `demand`, fourni par un module de l'application. */
+export const PLANNING_REFERENCE_SOURCE = Symbol('PLANNING_REFERENCE_SOURCE');
+
 /** Jeton du dépôt des absences. */
 export const ABSENCE_REPOSITORY = Symbol('ABSENCE_REPOSITORY');
 
