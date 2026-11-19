@@ -40,6 +40,12 @@ export class NotAnActivityDayError extends DomainError {
   }
 }
 
+export class NoPartialAbsenceOnDayError extends DomainError {
+  constructor() {
+    super("Ce jour n'est pas couvert en partie par une absence : il n'y a pas de durée à donner.");
+  }
+}
+
 export class InvalidDayValuationError extends DomainError {
   constructor(dailyShare: string) {
     super(`Durée refusée : au plus la part journalière, ${dailyShare}.`);

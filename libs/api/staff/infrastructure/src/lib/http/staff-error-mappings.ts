@@ -17,6 +17,7 @@ import {
   InvalidEmployeeLastNameError,
   InvalidWeeklyVolumeError,
   InvalidWeekStartError,
+  NoPartialAbsenceOnDayError,
   NotAnActivityDayError,
   OverlappingContractError,
 } from '@trame/api/staff/domain';
@@ -54,4 +55,5 @@ export const staffErrorMappings: ErrorMapping[] = [
   { error: InvalidWeekStartError, pointer: '#/weekStartsOn', code: 'invalid_week_start' },
   { error: InvalidDayValuationError, pointer: '#/valuedMinutes', code: 'invalid_day_valuation' },
   { error: NotAnActivityDayError, pointer: '#/date', code: 'not_an_activity_day' },
+  { error: NoPartialAbsenceOnDayError, pointer: '#/date', code: 'no_partial_absence' },
 ];

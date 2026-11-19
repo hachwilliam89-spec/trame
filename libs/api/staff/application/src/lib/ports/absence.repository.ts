@@ -31,4 +31,12 @@ export interface AbsenceRepository {
     from: Temporal.Instant,
     to: Temporal.Instant,
   ): Promise<Absence[]>;
+
+  /** Absences de l'employé qui couvrent au moins un instant de `[from, to[`, triées de même. */
+  listByEmployeeOverlapping(
+    organizationId: string,
+    employeeId: string,
+    from: Temporal.Instant,
+    to: Temporal.Instant,
+  ): Promise<Absence[]>;
 }

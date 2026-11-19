@@ -25,6 +25,24 @@ const referencePlanningV1 = z.object({
   generationId: z.uuid(),
 });
 
+/** Période d'absence en instants UTC, début inclus, fin exclue. */
+const absencePeriodV1 = z.object({
+  startsAt: z.iso.datetime(),
+  endsAt: z.iso.datetime(),
+});
+
+/**
+ * Durée donnée pour un jour couvert en partie, et la couverture de ce jour qu'elle valorise. Si
+ * les absences du jour changent cette couverture, la durée ne vaut plus : le jour revient dans
+ * `daysToDefine`.
+ */
+const dayValuationV1 = z.object({
+  valuedMinutes: z.int().min(0),
+  coveredPeriods: z.array(absencePeriodV1),
+});
+
+export type DayValuationV1 = z.infer<typeof dayValuationV1>;
+
 /**
  * Convention de démonstration « parts égales sur les jours d'activité », figée avec ses
  * paramètres pour expliquer le calcul. Ni règle de paie, ni décompte légal des absences.
@@ -36,8 +54,8 @@ const equalShareOfActivityDaysV1 = z.object({
   activityDays: z.array(z.iso.date()),
   /** Minimum divisé par le nombre de jours d'activité, éventuellement non entier. */
   dailyShareMinutes: z.number().min(0),
-  /** Durées données par le manager pour des jours couverts en partie. */
-  dayValuations: z.record(z.iso.date(), z.int().min(0)),
+  /** Durées données par le manager pour des jours couverts en partie, par date. */
+  dayValuations: z.record(z.iso.date(), dayValuationV1),
 });
 
 export const absenceWeekReferenceV1 = z.discriminatedUnion('method', [

@@ -1,16 +1,18 @@
 import { Absence, type AbsenceReason } from './absence';
+import { valueAbsencesOfWeek } from './absence-week-reference';
 import {
-  EqualShareReference,
-  PlanningReference,
-  type WorkedShift,
-  valueAbsencesOfWeek,
-} from './absence-week-reference';
-import { InvalidDayValuationError, NotAnActivityDayError } from './absence.errors';
+  InvalidDayValuationError,
+  NoPartialAbsenceOnDayError,
+  NotAnActivityDayError,
+} from './absence.errors';
+import { EqualShareReference } from './equal-share-reference';
+import { PlanningReference, type WorkedShift } from './planning-reference';
 
 const ORGANIZATION = '0190f0a0-0000-7000-8000-00000000000a';
 const CAMILLE = '0190f0a0-0000-7000-8000-0000000000e1';
 const PARIS = 'Europe/Paris';
 const WEEK_OF_23_NOVEMBER = Temporal.PlainDate.from('2026-11-23');
+const THURSDAY = Temporal.PlainDate.from('2026-11-26');
 const FROZEN_AT = Temporal.Instant.from('2026-11-18T15:00:00Z');
 const HOURS = 60;
 
@@ -206,59 +208,128 @@ describe('valorisation sans planning de référence : parts égales sur les jour
   });
 
   it('BDD : une durée donnée pour le jour partiel est valorisée telle quelle, 3 h', () => {
-    const reference = camilleByEqualShare().withDayValuation(
-      Temporal.PlainDate.from('2026-11-26'),
-      3 * HOURS,
-    );
+    const thursdayMorning = [absence('2026-11-26T06:00', '2026-11-26T10:00')];
+    const reference = camilleByEqualShare().withDayValuation(THURSDAY, 3 * HOURS, thursdayMorning);
 
-    const valuation = reference.value([absence('2026-11-26T06:00', '2026-11-26T10:00')]);
-
-    expect(valuation).toEqual({ status: 'VALUED', absenceMinutes: 3 * HOURS });
+    expect(reference.value(thursdayMorning)).toEqual({
+      status: 'VALUED',
+      absenceMinutes: 3 * HOURS,
+    });
   });
 
   it('compte une seule durée pour deux absences partielles le même jour', () => {
-    const reference = camilleByEqualShare().withDayValuation(
-      Temporal.PlainDate.from('2026-11-26'),
-      3 * HOURS,
-    );
-
-    const valuation = reference.value([
+    const twoPartialAbsences = [
       absence('2026-11-26T06:00', '2026-11-26T08:00'),
       absence('2026-11-26T14:00', '2026-11-26T16:00'),
-    ]);
+    ];
+    const reference = camilleByEqualShare().withDayValuation(
+      THURSDAY,
+      3 * HOURS,
+      twoPartialAbsences,
+    );
 
-    expect(valuation).toEqual({ status: 'VALUED', absenceMinutes: 3 * HOURS });
+    expect(reference.value(twoPartialAbsences)).toEqual({
+      status: 'VALUED',
+      absenceMinutes: 3 * HOURS,
+    });
   });
 
   it('prend la part journalière quand le jour donné en partie est finalement couvert en entier', () => {
-    const reference = camilleByEqualShare().withDayValuation(
-      Temporal.PlainDate.from('2026-11-26'),
-      HOURS,
-    );
+    const reference = camilleByEqualShare().withDayValuation(THURSDAY, HOURS, [
+      absence('2026-11-26T06:00', '2026-11-26T10:00'),
+    ]);
 
     const valuation = reference.value([wholeDays('2026-11-26', '2026-11-27')]);
 
     expect(valuation).toEqual({ status: 'VALUED', absenceMinutes: 4 * HOURS + 40 });
   });
 
-  it('BDD : refuse une durée au-delà de la part journalière', () => {
+  it('BDD : redemande la durée quand l’absence du jour change, 14 h – 16 h puis 14 h – 18 h', () => {
+    const reference = camilleByEqualShare().withDayValuation(THURSDAY, 2 * HOURS, [
+      absence('2026-11-26T14:00', '2026-11-26T16:00'),
+    ]);
+
+    const valuation = reference.value([absence('2026-11-26T14:00', '2026-11-26T18:00')]);
+
+    expect(valuation).toEqual({ status: 'TO_DEFINE', daysToDefine: [THURSDAY] });
+  });
+
+  it('BDD : une autre absence du jour, saisie après la suppression, ne reprend pas la durée', () => {
+    const reference = camilleByEqualShare().withDayValuation(THURSDAY, 2 * HOURS, [
+      absence('2026-11-26T14:00', '2026-11-26T16:00'),
+    ]);
+
+    const valuation = reference.value([absence('2026-11-26T09:00', '2026-11-26T10:00')]);
+
+    expect(valuation).toEqual({ status: 'TO_DEFINE', daysToDefine: [THURSDAY] });
+  });
+
+  it('BDD : garde la durée quand des absences remaniées couvrent le jour de la même façon', () => {
+    const reference = camilleByEqualShare().withDayValuation(THURSDAY, 2 * HOURS, [
+      absence('2026-11-26T14:00', '2026-11-26T16:00'),
+    ]);
+
+    const valuation = reference.value([
+      absence('2026-11-26T14:00', '2026-11-26T15:00'),
+      absence('2026-11-26T15:00', '2026-11-26T16:00'),
+    ]);
+
+    expect(valuation).toEqual({ status: 'VALUED', absenceMinutes: 2 * HOURS });
+  });
+
+  it('garde la durée d’un jour quand les absences d’un autre jour changent', () => {
+    const thursdayAfternoon = absence('2026-11-26T14:00', '2026-11-26T16:00');
+    const reference = camilleByEqualShare().withDayValuation(THURSDAY, 2 * HOURS, [
+      thursdayAfternoon,
+    ]);
+
+    const valuation = reference.value([thursdayAfternoon, wholeDays('2026-11-24', '2026-11-25')]);
+
+    expect(valuation).toEqual({ status: 'VALUED', absenceMinutes: 4 * HOURS + 40 + 2 * HOURS });
+  });
+
+  it('BDD : refuse une durée pour un jour qu’aucune absence ne couvre', () => {
     expect(() =>
-      camilleByEqualShare().withDayValuation(Temporal.PlainDate.from('2026-11-26'), 5 * HOURS),
+      camilleByEqualShare().withDayValuation(THURSDAY, HOURS, [
+        wholeDays('2026-11-24', '2026-11-25'),
+      ]),
+    ).toThrow(
+      "Ce jour n'est pas couvert en partie par une absence : il n'y a pas de durée à donner.",
+    );
+  });
+
+  it('refuse une durée pour un jour couvert en entier, qui vaut déjà sa part', () => {
+    expect(() =>
+      camilleByEqualShare().withDayValuation(THURSDAY, HOURS, [
+        wholeDays('2026-11-26', '2026-11-27'),
+      ]),
+    ).toThrow(NoPartialAbsenceOnDayError);
+  });
+
+  it('BDD : refuse une durée au-delà de la part journalière', () => {
+    const thursdayMorning = [absence('2026-11-26T06:00', '2026-11-26T10:00')];
+
+    expect(() =>
+      camilleByEqualShare().withDayValuation(THURSDAY, 5 * HOURS, thursdayMorning),
     ).toThrow('Durée refusée : au plus la part journalière, 4 h 40.');
     expect(() =>
-      camilleByEqualShare().withDayValuation(Temporal.PlainDate.from('2026-11-26'), 5 * HOURS),
+      camilleByEqualShare().withDayValuation(THURSDAY, 5 * HOURS, thursdayMorning),
     ).toThrow(InvalidDayValuationError);
   });
 
   it.each([-1, 1.5])('refuse une durée de %s minutes', (minutes) => {
     expect(() =>
-      camilleByEqualShare().withDayValuation(Temporal.PlainDate.from('2026-11-26'), minutes),
+      camilleByEqualShare().withDayValuation(THURSDAY, minutes, [
+        absence('2026-11-26T06:00', '2026-11-26T10:00'),
+      ]),
     ).toThrow(InvalidDayValuationError);
   });
 
   it('refuse une durée pour un jour sans activité', () => {
     expect(() =>
-      camilleByEqualShare().withDayValuation(Temporal.PlainDate.from('2026-11-29'), HOURS),
+      camilleByEqualShare().withDayValuation(Temporal.PlainDate.from('2026-11-29'), HOURS, [
+        absence('2026-11-29T06:00', '2026-11-29T10:00'),
+      ]),
     ).toThrow(NotAnActivityDayError);
   });
 

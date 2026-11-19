@@ -1,4 +1,9 @@
-import { Contract, InvalidDayValuationError, type WorkedShift } from '@trame/api/staff/domain';
+import {
+  Contract,
+  InvalidDayValuationError,
+  NoPartialAbsenceOnDayError,
+  type WorkedShift,
+} from '@trame/api/staff/domain';
 import { FixedClock } from '@trame/platform/clock';
 import { SequentialIdGenerator } from '@trame/platform/ids';
 import { anEmployee } from '../../testing/employee-builder';
@@ -26,6 +31,7 @@ const FIRST_GENERATION = '0190f0a0-0000-7000-8000-000000000a01';
 const LATER_GENERATION = '0190f0a0-0000-7000-8000-000000000a02';
 const WEEK_OF_23_NOVEMBER = Temporal.PlainDate.from('2026-11-23');
 const WEEK_OF_30_NOVEMBER = Temporal.PlainDate.from('2026-11-30');
+const THURSDAY = Temporal.PlainDate.from('2026-11-26');
 const HOURS = 60;
 
 function parisInstant(localDateTime: string): Temporal.Instant {
@@ -100,7 +106,7 @@ async function setUp() {
     updateAbsence: new UpdateAbsence(employees, absences, freezer, clock),
     deleteAbsence: new DeleteAbsence(absences),
     getValuations: new GetWeekAbsenceValuations(catalog, absences, references),
-    setDayValuation: new SetAbsenceDayValuation(employees, references),
+    setDayValuation: new SetAbsenceDayValuation(employees, absences, references),
   };
 }
 
@@ -110,6 +116,31 @@ async function declareCamilleAbsent(services: Services, start: string, end: stri
   return services.declareAbsence.execute({
     organizationId: ORGANIZATION_A,
     employeeId: CAMILLE,
+    startsAt: parisInstant(start),
+    endsAt: parisInstant(end),
+    reason: 'LEAVE',
+  });
+}
+
+async function giveCamilleDuration(services: Services, date: string, valuedMinutes: number) {
+  return services.setDayValuation.execute({
+    organizationId: ORGANIZATION_A,
+    employeeId: CAMILLE,
+    day: Temporal.PlainDate.from(date),
+    valuedMinutes,
+  });
+}
+
+async function moveCamilleAbsence(
+  services: Services,
+  absenceId: string,
+  start: string,
+  end: string,
+) {
+  return services.updateAbsence.execute({
+    organizationId: ORGANIZATION_A,
+    employeeId: CAMILLE,
+    absenceId,
     startsAt: parisInstant(start),
     endsAt: parisInstant(end),
     reason: 'LEAVE',
@@ -279,12 +310,7 @@ describe('valorisation figée des absences (US-033)', () => {
         daysToDefine: [Temporal.PlainDate.from('2026-11-26')],
       });
 
-      await services.setDayValuation.execute({
-        organizationId: ORGANIZATION_A,
-        employeeId: CAMILLE,
-        day: Temporal.PlainDate.from('2026-11-26'),
-        valuedMinutes: 3 * HOURS,
-      });
+      await giveCamilleDuration(services, '2026-11-26', 3 * HOURS);
 
       expect((await valuationOfCamille(services))?.valuation).toEqual({
         status: 'VALUED',
@@ -298,18 +324,8 @@ describe('valorisation figée des absences (US-033)', () => {
       await declareCamilleAbsent(services, '2026-11-26T06:00', '2026-11-26T10:00');
 
       await Promise.all([
-        services.setDayValuation.execute({
-          organizationId: ORGANIZATION_A,
-          employeeId: CAMILLE,
-          day: Temporal.PlainDate.from('2026-11-25'),
-          valuedMinutes: 2 * HOURS,
-        }),
-        services.setDayValuation.execute({
-          organizationId: ORGANIZATION_A,
-          employeeId: CAMILLE,
-          day: Temporal.PlainDate.from('2026-11-26'),
-          valuedMinutes: 3 * HOURS,
-        }),
+        giveCamilleDuration(services, '2026-11-25', 2 * HOURS),
+        giveCamilleDuration(services, '2026-11-26', 3 * HOURS),
       ]);
 
       expect((await valuationOfCamille(services))?.valuation).toEqual({
@@ -318,18 +334,83 @@ describe('valorisation figée des absences (US-033)', () => {
       });
     });
 
+    it('BDD : refuse une durée pour un jour qu’aucune absence ne couvre en partie', async () => {
+      const services = await withSixActivityDays();
+      await declareCamilleAbsent(services, '2026-11-26T06:00', '2026-11-26T10:00');
+
+      await expect(giveCamilleDuration(services, '2026-11-25', HOURS)).rejects.toThrow(
+        NoPartialAbsenceOnDayError,
+      );
+      expect((await valuationOfCamille(services))?.valuation).toEqual({
+        status: 'TO_DEFINE',
+        daysToDefine: [THURSDAY],
+      });
+    });
+
+    it('BDD : modifier l’absence du jour redemande sa durée', async () => {
+      const services = await withSixActivityDays();
+      const afternoon = await declareCamilleAbsent(
+        services,
+        '2026-11-26T14:00',
+        '2026-11-26T16:00',
+      );
+      await giveCamilleDuration(services, '2026-11-26', 2 * HOURS);
+
+      await moveCamilleAbsence(services, afternoon.id, '2026-11-26T14:00', '2026-11-26T18:00');
+
+      expect((await valuationOfCamille(services))?.valuation).toEqual({
+        status: 'TO_DEFINE',
+        daysToDefine: [THURSDAY],
+      });
+    });
+
+    it('BDD : une absence saisie après la suppression ne reprend pas l’ancienne durée', async () => {
+      const services = await withSixActivityDays();
+      const afternoon = await declareCamilleAbsent(
+        services,
+        '2026-11-26T14:00',
+        '2026-11-26T16:00',
+      );
+      await giveCamilleDuration(services, '2026-11-26', 2 * HOURS);
+      await services.deleteAbsence.execute({
+        organizationId: ORGANIZATION_A,
+        employeeId: CAMILLE,
+        absenceId: afternoon.id,
+      });
+
+      await declareCamilleAbsent(services, '2026-11-26T09:00', '2026-11-26T10:00');
+
+      expect((await valuationOfCamille(services))?.valuation).toEqual({
+        status: 'TO_DEFINE',
+        daysToDefine: [THURSDAY],
+      });
+    });
+
+    it('BDD : garde la durée quand des absences remaniées couvrent le jour de la même façon', async () => {
+      const services = await withSixActivityDays();
+      const afternoon = await declareCamilleAbsent(
+        services,
+        '2026-11-26T14:00',
+        '2026-11-26T16:00',
+      );
+      await giveCamilleDuration(services, '2026-11-26', 2 * HOURS);
+
+      await moveCamilleAbsence(services, afternoon.id, '2026-11-26T14:00', '2026-11-26T15:00');
+      await declareCamilleAbsent(services, '2026-11-26T15:00', '2026-11-26T16:00');
+
+      expect((await valuationOfCamille(services))?.valuation).toEqual({
+        status: 'VALUED',
+        absenceMinutes: 2 * HOURS,
+      });
+    });
+
     it('BDD : refuse une durée au-delà de la part journalière', async () => {
       const services = await withSixActivityDays();
       await declareCamilleAbsent(services, '2026-11-26T06:00', '2026-11-26T10:00');
 
-      await expect(
-        services.setDayValuation.execute({
-          organizationId: ORGANIZATION_A,
-          employeeId: CAMILLE,
-          day: Temporal.PlainDate.from('2026-11-26'),
-          valuedMinutes: 5 * HOURS,
-        }),
-      ).rejects.toThrow(InvalidDayValuationError);
+      await expect(giveCamilleDuration(services, '2026-11-26', 5 * HOURS)).rejects.toThrow(
+        InvalidDayValuationError,
+      );
     });
 
     it('BDD : la convention reste figée quand les besoins changent', async () => {
@@ -358,14 +439,9 @@ describe('valorisation figée des absences (US-033)', () => {
       );
       await declareCamilleAbsent(services, '2026-11-26T06:00', '2026-11-26T10:00');
 
-      await expect(
-        services.setDayValuation.execute({
-          organizationId: ORGANIZATION_A,
-          employeeId: CAMILLE,
-          day: Temporal.PlainDate.from('2026-11-26'),
-          valuedMinutes: HOURS,
-        }),
-      ).rejects.toThrow(NoEqualShareReferenceError);
+      await expect(giveCamilleDuration(services, '2026-11-26', HOURS)).rejects.toThrow(
+        NoEqualShareReferenceError,
+      );
     });
   });
 

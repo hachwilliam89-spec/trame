@@ -139,9 +139,12 @@ const absenceProviders: Provider[] = [
   },
   {
     provide: SetAbsenceDayValuation,
-    inject: [EMPLOYEE_REPOSITORY, ABSENCE_WEEK_REFERENCE_REPOSITORY],
-    useFactory: (employees: EmployeeRepository, references: AbsenceWeekReferenceRepository) =>
-      new SetAbsenceDayValuation(employees, references),
+    inject: [EMPLOYEE_REPOSITORY, ABSENCE_REPOSITORY, ABSENCE_WEEK_REFERENCE_REPOSITORY],
+    useFactory: (
+      employees: EmployeeRepository,
+      absences: AbsenceRepository,
+      references: AbsenceWeekReferenceRepository,
+    ) => new SetAbsenceDayValuation(employees, absences, references),
   },
   {
     provide: GetWeekAbsenceValuations,

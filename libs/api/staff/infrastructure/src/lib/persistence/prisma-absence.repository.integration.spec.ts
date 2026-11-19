@@ -164,6 +164,32 @@ describe('absences sur PostgreSQL (US-033, jalon 2)', () => {
     expect(await idsOfTheWeek(ORGANIZATION_A, OTHER_SITE)).toEqual([atOtherSite.id]);
   });
 
+  it('liste les absences d’un employé qui touchent une période, et aucune depuis une autre organisation', async () => {
+    const thursdayAfternoon = absenceOf(ines, '2026-11-26T14:00', '2026-11-26T16:00');
+    const thursdayMorning = absenceOf(ines, '2026-11-26T06:00', '2026-11-26T10:00');
+    const endsAtMonday = absenceOf(ines, '2026-11-22T00:00', '2026-11-23T00:00');
+    const ofYanis = absenceOf(yanis, '2026-11-26T06:00', '2026-11-26T10:00');
+    for (const absence of [thursdayAfternoon, endsAtMonday, ofYanis, thursdayMorning]) {
+      await absences.add(absence, []);
+    }
+
+    const ofInes = await absences.listByEmployeeOverlapping(
+      ORGANIZATION_A,
+      ines,
+      MONDAY,
+      NEXT_MONDAY,
+    );
+    const seenFromB = await absences.listByEmployeeOverlapping(
+      ORGANIZATION_B,
+      ines,
+      MONDAY,
+      NEXT_MONDAY,
+    );
+
+    expect(ofInes.map((absence) => absence.id)).toEqual([thursdayMorning.id, thursdayAfternoon.id]);
+    expect(seenFromB).toEqual([]);
+  });
+
   it.each([
     ['une fin égale au début', '2026-11-24T06:00:00+01:00', 'LEAVE'],
     ['un motif hors des catégories', '2026-11-24T10:00:00+01:00', 'MALADIE'],

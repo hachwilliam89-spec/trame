@@ -42,11 +42,45 @@ export function minutesBetween(from: Temporal.Instant, to: Temporal.Instant): nu
   return from.until(to, { largestUnit: 'minutes' }).minutes;
 }
 
+/** Parties d'une union d'intervalles comprises dans `bounds`, dans le même ordre. */
+export function clippedTo(
+  union: readonly InstantInterval[],
+  bounds: InstantInterval,
+): InstantInterval[] {
+  const clipped: InstantInterval[] = [];
+  for (const interval of union) {
+    const start = latestOf(interval.start, bounds.start);
+    const end = earliestOf(interval.end, bounds.end);
+    if (Temporal.Instant.compare(start, end) < 0) {
+      clipped.push({ start, end });
+    }
+  }
+  return clipped;
+}
+
+/** Vrai si les deux listes contiennent les mêmes intervalles, dans le même ordre. */
+export function sameIntervals(
+  first: readonly InstantInterval[],
+  second: readonly InstantInterval[],
+): boolean {
+  if (first.length !== second.length) {
+    return false;
+  }
+  return first.every((interval, index) => isSameInterval(interval, second[index]));
+}
+
 /** Vrai si `inner` est entièrement compris dans `outer`. */
 export function isWithin(inner: InstantInterval, outer: InstantInterval): boolean {
   const startsInside = Temporal.Instant.compare(inner.start, outer.start) >= 0;
   const endsInside = Temporal.Instant.compare(inner.end, outer.end) <= 0;
   return startsInside && endsInside;
+}
+
+function isSameInterval(first: InstantInterval, second: InstantInterval | undefined): boolean {
+  if (second === undefined) {
+    return false;
+  }
+  return first.start.equals(second.start) && first.end.equals(second.end);
 }
 
 function overlapMinutes(first: InstantInterval, second: InstantInterval): number {

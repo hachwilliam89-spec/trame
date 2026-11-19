@@ -11,6 +11,7 @@ import {
 import type {
   AbsenceV1,
   AbsenceWeekReferenceV1,
+  DayValuationV1,
   EmployeeAbsenceValuationV1,
   EmployeeQualificationV1,
   EmployeeV1,
@@ -101,8 +102,22 @@ function toAbsenceWeekReferenceV1(reference: AbsenceWeekReference): AbsenceWeekR
       weeklyMinimumMinutes: reference.weeklyMinimumMinutes,
       activityDays: reference.activityDays.map((day) => day.toString()),
       dailyShareMinutes: reference.dailyShareMinutes,
-      dayValuations: Object.fromEntries(reference.dayValuations),
+      dayValuations: dayValuationsV1Of(reference),
     };
   }
   throw new TypeError(`Méthode de valorisation inconnue : ${reference.method}.`);
+}
+
+function dayValuationsV1Of(reference: EqualShareReference): Record<string, DayValuationV1> {
+  const valuations: Record<string, DayValuationV1> = {};
+  for (const [day, valuation] of reference.dayValuations) {
+    valuations[day] = {
+      valuedMinutes: valuation.valuedMinutes,
+      coveredPeriods: valuation.coveredPeriods.map((period) => ({
+        startsAt: period.start.toString(),
+        endsAt: period.end.toString(),
+      })),
+    };
+  }
+  return valuations;
 }

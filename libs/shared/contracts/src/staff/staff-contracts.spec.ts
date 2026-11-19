@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   absenceDayPathV1,
   absenceDayValuationRequestV1,
+  absenceWeekReferenceV1,
   employeeAbsenceValuationV1,
   weekAbsenceValuationsV1,
 } from './absence-valuation.v1';
@@ -212,6 +213,28 @@ describe('contrats du contexte staff', () => {
           valuations: [toDefine],
         }).success,
       ).toBe(true);
+    });
+
+    it('décrit la durée d’un jour avec la couverture qu’elle valorise', () => {
+      const reference = {
+        method: 'EQUAL_SHARE_OF_ACTIVITY_DAYS',
+        frozenAt: '2026-11-18T15:00:00Z',
+        weeklyMinimumMinutes: 1680,
+        activityDays: ['2026-11-26'],
+        dailyShareMinutes: 1680,
+        dayValuations: {
+          '2026-11-26': {
+            valuedMinutes: 120,
+            coveredPeriods: [{ startsAt: '2026-11-26T13:00:00Z', endsAt: '2026-11-26T15:00:00Z' }],
+          },
+        },
+      };
+
+      expect(absenceWeekReferenceV1.safeParse(reference).success).toBe(true);
+      expect(
+        absenceWeekReferenceV1.safeParse({ ...reference, dayValuations: { '2026-11-26': 120 } })
+          .success,
+      ).toBe(false);
     });
   });
 });

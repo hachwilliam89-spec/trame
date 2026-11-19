@@ -60,16 +60,21 @@ describe('références de valorisation des absences sur PostgreSQL (US-033)', ()
     await database?.stop();
   });
 
-  function tuesdayOf(employeeId: string): Absence {
+  /** Absence de `start` (inclus) à `end` (exclu), heure de Paris en novembre 2026. */
+  function absenceOf(employeeId: string, start: string, end: string): Absence {
     return Absence.create({
       id: ids.next(),
       organizationId: ORGANIZATION_A,
       employeeId,
-      startsAt: parisInstant('2026-11-24T00:00'),
-      endsAt: parisInstant('2026-11-25T00:00'),
+      startsAt: parisInstant(start),
+      endsAt: parisInstant(end),
       reason: 'LEAVE',
       createdAt: FROZEN_AT,
     });
+  }
+
+  function tuesdayOf(employeeId: string): Absence {
+    return absenceOf(employeeId, '2026-11-24T00:00', '2026-11-25T00:00');
   }
 
   function planningReferenceOf(employeeId: string, generationId = GENERATION): PlanningReference {
@@ -114,14 +119,20 @@ describe('références de valorisation des absences sur PostgreSQL (US-033)', ()
     expect(found?.value([tuesday])).toEqual({ status: 'VALUED', absenceMinutes: 420 });
   });
 
-  it('relit la convention avec ses paramètres, puis avec la durée donnée par le manager', async () => {
+  it('relit la convention, puis la durée d’un jour avec la couverture qu’elle valorise', async () => {
     await absences.add(tuesdayOf(camille), [equalShareOf(camille)]);
     const thursday = Temporal.PlainDate.from('2026-11-26');
+    const thursdayMornings = [
+      absenceOf(camille, '2026-11-26T06:00', '2026-11-26T08:00'),
+      absenceOf(camille, '2026-11-26T09:00', '2026-11-26T10:00'),
+    ];
 
     expect(await references.find(ORGANIZATION_A, camille, MONDAY)).toEqual(equalShareOf(camille));
-    const valued = equalShareOf(camille).withDayValuation(thursday, 180);
+    const valued = equalShareOf(camille).withDayValuation(thursday, 180, thursdayMornings);
     expect(await references.saveDayValuation(valued, thursday)).toBe(true);
-    expect(await references.find(ORGANIZATION_A, camille, MONDAY)).toEqual(valued);
+    const found = await references.find(ORGANIZATION_A, camille, MONDAY);
+    expect(found).toEqual(valued);
+    expect(found?.value(thursdayMornings)).toEqual({ status: 'VALUED', absenceMinutes: 180 });
   });
 
   it('garde les durées de deux jours enregistrées en même temps depuis la même lecture', async () => {
@@ -132,18 +143,20 @@ describe('références de valorisation des absences sur PostgreSQL (US-033)', ()
     }
     const thursday = Temporal.PlainDate.from('2026-11-26');
     const friday = Temporal.PlainDate.from('2026-11-27');
+    const partialAbsences = [
+      absenceOf(camille, '2026-11-26T06:00', '2026-11-26T10:00'),
+      absenceOf(camille, '2026-11-27T14:00', '2026-11-27T16:00'),
+    ];
 
     await Promise.all([
-      references.saveDayValuation(read.withDayValuation(thursday, 180), thursday),
-      references.saveDayValuation(read.withDayValuation(friday, 120), friday),
+      references.saveDayValuation(read.withDayValuation(thursday, 180, partialAbsences), thursday),
+      references.saveDayValuation(read.withDayValuation(friday, 120, partialAbsences), friday),
     ]);
 
     const found = await references.find(ORGANIZATION_A, camille, MONDAY);
-    expect(found).toMatchObject({
-      dayValuations: new Map([
-        ['2026-11-26', 180],
-        ['2026-11-27', 120],
-      ]),
+    expect(found?.value([tuesdayOf(camille), ...partialAbsences])).toEqual({
+      status: 'VALUED',
+      absenceMinutes: 280 + 180 + 120,
     });
   });
 

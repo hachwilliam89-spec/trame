@@ -78,6 +78,24 @@ export class PrismaAbsenceRepository implements AbsenceRepository {
     });
     return records.map(toAbsence);
   }
+
+  async listByEmployeeOverlapping(
+    organizationId: string,
+    employeeId: string,
+    from: Temporal.Instant,
+    to: Temporal.Instant,
+  ): Promise<Absence[]> {
+    const records = await this.database.client.absence.findMany({
+      where: {
+        organizationId,
+        employeeId,
+        startsAt: { lt: instantToDate(to) },
+        endsAt: { gt: instantToDate(from) },
+      },
+      orderBy: [{ startsAt: 'asc' }, { id: 'asc' }],
+    });
+    return records.map(toAbsence);
+  }
 }
 
 function toAbsenceRecord(absence: Absence): Prisma.AbsenceUncheckedCreateInput {

@@ -491,12 +491,12 @@ Scénario: Habilitation expirée
 
 - Saisie par le manager en v0.1 (par l'employé en v0.2) : une période, et un motif par catégorie (congé, arrêt de travail, formation, autre), sans champ libre ni détail médical.
 - Indispensable avant la génération : les absences sont une entrée du moteur, et l'absence de dernière minute est au cœur du produit. Première capacité du jalon 2.
-- Scénarios, plan et interprétations validés par Kim le 18 novembre 2026 (#105).
+- Scénarios, plan et interprétations validés par Kim le 18 novembre 2026 (#105), précisés le 19 novembre après la revue de la PR #111 : la durée d'un jour partiel dépend de sa couverture.
 - Une absence enregistrée ne modifie aucune affectation existante ; les générations suivantes en tiennent compte. Son effet sur un planning existant (affectations incompatibles, règles concernées, couverture) est évalué par le moteur avec la PE (US-070). D'ici là, l'écran affiche « Absence enregistrée · planning existant non réévalué », sans présenter le planning comme toujours valide.
 - Le manager modifie les dates ou le motif d'une absence, et supprime une absence saisie par erreur.
 - Minimum restant de la semaine = max(0, minimum contractuel − minutes d'absence valorisées). C'est une convention du modèle de planification, cadrée pour la démo : ni une règle de paie, ni un décompte légal des absences. Heures planifiées et heures d'absence s'affichent séparément.
 - **Avec un planning de référence.** La référence d'un salarié pour une semaine est figée à sa première absence de la semaine : la dernière génération réussie à cet instant, avec ses affectations et leurs pauses. Aucune génération ne la change ensuite ; le planning publié deviendra la référence prioritaire (US-080). Les minutes valorisées sont le temps de ces affectations couvert par l'union des absences actives, pauses effectivement recouvertes retranchées, sans prorata. Un repos ne réduit rien, et chaque minute ne compte qu'une fois : supprimer une absence ne retire pas les minutes qu'une autre couvre encore.
-- **Sans planning de référence.** Convention de démonstration « parts égales sur les jours d'activité », nommée dans le résultat avec ses paramètres. Part journalière = minimum contractuel ÷ jours où le site a des besoins dans la semaine, figée à la déclaration. Un jour entier d'absence vaut sa part ; un jour couvert en partie demande une durée explicite, par salarié et par jour, plafonnée à la part.
+- **Sans planning de référence.** Convention de démonstration « parts égales sur les jours d'activité », nommée dans le résultat avec ses paramètres. Part journalière = minimum contractuel ÷ jours où le site a des besoins dans la semaine, figée à la déclaration. Un jour entier d'absence vaut sa part ; un jour couvert en partie demande une durée explicite, par salarié et par jour, plafonnée à la part. Elle ne se donne qu'à un jour qu'une absence couvre en partie, et vaut pour la couverture du jour à la saisie : si les absences de ce jour la changent, la durée est redemandée. Des absences remaniées qui couvrent le jour de la même façon la gardent.
 - **Valorisation « à définir ».** Semaine sans jour d'activité, ou jour partiel sans durée : la valorisation est signalée « à définir », et retentée à chaque saisie ou modification d'une absence du salarié dans la semaine. L'absence reste enregistrée. À la génération, le salarié est exclu de la semaine avec le motif `ABSENCE_VALUATION_TO_DEFINE`, au lieu d'un minimum gardé entier ou levé en silence. La répartition contractuelle viendra avec les jours travaillables d'US-032.
 - Les instants sont stockés en UTC et lus dans le fuseau du site (ADR-0019). Une absence se saisit à la minute (secondes à zéro, sans fraction) : c'est la précision des créneaux et des minutes valorisées, et rien n'est tronqué au stockage. La fin est exclue : une journée entière d'absence va de minuit à minuit le lendemain, et une absence couvre un créneau dès qu'elle en chevauche une partie.
 
@@ -632,6 +632,26 @@ Scénario: Absence partielle sans référence
 Scénario: Durée valorisée au-delà de la part journalière
   Quand le manager donne une durée de 5 h pour l'absence partielle du jeudi 26
   Alors la durée est refusée avec le motif « au plus la part journalière, 4 h 40 »
+
+Scénario: Durée pour un jour sans absence partielle
+  Étant donné Camille Laurent absente le jeudi 26 de 6 h à 10 h
+  Quand le manager donne une durée pour le mercredi 25, où elle n'est pas absente
+  Alors la durée est refusée : ce jour n'est pas couvert en partie par une absence
+
+Scénario: Absence du jour modifiée après la durée
+  Étant donné Camille Laurent absente le jeudi 26 de 14 h à 16 h, valorisée 2 h
+  Quand le manager passe l'absence de 14 h à 18 h
+  Alors la valorisation du jeudi 26 redevient « à définir »
+
+Scénario: Absence saisie après une suppression
+  Étant donné Camille Laurent absente le jeudi 26 de 14 h à 16 h, valorisée 2 h
+  Quand le manager supprime cette absence, puis la déclare absente de 9 h à 10 h
+  Alors la valorisation du jeudi 26 est « à définir », sans reprendre les 2 h
+
+Scénario: Absences remaniées, même couverture du jour
+  Étant donné Camille Laurent absente le jeudi 26 de 14 h à 16 h, valorisée 2 h
+  Quand le manager ramène l'absence à 14 h – 15 h, puis déclare une absence de 15 h à 16 h
+  Alors 2 h d'absence restent valorisées
 
 Scénario: Convention figée
   Étant donné Camille Laurent absente le mardi 24, valorisée sur 6 jours d'activité

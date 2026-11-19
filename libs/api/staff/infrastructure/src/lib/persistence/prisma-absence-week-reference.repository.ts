@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { Database, plainDateToDate } from '@trame/api/database';
 import type { AbsenceWeekReferenceRepository } from '@trame/api/staff/application';
 import type { AbsenceWeekReference, EqualShareReference } from '@trame/api/staff/domain';
-import { toAbsenceWeekReference } from './absence-week-reference-record';
+import { toAbsenceWeekReference, toDayValuationRecord } from './absence-week-reference-record';
 
 /** Références de valorisation dans `staff.absence_week_references`. */
 @Injectable()
@@ -42,10 +42,11 @@ export class PrismaAbsenceWeekReferenceRepository implements AbsenceWeekReferenc
     reference: EqualShareReference,
     day: Temporal.PlainDate,
   ): Promise<boolean> {
-    const valuedMinutes = reference.dayValuations.get(day.toString());
-    if (valuedMinutes === undefined) {
+    const valuation = reference.dayValuations.get(day.toString());
+    if (valuation === undefined) {
       throw new RangeError(`La référence ne donne aucune durée au ${day.toString()}.`);
     }
+    const dayValuationJson = JSON.stringify(toDayValuationRecord(valuation));
     // Une seule instruction remplace la durée de ce jour : l'UPDATE verrouille la ligne, et une
     // écriture concurrente repart de la valeur que celle-ci laisse. Réécrire toute la colonne
     // depuis une lecture antérieure effacerait la durée d'un autre jour. Prisma ne sait pas
@@ -53,7 +54,7 @@ export class PrismaAbsenceWeekReferenceRepository implements AbsenceWeekReferenc
     const updated = await this.database.client.$executeRaw`
       UPDATE staff.absence_week_references
       SET day_valuations = jsonb_set(
-        day_valuations, ARRAY[${day.toString()}::text], to_jsonb(${valuedMinutes}::integer)
+        day_valuations, ARRAY[${day.toString()}::text], ${dayValuationJson}::jsonb
       )
       WHERE organization_id = ${reference.organizationId}::uuid
         AND employee_id = ${reference.employeeId}::uuid

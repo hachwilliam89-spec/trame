@@ -129,7 +129,14 @@ describe('API de la valorisation des absences (US-033)', () => {
     });
     expect(given.status).toBe(204);
     expect(after.body.valuations[0]).toMatchObject({
-      reference: { dayValuations: { '2026-11-26': 3 * HOURS } },
+      reference: {
+        dayValuations: {
+          '2026-11-26': {
+            valuedMinutes: 3 * HOURS,
+            coveredPeriods: [{ startsAt: '2026-11-26T05:00:00Z', endsAt: '2026-11-26T09:00:00Z' }],
+          },
+        },
+      },
       status: 'VALUED',
       absenceMinutes: 3 * HOURS,
       daysToDefine: [],
@@ -148,6 +155,23 @@ describe('API de la valorisation des absences (US-033)', () => {
         pointer: '#/valuedMinutes',
         code: 'invalid_day_valuation',
         detail: 'Durée refusée : au plus la part journalière, 4 h 40.',
+      },
+    ]);
+  });
+
+  it('BDD : refuse une durée pour un jour qu’aucune absence ne couvre en partie, avec un pointeur vers la date', async () => {
+    source.setActivityDays(WAREHOUSE_OF_A, MONDAY, sixActivityDays());
+    await declare('2026-11-26T06:00', '2026-11-26T10:00');
+
+    const response = await giveDuration('2026-11-25', HOURS);
+
+    expect(response.status).toBe(400);
+    expect(response.body.errors).toEqual([
+      {
+        pointer: '#/date',
+        code: 'no_partial_absence',
+        detail:
+          "Ce jour n'est pas couvert en partie par une absence : il n'y a pas de durée à donner.",
       },
     ]);
   });

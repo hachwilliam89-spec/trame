@@ -9,14 +9,19 @@ export { type WeekBounds, weekBounds, weeksTouchedBy } from './lib/absence/absen
 export {
   type AbsenceValuation,
   type AbsenceWeekReference,
-  EqualShareReference,
-  type EqualShareReferenceProperties,
-  PlanningReference,
-  type PlanningReferenceProperties,
   type ValuationMethod,
-  type WorkedShift,
   valueAbsencesOfWeek,
 } from './lib/absence/absence-week-reference';
+export {
+  type DayValuation,
+  EqualShareReference,
+  type EqualShareReferenceProperties,
+} from './lib/absence/equal-share-reference';
+export {
+  PlanningReference,
+  type PlanningReferenceProperties,
+  type WorkedShift,
+} from './lib/absence/planning-reference';
 export { type InstantInterval } from './lib/absence/instant-interval';
 export {
   AbsenceEndNotOnWholeMinuteError,
@@ -25,6 +30,7 @@ export {
   InvalidAbsenceReasonError,
   InvalidDayValuationError,
   InvalidWeekStartError,
+  NoPartialAbsenceOnDayError,
   NotAnActivityDayError,
 } from './lib/absence/absence.errors';
 export {

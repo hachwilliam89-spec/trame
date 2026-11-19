@@ -65,6 +65,21 @@ export class InMemoryAbsenceRepository implements AbsenceRepository {
     return matching.sort(byStartThenId);
   }
 
+  async listByEmployeeOverlapping(
+    organizationId: string,
+    employeeId: string,
+    from: Temporal.Instant,
+    to: Temporal.Instant,
+  ): Promise<Absence[]> {
+    const matching = this.absences.filter(
+      (absence) =>
+        absence.organizationId === organizationId &&
+        absence.employeeId === employeeId &&
+        absence.overlaps(from, to),
+    );
+    return matching.sort(byStartThenId);
+  }
+
   private freeze(referencesToFreeze: readonly AbsenceWeekReference[]): void {
     for (const reference of referencesToFreeze) {
       this.references.addIfAbsent(reference);
