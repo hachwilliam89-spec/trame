@@ -20,6 +20,7 @@ ALTER TABLE "staff"."absence_week_references" ADD CONSTRAINT "absence_week_refer
 
 -- Contraintes ajoutées à la main : Prisma ne les exprime pas dans le schéma, et `migrate diff` les ignore.
 -- La semaine commence un lundi (ISODOW 1), et chaque méthode porte exactement ses paramètres.
+-- Un CHECK accepte une expression NULL : `>= 0` seul laisserait passer un minimum absent.
 ALTER TABLE "staff"."absence_week_references"
     ADD CONSTRAINT "absence_week_references_week_starts_on_check" CHECK (EXTRACT(ISODOW FROM "week_starts_on") = 1),
     ADD CONSTRAINT "absence_week_references_method_check" CHECK (
@@ -37,6 +38,7 @@ ALTER TABLE "staff"."absence_week_references"
             AND "generation_id" IS NULL
             AND "worked_shifts" IS NULL
             AND "time_zone" IS NOT NULL
+            AND "weekly_minimum_minutes" IS NOT NULL
             AND "weekly_minimum_minutes" >= 0
             AND "activity_days" IS NOT NULL
             AND "day_valuations" IS NOT NULL

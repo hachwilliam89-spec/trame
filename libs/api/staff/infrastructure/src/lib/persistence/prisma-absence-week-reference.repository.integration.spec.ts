@@ -192,4 +192,23 @@ describe('références de valorisation des absences sur PostgreSQL (US-033)', ()
          '2026-11-18T15:00:00Z', ${GENERATION}::uuid, '[]'::jsonb, ${timeZone})
     `).rejects.toThrow();
   });
+
+  it('la migration interdit une convention sans minimum hebdomadaire', async () => {
+    async function insertConventionOf(employeeId: string, weeklyMinimumMinutes: number | null) {
+      await prisma.$executeRaw`
+        INSERT INTO staff.absence_week_references
+          (organization_id, employee_id, week_starts_on, method, frozen_at, time_zone,
+           weekly_minimum_minutes, activity_days, day_valuations)
+        VALUES
+          (${ORGANIZATION_A}::uuid, ${employeeId}::uuid, '2026-11-23'::date,
+           'EQUAL_SHARE_OF_ACTIVITY_DAYS', '2026-11-18T15:00:00Z', 'Europe/Paris',
+           ${weeklyMinimumMinutes}::integer, '["2026-11-23"]'::jsonb, '{}'::jsonb)
+      `;
+    }
+
+    await insertConventionOf(camille, 1680);
+    await expect(insertConventionOf(employeeAtOtherSite, null)).rejects.toThrow(
+      'absence_week_references_method_check',
+    );
+  });
 });
