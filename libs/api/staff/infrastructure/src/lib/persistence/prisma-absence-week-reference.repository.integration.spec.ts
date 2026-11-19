@@ -120,8 +120,31 @@ describe('références de valorisation des absences sur PostgreSQL (US-033)', ()
 
     expect(await references.find(ORGANIZATION_A, camille, MONDAY)).toEqual(equalShareOf(camille));
     const valued = equalShareOf(camille).withDayValuation(thursday, 180);
-    expect(await references.saveDayValuations(valued)).toBe(true);
+    expect(await references.saveDayValuation(valued, thursday)).toBe(true);
     expect(await references.find(ORGANIZATION_A, camille, MONDAY)).toEqual(valued);
+  });
+
+  it('garde les durées de deux jours enregistrées en même temps depuis la même lecture', async () => {
+    await absences.add(tuesdayOf(camille), [equalShareOf(camille)]);
+    const read = await references.find(ORGANIZATION_A, camille, MONDAY);
+    if (!(read instanceof EqualShareReference)) {
+      throw new TypeError('La référence relue doit être la convention.');
+    }
+    const thursday = Temporal.PlainDate.from('2026-11-26');
+    const friday = Temporal.PlainDate.from('2026-11-27');
+
+    await Promise.all([
+      references.saveDayValuation(read.withDayValuation(thursday, 180), thursday),
+      references.saveDayValuation(read.withDayValuation(friday, 120), friday),
+    ]);
+
+    const found = await references.find(ORGANIZATION_A, camille, MONDAY);
+    expect(found).toMatchObject({
+      dayValuations: new Map([
+        ['2026-11-26', 180],
+        ['2026-11-27', 120],
+      ]),
+    });
   });
 
   it('garde la première référence figée pour le salarié et la semaine', async () => {

@@ -19,6 +19,10 @@ export interface AbsenceWeekReferenceRepository {
     weekStartsOn: Temporal.PlainDate,
   ): Promise<AbsenceWeekReference[]>;
 
-  /** Enregistre les durées données par le manager. Faux si la référence n'existe plus. */
-  saveDayValuations(reference: EqualShareReference): Promise<boolean>;
+  /**
+   * Enregistre la durée que `reference` donne au jour `day`, sans réécrire celles des autres
+   * jours : deux managers qui valorisent deux jours en même temps gardent chacun la leur. Faux
+   * si la référence n'existe plus.
+   */
+  saveDayValuation(reference: EqualShareReference, day: Temporal.PlainDate): Promise<boolean>;
 }

@@ -292,6 +292,32 @@ describe('valorisation figée des absences (US-033)', () => {
       });
     });
 
+    it('garde les durées de deux jours données en même temps', async () => {
+      const services = await withSixActivityDays();
+      await declareCamilleAbsent(services, '2026-11-25T06:00', '2026-11-25T10:00');
+      await declareCamilleAbsent(services, '2026-11-26T06:00', '2026-11-26T10:00');
+
+      await Promise.all([
+        services.setDayValuation.execute({
+          organizationId: ORGANIZATION_A,
+          employeeId: CAMILLE,
+          day: Temporal.PlainDate.from('2026-11-25'),
+          valuedMinutes: 2 * HOURS,
+        }),
+        services.setDayValuation.execute({
+          organizationId: ORGANIZATION_A,
+          employeeId: CAMILLE,
+          day: Temporal.PlainDate.from('2026-11-26'),
+          valuedMinutes: 3 * HOURS,
+        }),
+      ]);
+
+      expect((await valuationOfCamille(services))?.valuation).toEqual({
+        status: 'VALUED',
+        absenceMinutes: 5 * HOURS,
+      });
+    });
+
     it('BDD : refuse une durée au-delà de la part journalière', async () => {
       const services = await withSixActivityDays();
       await declareCamilleAbsent(services, '2026-11-26T06:00', '2026-11-26T10:00');

@@ -1,4 +1,4 @@
-import type { AbsenceWeekReference, EqualShareReference } from '@trame/api/staff/domain';
+import { type AbsenceWeekReference, EqualShareReference } from '@trame/api/staff/domain';
 import type { AbsenceWeekReferenceRepository } from '../lib/ports/absence-week-reference.repository';
 import type { InMemoryEmployeeRepository } from './in-memory-employee.repository';
 
@@ -45,12 +45,23 @@ export class InMemoryAbsenceWeekReferenceRepository implements AbsenceWeekRefere
     return matching;
   }
 
-  async saveDayValuations(reference: EqualShareReference): Promise<boolean> {
+  async saveDayValuation(
+    reference: EqualShareReference,
+    day: Temporal.PlainDate,
+  ): Promise<boolean> {
+    const valuation = reference.dayValuations.get(day.toString());
+    if (valuation === undefined) {
+      throw new RangeError(`La référence ne donne aucune durée au ${day.toString()}.`);
+    }
     const key = keyOf(reference.organizationId, reference.employeeId, reference.weekStartsOn);
-    if (!this.references.has(key)) {
+    const stored = this.references.get(key);
+    if (!(stored instanceof EqualShareReference)) {
       return false;
     }
-    this.references.set(key, reference);
+    // Comme la base : seule la durée de ce jour change, les autres restent celles enregistrées.
+    const dayValuations = new Map(stored.dayValuations);
+    dayValuations.set(day.toString(), valuation);
+    this.references.set(key, EqualShareReference.freeze({ ...stored, dayValuations }));
     return true;
   }
 }

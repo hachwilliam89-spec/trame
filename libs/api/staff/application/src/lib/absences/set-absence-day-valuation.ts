@@ -26,7 +26,7 @@ export class SetAbsenceDayValuation {
     private readonly references: AbsenceWeekReferenceRepository,
   ) {}
 
-  async execute(command: SetAbsenceDayValuationCommand): Promise<EqualShareReference> {
+  async execute(command: SetAbsenceDayValuationCommand): Promise<void> {
     await findEmployeeOrThrow(this.employees, command.organizationId, command.employeeId);
     const weekStartsOn = command.day.subtract({ days: command.day.dayOfWeek - ISO_MONDAY });
     const reference = await this.references.find(
@@ -38,9 +38,8 @@ export class SetAbsenceDayValuation {
       throw new NoEqualShareReferenceError();
     }
     const valued = reference.withDayValuation(command.day, command.valuedMinutes);
-    if (!(await this.references.saveDayValuations(valued))) {
+    if (!(await this.references.saveDayValuation(valued, command.day))) {
       throw new NoEqualShareReferenceError();
     }
-    return valued;
   }
 }
