@@ -1,5 +1,12 @@
 import { z } from 'zod';
 import {
+  absenceDayPathV1,
+  absenceDayValuationRequestV1,
+  absenceWeekReferenceV1,
+  employeeAbsenceValuationV1,
+  weekAbsenceValuationsV1,
+} from './absence-valuation.v1';
+import {
   absenceReasonV1,
   absenceRequestV1,
   absenceV1,
@@ -26,6 +33,10 @@ const exchangedSchemas = {
   absenceV1,
   weekAbsencesQueryV1,
   weekAbsencesV1,
+  absenceDayValuationRequestV1,
+  absenceDayPathV1,
+  employeeAbsenceValuationV1,
+  weekAbsenceValuationsV1,
 };
 
 const SITE_ID = '0190f0a0-0000-7000-8000-0000000000d1';
@@ -165,6 +176,65 @@ describe('contrats du contexte staff', () => {
       expect(
         weekAbsencesQueryV1.safeParse({ siteId: SITE_ID, weekStartsOn: '2026-11-23' }).success,
       ).toBe(true);
+    });
+  });
+
+  describe('valorisation des absences (US-033)', () => {
+    it('accepte une durée entière en minutes, et refuse un champ en plus ou une fraction', () => {
+      expect(absenceDayValuationRequestV1.safeParse({ valuedMinutes: 180 }).success).toBe(true);
+      expect(absenceDayValuationRequestV1.safeParse({ valuedMinutes: 90.5 }).success).toBe(false);
+      expect(absenceDayValuationRequestV1.safeParse({ valuedMinutes: -1 }).success).toBe(false);
+      expect(
+        absenceDayValuationRequestV1.safeParse({ valuedMinutes: 180, comment: 'médecin' }).success,
+      ).toBe(false);
+    });
+
+    it('décrit une convention avec ses paramètres, et une valorisation à définir sans minutes', () => {
+      const toDefine = {
+        employeeId: '0190f0a0-0000-7000-8000-0000000000e1',
+        reference: {
+          method: 'EQUAL_SHARE_OF_ACTIVITY_DAYS',
+          frozenAt: '2026-11-18T15:00:00Z',
+          weeklyMinimumMinutes: 1680,
+          activityDays: ['2026-11-23', '2026-11-24'],
+          dailyShareMinutes: 840,
+          dayValuations: {},
+        },
+        status: 'TO_DEFINE',
+        absenceMinutes: null,
+        daysToDefine: ['2026-11-24'],
+      };
+
+      expect(employeeAbsenceValuationV1.safeParse(toDefine).success).toBe(true);
+      expect(
+        weekAbsenceValuationsV1.safeParse({
+          siteId: SITE_ID,
+          weekStartsOn: '2026-11-23',
+          valuations: [toDefine],
+        }).success,
+      ).toBe(true);
+    });
+
+    it('décrit la durée d’un jour avec la couverture qu’elle valorise', () => {
+      const reference = {
+        method: 'EQUAL_SHARE_OF_ACTIVITY_DAYS',
+        frozenAt: '2026-11-18T15:00:00Z',
+        weeklyMinimumMinutes: 1680,
+        activityDays: ['2026-11-26'],
+        dailyShareMinutes: 1680,
+        dayValuations: {
+          '2026-11-26': {
+            valuedMinutes: 120,
+            coveredPeriods: [{ startsAt: '2026-11-26T13:00:00Z', endsAt: '2026-11-26T15:00:00Z' }],
+          },
+        },
+      };
+
+      expect(absenceWeekReferenceV1.safeParse(reference).success).toBe(true);
+      expect(
+        absenceWeekReferenceV1.safeParse({ ...reference, dayValuations: { '2026-11-26': 120 } })
+          .success,
+      ).toBe(false);
     });
   });
 });

@@ -94,6 +94,8 @@ describe('ShiftTemplate', () => {
         amplitudeMinutes: 480,
         breakMinutes: 30,
         effectiveMinutes: 450,
+        breakStartsAt: instant('2026-11-11T01:00:00Z'),
+        breakEndsAt: instant('2026-11-11T01:30:00Z'),
       });
     });
 
@@ -193,6 +195,7 @@ describe('ShiftTemplate', () => {
         breakMinutes: 0,
         effectiveMinutes: 30,
       });
+      expect(durations.breakStartsAt.equals(durations.breakEndsAt)).toBe(true);
     });
 
     it('une pause coupée par la fin du créneau ne retranche que sa partie dans le créneau', () => {
@@ -206,6 +209,8 @@ describe('ShiftTemplate', () => {
         amplitudeMinutes: 75,
         breakMinutes: 15,
         effectiveMinutes: 60,
+        breakStartsAt: instant('2026-03-29T01:00:00Z'),
+        breakEndsAt: instant('2026-03-29T01:15:00Z'),
       });
     });
   });

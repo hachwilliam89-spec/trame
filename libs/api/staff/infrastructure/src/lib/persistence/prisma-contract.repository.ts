@@ -13,6 +13,8 @@ import { type Page, type PageRequest, pageFrom } from '@trame/platform/paginatio
 import { afterCursor } from './after-cursor';
 import { optionalDateToPlainDate, optionalPlainDateToDate } from './optional-date-conversions';
 
+const DAYS_PER_WEEK = 7;
+
 /** Contrats de travail dans `staff.contracts`. */
 @Injectable()
 export class PrismaContractRepository implements ContractRepository {
@@ -38,6 +40,23 @@ export class PrismaContractRepository implements ContractRepository {
         },
       });
     });
+  }
+
+  async findCoveringWeek(
+    organizationId: string,
+    employeeId: string,
+    weekStartsOn: Temporal.PlainDate,
+  ): Promise<Contract | undefined> {
+    const sunday = weekStartsOn.add({ days: DAYS_PER_WEEK - 1 });
+    const record = await this.database.client.contract.findFirst({
+      where: {
+        organizationId,
+        employeeId,
+        startsOn: { lte: plainDateToDate(weekStartsOn) },
+        OR: [{ endsOn: null }, { endsOn: { gte: plainDateToDate(sunday) } }],
+      },
+    });
+    return record === null ? undefined : toContract(record);
   }
 
   async listByEmployee(

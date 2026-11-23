@@ -12,6 +12,16 @@ export class InMemoryContractRepository implements ContractRepository {
     this.contracts.push(contract);
   }
 
+  async findCoveringWeek(
+    organizationId: string,
+    employeeId: string,
+    weekStartsOn: Temporal.PlainDate,
+  ): Promise<Contract | undefined> {
+    return this.contractsOf(organizationId, employeeId).find((contract) =>
+      contract.coversWeek(weekStartsOn),
+    );
+  }
+
   async listByEmployee(
     organizationId: string,
     employeeId: string,

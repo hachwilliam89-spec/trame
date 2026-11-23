@@ -1,6 +1,18 @@
-import type { Absence, Contract, Employee, Qualification } from '@trame/api/staff/domain';
+import type { EmployeeAbsenceValuation } from '@trame/api/staff/application';
+import {
+  type Absence,
+  type AbsenceWeekReference,
+  type Contract,
+  type Employee,
+  EqualShareReference,
+  PlanningReference,
+  type Qualification,
+} from '@trame/api/staff/domain';
 import type {
   AbsenceV1,
+  AbsenceWeekReferenceV1,
+  DayValuationV1,
+  EmployeeAbsenceValuationV1,
   EmployeeQualificationV1,
   EmployeeV1,
   EmploymentContractV1,
@@ -47,4 +59,65 @@ export function toAbsenceV1(absence: Absence): AbsenceV1 {
     reason: absence.reason,
     createdAt: absence.createdAt.toString(),
   };
+}
+
+export function toEmployeeAbsenceValuationV1(
+  employeeValuation: EmployeeAbsenceValuation,
+): EmployeeAbsenceValuationV1 {
+  const { valuation } = employeeValuation;
+  const reference =
+    employeeValuation.reference === undefined
+      ? null
+      : toAbsenceWeekReferenceV1(employeeValuation.reference);
+  if (valuation.status === 'VALUED') {
+    return {
+      employeeId: employeeValuation.employeeId,
+      reference,
+      status: 'VALUED',
+      absenceMinutes: valuation.absenceMinutes,
+      daysToDefine: [],
+    };
+  }
+  return {
+    employeeId: employeeValuation.employeeId,
+    reference,
+    status: 'TO_DEFINE',
+    absenceMinutes: null,
+    daysToDefine: valuation.daysToDefine.map((day) => day.toString()),
+  };
+}
+
+function toAbsenceWeekReferenceV1(reference: AbsenceWeekReference): AbsenceWeekReferenceV1 {
+  if (reference instanceof PlanningReference) {
+    return {
+      method: 'REFERENCE_PLANNING',
+      frozenAt: reference.frozenAt.toString(),
+      generationId: reference.generationId,
+    };
+  }
+  if (reference instanceof EqualShareReference) {
+    return {
+      method: 'EQUAL_SHARE_OF_ACTIVITY_DAYS',
+      frozenAt: reference.frozenAt.toString(),
+      weeklyMinimumMinutes: reference.weeklyMinimumMinutes,
+      activityDays: reference.activityDays.map((day) => day.toString()),
+      dailyShareMinutes: reference.dailyShareMinutes,
+      dayValuations: dayValuationsV1Of(reference),
+    };
+  }
+  throw new TypeError(`Méthode de valorisation inconnue : ${reference.method}.`);
+}
+
+function dayValuationsV1Of(reference: EqualShareReference): Record<string, DayValuationV1> {
+  const valuations: Record<string, DayValuationV1> = {};
+  for (const [day, valuation] of reference.dayValuations) {
+    valuations[day] = {
+      valuedMinutes: valuation.valuedMinutes,
+      coveredPeriods: valuation.coveredPeriods.map((period) => ({
+        startsAt: period.start.toString(),
+        endsAt: period.end.toString(),
+      })),
+    };
+  }
+  return valuations;
 }

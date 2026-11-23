@@ -1,4 +1,5 @@
-import { weekBounds } from './absence-week';
+import { Absence } from './absence';
+import { weekBounds, weeksTouchedBy } from './absence-week';
 import { InvalidWeekStartError } from './absence.errors';
 
 describe('weekBounds', () => {
@@ -22,5 +23,46 @@ describe('weekBounds', () => {
     expect(() => weekBounds(Temporal.PlainDate.from('2026-11-24'), 'Europe/Paris')).toThrow(
       InvalidWeekStartError,
     );
+  });
+});
+
+describe('weeksTouchedBy', () => {
+  function absence(startsAt: string, endsAt: string): Absence {
+    return Absence.create({
+      id: '0190f0a0-0000-7000-8000-0000000000a1',
+      organizationId: '0190f0a0-0000-7000-8000-00000000000a',
+      employeeId: '0190f0a0-0000-7000-8000-0000000000e1',
+      startsAt: Temporal.Instant.from(startsAt),
+      endsAt: Temporal.Instant.from(endsAt),
+      reason: 'LEAVE',
+      createdAt: Temporal.Instant.from('2026-11-18T15:00:00Z'),
+    });
+  }
+
+  function mondays(weeks: Temporal.PlainDate[]): string[] {
+    return weeks.map((monday) => monday.toString());
+  }
+
+  it('donne le lundi de la seule semaine touchée', () => {
+    const tuesday = absence('2026-11-24T00:00:00+01:00', '2026-11-25T00:00:00+01:00');
+
+    expect(mondays(weeksTouchedBy(tuesday, 'Europe/Paris'))).toEqual(['2026-11-23']);
+  });
+
+  it('ne compte pas la semaine suivante pour une absence qui finit le lundi à minuit', () => {
+    const untilMonday = absence('2026-11-27T00:00:00+01:00', '2026-11-30T00:00:00+01:00');
+
+    expect(mondays(weeksTouchedBy(untilMonday, 'Europe/Paris'))).toEqual(['2026-11-23']);
+  });
+
+  it('donne chaque semaine d’une absence à cheval, à l’heure du site', () => {
+    // Dimanche 29 novembre 23 h à Paris, soit 22 h UTC, jusqu'au mardi 8 décembre.
+    const acrossWeeks = absence('2026-11-29T23:00:00+01:00', '2026-12-08T00:00:00+01:00');
+
+    expect(mondays(weeksTouchedBy(acrossWeeks, 'Europe/Paris'))).toEqual([
+      '2026-11-23',
+      '2026-11-30',
+      '2026-12-07',
+    ]);
   });
 });

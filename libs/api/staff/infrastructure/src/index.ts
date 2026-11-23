@@ -1,4 +1,4 @@
-export { ORGANIZATION_CATALOG } from './lib/injection-tokens';
+export { ORGANIZATION_CATALOG, PLANNING_REFERENCE_SOURCE } from './lib/injection-tokens';
 export { StaffModule, type StaffModuleOptions } from './lib/staff.module';
 // Dépôts, pour assembler une unité de travail hors de Nest (ADR-0038).
 export { PrismaContractRepository } from './lib/persistence/prisma-contract.repository';
