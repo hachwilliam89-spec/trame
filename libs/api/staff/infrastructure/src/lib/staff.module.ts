@@ -15,10 +15,13 @@ import {
   ListContracts,
   ListEmployees,
   ListWeekAbsences,
+  PendingWeekReferences,
+  PrepareWeekAbsences,
   type OrganizationCatalog,
   type PlanningReferenceSource,
   SetAbsenceDayValuation,
   UpdateAbsence,
+  type WeekAbsencesSnapshotReader,
 } from '@trame/api/staff/application';
 import { CLOCK, type Clock } from '@trame/platform/clock';
 import { ID_GENERATOR, type IdGenerator } from '@trame/platform/ids';
@@ -34,11 +37,13 @@ import {
   EMPLOYEE_REPOSITORY,
   ORGANIZATION_CATALOG,
   PLANNING_REFERENCE_SOURCE,
+  WEEK_ABSENCES_SNAPSHOT_READER,
 } from './injection-tokens';
 import { PrismaAbsenceWeekReferenceRepository } from './persistence/prisma-absence-week-reference.repository';
 import { PrismaAbsenceRepository } from './persistence/prisma-absence.repository';
 import { PrismaContractRepository } from './persistence/prisma-contract.repository';
 import { PrismaEmployeeRepository } from './persistence/prisma-employee.repository';
+import { PrismaWeekAbsencesSnapshotReader } from './persistence/prisma-week-absences-snapshot.reader';
 
 type ImportedModule = NonNullable<ModuleMetadata['imports']>[number];
 
@@ -172,6 +177,30 @@ const absenceProviders: Provider[] = [
       references: AbsenceWeekReferenceRepository,
     ) => new GetWeekAbsenceValuations(catalog, absences, references),
   },
+  {
+    provide: PendingWeekReferences,
+    inject: [
+      EMPLOYEE_REPOSITORY,
+      AbsenceWeekReferenceFreezer,
+      ABSENCE_WEEK_REFERENCE_REPOSITORY,
+      CLOCK,
+    ],
+    useFactory: (
+      employees: EmployeeRepository,
+      freezer: AbsenceWeekReferenceFreezer,
+      references: AbsenceWeekReferenceRepository,
+      clock: Clock,
+    ) => new PendingWeekReferences(employees, freezer, references, clock),
+  },
+  {
+    provide: PrepareWeekAbsences,
+    inject: [ORGANIZATION_CATALOG, WEEK_ABSENCES_SNAPSHOT_READER, PendingWeekReferences],
+    useFactory: (
+      catalog: OrganizationCatalog,
+      snapshots: WeekAbsencesSnapshotReader,
+      pending: PendingWeekReferences,
+    ) => new PrepareWeekAbsences(catalog, snapshots, pending),
+  },
 ];
 
 export interface StaffModuleOptions {
@@ -208,12 +237,13 @@ export class StaffModule {
           provide: ABSENCE_WEEK_REFERENCE_REPOSITORY,
           useClass: PrismaAbsenceWeekReferenceRepository,
         },
+        { provide: WEEK_ABSENCES_SNAPSHOT_READER, useClass: PrismaWeekAbsencesSnapshotReader },
         ...employeeAndContractProviders,
         ...absenceProviders,
       ],
       // Use cases publics : d'autres parties de l'application créent et lisent des employés et
-      // leurs contrats par eux.
-      exports: [CreateEmployee, CreateContract, ListEmployees, ListContracts],
+      // leurs contrats par eux ; la génération lit les absences préparées pour sa semaine.
+      exports: [CreateEmployee, CreateContract, ListEmployees, ListContracts, PrepareWeekAbsences],
     };
   }
 }

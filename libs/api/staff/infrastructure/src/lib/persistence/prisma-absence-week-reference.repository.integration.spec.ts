@@ -11,6 +11,7 @@ import { SequentialIdGenerator } from '@trame/platform/ids';
 import { PrismaAbsenceWeekReferenceRepository } from './prisma-absence-week-reference.repository';
 import { PrismaAbsenceRepository } from './prisma-absence.repository';
 import { PrismaEmployeeRepository } from './prisma-employee.repository';
+import { PrismaWeekAbsencesSnapshotReader } from './prisma-week-absences-snapshot.reader';
 
 const ORGANIZATION_A = '0190f0a0-0000-7000-8000-00000000000a';
 const ORGANIZATION_B = '0190f0a0-0000-7000-8000-00000000000b';
@@ -164,6 +165,50 @@ describe('références de valorisation des absences sur PostgreSQL (US-033)', ()
       status: 'VALUED',
       absenceMinutes: 280 + 180 + 120,
     });
+  });
+
+  it('fige les références absentes et garde celles déjà figées', async () => {
+    await absences.add(tuesdayOf(camille), [planningReferenceOf(camille)]);
+
+    await references.saveIfAbsent([
+      planningReferenceOf(camille, LATER_GENERATION),
+      equalShareOf(employeeAtOtherSite),
+    ]);
+
+    expect(await references.find(ORGANIZATION_A, camille, MONDAY)).toEqual(
+      planningReferenceOf(camille),
+    );
+    expect(await references.find(ORGANIZATION_A, employeeAtOtherSite, MONDAY)).toEqual(
+      equalShareOf(employeeAtOtherSite),
+    );
+  });
+
+  it('lit ensemble les absences d’une période et les références de la semaine du site', async () => {
+    const tuesday = tuesdayOf(camille);
+    const nextMondayMorning = absenceOf(camille, '2026-11-30T00:00', '2026-11-30T06:00');
+    await absences.add(tuesday, [equalShareOf(camille)]);
+    await absences.add(nextMondayMorning, []);
+    await absences.add(tuesdayOf(employeeAtOtherSite), [equalShareOf(employeeAtOtherSite)]);
+    const reader = new PrismaWeekAbsencesSnapshotReader(prisma);
+
+    const snapshot = await reader.read(
+      ORGANIZATION_A,
+      DEMO_SITE,
+      MONDAY,
+      parisInstant('2026-11-23T00:00'),
+      parisInstant('2026-11-30T06:00'),
+    );
+    const seenFromB = await reader.read(
+      ORGANIZATION_B,
+      DEMO_SITE,
+      MONDAY,
+      parisInstant('2026-11-23T00:00'),
+      parisInstant('2026-11-30T06:00'),
+    );
+
+    expect(snapshot.absences).toEqual([tuesday, nextMondayMorning]);
+    expect(snapshot.references).toEqual([equalShareOf(camille)]);
+    expect(seenFromB).toEqual({ absences: [], references: [] });
   });
 
   describe('durée d’un jour resté sans absence', () => {
