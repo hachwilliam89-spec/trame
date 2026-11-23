@@ -18,16 +18,25 @@ import {
   InMemorySiteRepository,
   InMemorySkillRepository,
 } from '@trame/api/organization/application/testing';
+import { composeSchedulingProblem } from '@trame/api/scheduling/domain';
 import {
+  AbsenceWeekReferenceFreezer,
   CreateContract,
   CreateEmployee,
+  DeclareAbsence,
   ListContracts,
   ListEmployees,
+  PendingWeekReferences,
+  PrepareWeekAbsences,
 } from '@trame/api/staff/application';
 import {
+  InMemoryAbsenceRepository,
+  InMemoryAbsenceWeekReferenceRepository,
   InMemoryContractRepository,
   InMemoryEmployeeRepository,
   InMemoryOrganizationCatalog,
+  InMemoryPlanningReferenceSource,
+  InMemoryWeekAbsencesSnapshotReader,
 } from '@trame/api/staff/application/testing';
 import { FixedClock } from '@trame/platform/clock';
 import { SequentialIdGenerator } from '@trame/platform/ids';
@@ -38,6 +47,15 @@ import { WeekPlanningAdapter } from './week-planning.adapter';
 const ORGANIZATION_A = '0190f0a0-0000-7000-8000-00000000000a';
 const ORGANIZATION_B = '0190f0a0-0000-7000-8000-00000000000b';
 const MONDAY = Temporal.PlainDate.from('2026-11-23');
+const WEEK_OF_30_NOVEMBER = Temporal.PlainDate.from('2026-11-30');
+
+function parisInstant(localDateTime: string): Temporal.Instant {
+  return Temporal.Instant.from(`${localDateTime}+01:00`);
+}
+
+function sixDaysFrom(weekStartsOn: Temporal.PlainDate): Temporal.PlainDate[] {
+  return [0, 1, 2, 3, 4, 5].map((offset) => weekStartsOn.add({ days: offset }));
+}
 const clock = new FixedClock(Temporal.Instant.from('2026-11-15T08:00:00Z'));
 
 async function setUp() {
@@ -71,9 +89,19 @@ async function setUp() {
     break: { start: Temporal.PlainTime.from('10:00'), durationMinutes: 20 },
   });
 
+  const night = await new CreateShiftTemplate(sites, shiftTemplates, clock, ids).execute({
+    organizationId: ORGANIZATION_A,
+    siteId: site.id,
+    label: 'Nuit',
+    start: Temporal.PlainTime.from('22:00'),
+    end: Temporal.PlainTime.from('06:00'),
+    break: { start: Temporal.PlainTime.from('02:00'), durationMinutes: 20 },
+  });
+
   const siteCatalog = new InMemorySiteCatalog();
   siteCatalog.addSite(ORGANIZATION_A, site.id);
   siteCatalog.addShiftTemplate(ORGANIZATION_A, site.id, morning.id);
+  siteCatalog.addShiftTemplate(ORGANIZATION_A, site.id, night.id);
   siteCatalog.addPosition(ORGANIZATION_A, site.id, forklift.id);
   const coverages = new InMemoryWeeklyCoverageRepository();
   await new DefineWeeklyCoverage(siteCatalog, coverages, clock).execute({
@@ -112,6 +140,38 @@ async function setUp() {
     endsOn: undefined,
   });
 
+  const references = new InMemoryAbsenceWeekReferenceRepository(employees);
+  const absences = new InMemoryAbsenceRepository(employees, references);
+  const planningReferences = new InMemoryPlanningReferenceSource();
+  const freezer = new AbsenceWeekReferenceFreezer(
+    organizationCatalog,
+    contracts,
+    references,
+    planningReferences,
+  );
+  const declareAbsence = new DeclareAbsence(employees, absences, freezer, clock, ids);
+  const prepareWeekAbsences = new PrepareWeekAbsences(
+    organizationCatalog,
+    new InMemoryWeekAbsencesSnapshotReader(absences, references),
+    new PendingWeekReferences(employees, freezer, references, clock),
+  );
+  const defineNeeds = (
+    weekStartsOn: Temporal.PlainDate,
+    days: Temporal.PlainDate[],
+    shiftTemplateId = morning.id,
+  ) =>
+    new DefineWeeklyCoverage(siteCatalog, coverages, clock).execute({
+      organizationId: ORGANIZATION_A,
+      siteId: site.id,
+      weekStartsOn,
+      needs: days.map((date) => ({
+        date,
+        shiftTemplateId,
+        positionId: forklift.id,
+        requiredCount: 1,
+      })),
+    });
+
   const adapter = new WeekPlanningAdapter(
     new OrganizationPlanningReader(
       new GetSite(sites),
@@ -121,10 +181,30 @@ async function setUp() {
     new StaffPlanningReader(
       new ListEmployees(organizationCatalog, employees),
       new ListContracts(employees, contracts),
+      prepareWeekAbsences,
     ),
     new GetWeeklyCoverage(siteCatalog, coverages),
   );
-  return { adapter, site, caces, forklift, morning, driver };
+  const declareDriverAbsent = (start: string, end: string) =>
+    declareAbsence.execute({
+      organizationId: ORGANIZATION_A,
+      employeeId: driver.id,
+      startsAt: parisInstant(start),
+      endsAt: parisInstant(end),
+      reason: 'LEAVE',
+    });
+  return {
+    adapter,
+    site,
+    caces,
+    forklift,
+    morning,
+    night,
+    driver,
+    planningReferences,
+    defineNeeds,
+    declareDriverAbsent,
+  };
 }
 
 describe('Lecture d’une semaine pour la génération (organization, demand, staff)', () => {
@@ -160,6 +240,77 @@ describe('Lecture d’une semaine pour la génération (organization, demand, st
     const planning = await adapter.read(ORGANIZATION_A, site.id, MONDAY.add({ weeks: 1 }));
 
     expect(planning?.shifts).toEqual([]);
+  });
+
+  describe('absences (US-033)', () => {
+    it('BDD : besoins ajoutés après la déclaration, la référence se fige au lancement et le problème porte le minimum restant et l’indisponibilité du lundi', async () => {
+      const { adapter, site, driver, planningReferences, defineNeeds, declareDriverAbsent } =
+        await setUp();
+      await declareDriverAbsent('2026-11-30T00:00', '2026-12-01T00:00');
+      await defineNeeds(WEEK_OF_30_NOVEMBER, sixDaysFrom(WEEK_OF_30_NOVEMBER));
+      planningReferences.setActivityDays(
+        site.id,
+        WEEK_OF_30_NOVEMBER,
+        sixDaysFrom(WEEK_OF_30_NOVEMBER),
+      );
+
+      const planning = await adapter.read(ORGANIZATION_A, site.id, WEEK_OF_30_NOVEMBER);
+      if (planning === undefined) {
+        throw new Error('La semaine du site doit être lue.');
+      }
+      const { problem } = composeSchedulingProblem(planning);
+
+      expect(planning.absenceValuations).toEqual([
+        {
+          employeeId: driver.id,
+          absenceMinutes: 4 * 60 + 40,
+          method: 'EQUAL_SHARE_OF_ACTIVITY_DAYS',
+          weeklyMinimumMinutes: 1680,
+          activityDays: sixDaysFrom(WEEK_OF_30_NOVEMBER).map((day) => day.toString()),
+          dailyShareMinutes: 4 * 60 + 40,
+        },
+      ]);
+      const [camille] = problem.employees;
+      expect(camille?.contract.weeklyMinutesMin).toBe(28 * 60);
+      expect(camille?.contract.absenceMinutes).toBe(4 * 60 + 40);
+      expect(
+        (camille?.contract.weeklyMinutesMin ?? 0) - (camille?.contract.absenceMinutes ?? 0),
+      ).toBe(23 * 60 + 20);
+      expect(camille?.unavailabilities).toEqual([
+        { startsAt: '2026-11-30T00:00:00+01:00', endsAt: '2026-12-01T00:00:00+01:00' },
+      ]);
+      expect(problem.rules).toContainEqual({ id: 'INDISPONIBILITE' });
+    });
+
+    it('BDD : une absence partielle sans durée signale le salarié « à définir »', async () => {
+      const { adapter, site, driver, planningReferences, defineNeeds, declareDriverAbsent } =
+        await setUp();
+      await defineNeeds(WEEK_OF_30_NOVEMBER, sixDaysFrom(WEEK_OF_30_NOVEMBER));
+      planningReferences.setActivityDays(
+        site.id,
+        WEEK_OF_30_NOVEMBER,
+        sixDaysFrom(WEEK_OF_30_NOVEMBER),
+      );
+      await declareDriverAbsent('2026-11-30T06:00', '2026-11-30T10:00');
+
+      const planning = await adapter.read(ORGANIZATION_A, site.id, WEEK_OF_30_NOVEMBER);
+
+      expect(planning?.employeesWithAbsenceToDefine).toEqual([driver.id]);
+      expect(planning?.absenceValuations).toEqual([]);
+    });
+
+    it('lit l’absence du lundi suivant qui touche le créneau de nuit du dimanche', async () => {
+      const { adapter, site, driver, night, defineNeeds, declareDriverAbsent } = await setUp();
+      const sunday = WEEK_OF_30_NOVEMBER.add({ days: 6 });
+      await defineNeeds(WEEK_OF_30_NOVEMBER, [sunday], night.id);
+      const nextMonday = await declareDriverAbsent('2026-12-07T00:00', '2026-12-07T12:00');
+
+      const planning = await adapter.read(ORGANIZATION_A, site.id, WEEK_OF_30_NOVEMBER);
+
+      expect(planning?.absences).toEqual([
+        { employeeId: driver.id, startsAt: nextMonday.startsAt, endsAt: nextMonday.endsAt },
+      ]);
+    });
   });
 
   it('ne connaît pas le site d’une autre organisation', async () => {

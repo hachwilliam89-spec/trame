@@ -29,12 +29,14 @@ export class WeekPlanningAdapter implements WeekPlanningSource {
     }
     const coverage = await this.getWeeklyCoverage.execute({ organizationId, siteId, weekStartsOn });
     const needs = coverage?.needs ?? [];
+    const shifts = await this.organization.shiftsOf(organizationId, siteId, needs);
     return {
       siteId,
       weekStartsOn,
       timeZone,
-      shifts: await this.organization.shiftsOf(organizationId, siteId, needs),
+      shifts,
       employees: await this.staff.employeesOf(organizationId, siteId),
+      ...(await this.staff.absencesOf(organizationId, siteId, weekStartsOn, shifts)),
     };
   }
 

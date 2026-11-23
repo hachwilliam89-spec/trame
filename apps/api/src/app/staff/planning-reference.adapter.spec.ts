@@ -90,6 +90,9 @@ async function setUp() {
         { weeklyMinutesMin: 0, weeklyMinutesMax: 2100, startsOn: MONDAY, endsOn: undefined },
       ],
     })),
+    absences: [],
+    absenceValuations: [],
+    employeesWithAbsenceToDefine: [],
   });
   const generations = new InMemoryScheduleGenerations();
   const start = new StartScheduleGeneration(generations, planning, clock, ids);
