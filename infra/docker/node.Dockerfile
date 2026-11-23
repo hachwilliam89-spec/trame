@@ -84,6 +84,11 @@ FROM builder AS web-assets
 RUN rm /workspace/dist/apps/web/browser/config.json
 
 FROM nginx/nginx-unprivileged:1.30.7-alpine@sha256:0c53a1f2890c3526bfd201440f0fd3970e5b78f80630f58284aad0d34b5ec7bd AS web
+# L'image de base (digest du 2026-11-19) contient libxml2 2.13.9-r2, à la faille haute
+# CVE-2026-86144 corrigée par Alpine en 2.13.9-r3. Sans effet dès qu'une base plus récente l'inclut.
+USER root
+RUN apk upgrade --no-cache libxml2 \
+  && apk info --exists 'libxml2>=2.13.9-r3'
 COPY --from=web-assets /workspace/dist/apps/web/browser /usr/share/nginx/html
 COPY infra/docker/web/nginx.conf /etc/nginx/nginx.conf
 COPY --chmod=555 infra/docker/web/entrypoint.sh /trame-entrypoint.sh
