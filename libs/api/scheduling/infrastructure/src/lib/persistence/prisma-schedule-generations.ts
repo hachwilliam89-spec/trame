@@ -116,13 +116,14 @@ async function insertGeneration(
   const inserted = await transaction.$queryRaw<{ id: string }[]>`
     INSERT INTO scheduling.schedule_generations (
       id, organization_id, site_id, week_starts_on, idempotency_key, status,
-      problem, parameters, excluded_employees, created_at
+      problem, parameters, excluded_employees, absence_valuations, created_at
     )
     VALUES (
       ${generation.id}::uuid, ${generation.organizationId}::uuid, ${generation.siteId}::uuid,
       ${generation.weekStartsOn.toString()}::date, ${key.value}, ${generation.status},
       ${JSON.stringify(generation.problem)}::jsonb, ${JSON.stringify(generation.parameters)}::jsonb,
-      ${JSON.stringify(generation.excludedEmployees)}::jsonb, ${instantToDate(generation.createdAt)}
+      ${JSON.stringify(generation.excludedEmployees)}::jsonb,
+      ${JSON.stringify(generation.absenceValuations)}::jsonb, ${instantToDate(generation.createdAt)}
     )
     ON CONFLICT (organization_id, idempotency_key) DO NOTHING
     RETURNING id

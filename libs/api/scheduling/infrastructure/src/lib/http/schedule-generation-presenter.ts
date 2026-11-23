@@ -11,6 +11,7 @@ export function toScheduleGenerationV1(generation: ScheduleGeneration): Schedule
     problem: generation.problem,
     parameters: generation.parameters,
     excludedEmployees: [...generation.excludedEmployees],
+    absenceValuations: [...generation.absenceValuations],
     createdAt: generation.createdAt.toString(),
     ...(generation.outcome === undefined ? {} : { outcome: generation.outcome }),
     ...(generation.failure === undefined ? {} : { failure: generation.failure }),

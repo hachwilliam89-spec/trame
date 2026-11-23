@@ -45,6 +45,9 @@ const planning: WeekPlanning = {
       ],
     },
   ],
+  absences: [],
+  absenceValuations: [],
+  employeesWithAbsenceToDefine: [],
 };
 
 describe('Recevoir le rapport d’une génération', () => {

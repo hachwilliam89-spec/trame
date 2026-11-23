@@ -76,7 +76,7 @@ export class StartScheduleGeneration {
     if (planning === undefined) {
       throw new SiteNotFoundError();
     }
-    const { problem, excludedEmployees } = composeSchedulingProblem(planning);
+    const { problem, excludedEmployees, absenceValuations } = composeSchedulingProblem(planning);
     return {
       id: this.ids.next(),
       organizationId: command.organizationId,
@@ -86,6 +86,7 @@ export class StartScheduleGeneration {
       problem,
       parameters: DEMO_SOLVE_PARAMETERS,
       excludedEmployees,
+      absenceValuations,
       createdAt: this.clock.now(),
     };
   }

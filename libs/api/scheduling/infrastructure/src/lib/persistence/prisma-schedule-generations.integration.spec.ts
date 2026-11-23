@@ -51,6 +51,9 @@ const planning: WeekPlanning = {
     },
     { id: '0190f0a0-0000-7000-8000-000000000049', qualifications: [], contracts: [] },
   ],
+  absences: [],
+  absenceValuations: [],
+  employeesWithAbsenceToDefine: [],
 };
 
 describe('Enregistrement des générations (PostgreSQL)', () => {
@@ -104,6 +107,48 @@ describe('Enregistrement des générations (PostgreSQL)', () => {
     expect(generation.excludedEmployees).toEqual([
       { employeeId: '0190f0a0-0000-7000-8000-000000000049', reason: 'NO_CONTRACT_COVERING_WEEK' },
     ]);
+  });
+
+  it('conserve les valorisations d’absence de la génération (US-033)', async () => {
+    const withAbsence = {
+      ...planning,
+      absenceValuations: [
+        {
+          employeeId: '0190f0a0-0000-7000-8000-000000000041',
+          absenceMinutes: 280,
+          method: 'EQUAL_SHARE_OF_ACTIVITY_DAYS' as const,
+          weeklyMinimumMinutes: 1680,
+          activityDays: [
+            '2026-11-23',
+            '2026-11-24',
+            '2026-11-25',
+            '2026-11-26',
+            '2026-11-27',
+            '2026-11-28',
+          ],
+          dailyShareMinutes: 280,
+        },
+      ],
+    };
+    const source = new InMemoryWeekPlanningSource();
+    source.define(organizationId, withAbsence);
+    start = new StartScheduleGeneration(generations, source, clock, ids);
+
+    const generation = await launch('with-absence');
+
+    expect(generation.absenceValuations).toEqual(withAbsence.absenceValuations);
+    expect(await generations.findById(organizationId, generation.id)).toEqual(generation);
+  });
+
+  it('relit une génération enregistrée avant US-033 sans valorisation d’absence', async () => {
+    const generation = await launch('before-us-033');
+    await prisma.$executeRaw`
+      UPDATE scheduling.schedule_generations SET absence_valuations = DEFAULT WHERE id = ${generation.id}::uuid
+    `;
+
+    expect((await generations.findById(organizationId, generation.id))?.absenceValuations).toEqual(
+      [],
+    );
   });
 
   it('Double clic simultané : une seule génération et un seul message', async () => {

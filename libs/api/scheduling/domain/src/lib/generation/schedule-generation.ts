@@ -1,4 +1,5 @@
 import type {
+  GenerationAbsenceValuationV1,
   ScheduleFailureV1,
   ScheduleOutcomeV1,
   SchedulingProblemV1,
@@ -8,7 +9,11 @@ import type {
 /** État du traitement ; l'issue du solveur (cinq issues, ADR-0020) est portée par `outcome`. */
 export type ScheduleGenerationStatus = 'QUEUED' | 'RUNNING' | 'SUCCEEDED' | 'FAILED';
 
-export type ExclusionReason = 'NO_CONTRACT_COVERING_WEEK';
+/**
+ * `NO_CONTRACT_COVERING_WEEK` : aucun contrat ne couvre toute la semaine.
+ * `ABSENCE_VALUATION_TO_DEFINE` : une absence attend sa valorisation (US-033).
+ */
+export type ExclusionReason = 'NO_CONTRACT_COVERING_WEEK' | 'ABSENCE_VALUATION_TO_DEFINE';
 
 /** Salarié du site laissé hors du calcul, avec son motif. */
 export interface ExcludedEmployee {
@@ -27,6 +32,8 @@ export interface ScheduleGeneration {
   readonly problem: SchedulingProblemV1;
   readonly parameters: SolveParametersV1;
   readonly excludedEmployees: readonly ExcludedEmployee[];
+  /** Valorisations des absences au lancement : une durée changée ensuite n'y change rien. */
+  readonly absenceValuations: readonly GenerationAbsenceValuationV1[];
   readonly createdAt: Temporal.Instant;
   readonly outcome?: ScheduleOutcomeV1;
   readonly failure?: ScheduleFailureV1;

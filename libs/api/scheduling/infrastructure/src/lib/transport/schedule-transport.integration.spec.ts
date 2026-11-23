@@ -76,6 +76,9 @@ function weekPlanning(weeklyMinutesMin = 0): WeekPlanning {
       qualifications: [{ skillId: CACES_3, expiresOn: undefined }],
       contracts: [contract],
     })),
+    absences: [],
+    absenceValuations: [],
+    employeesWithAbsenceToDefine: [],
   };
 }
 
