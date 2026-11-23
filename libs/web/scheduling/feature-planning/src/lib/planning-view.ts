@@ -32,9 +32,23 @@ export interface PlanningView {
   coverage: CoverageSummary;
   coverageByDay: DayCoverage[];
   rules: CheckedRuleView[];
-  /** Salariés du site écartés du calcul : aucun contrat ne couvre la semaine. */
-  excluded: string[];
+  /** Salariés du site écartés du calcul, avec la raison. */
+  excluded: ExcludedEmployee[];
 }
+
+export interface ExcludedEmployee {
+  name: string;
+  /** En minuscules, pour suivre « Hors du calcul » : `durée d’absence à définir`. */
+  reason: string;
+}
+
+type ExclusionReason = ScheduleGenerationV1['excludedEmployees'][number]['reason'];
+
+const EXCLUSION_REASONS: Record<ExclusionReason, string> = {
+  NO_CONTRACT_COVERING_WEEK: 'aucun contrat ne couvre la semaine',
+  // US-033 : une absence de la semaine sans durée connue ; son minimum n'est pas levé en silence.
+  ABSENCE_VALUATION_TO_DEFINE: 'durée d’absence à définir',
+};
 
 /** Le planning d'une génération exploitable, enrichi des libellés du site. */
 export function planningView(
@@ -60,6 +74,9 @@ export function planningView(
     coverage: coverageSummary(rows),
     coverageByDay: coverageByDay(rows, facts),
     rules: checkedRules(generation.outcome?.checkedRules ?? [], generation.problem),
-    excluded: generation.excludedEmployees.map((excluded) => facts.nameOf(excluded.employeeId)),
+    excluded: generation.excludedEmployees.map((excluded) => ({
+      name: facts.nameOf(excluded.employeeId),
+      reason: EXCLUSION_REASONS[excluded.reason],
+    })),
   };
 }

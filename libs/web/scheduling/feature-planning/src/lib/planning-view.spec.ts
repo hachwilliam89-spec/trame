@@ -12,6 +12,7 @@ const CAMILLE = '0190f0a0-0000-7000-8000-000000000041';
 const LUCAS = '0190f0a0-0000-7000-8000-000000000042';
 const NADIA = '0190f0a0-0000-7000-8000-000000000043';
 const THEO = '0190f0a0-0000-7000-8000-000000000044';
+const INES = '0190f0a0-0000-7000-8000-000000000045';
 const CREATED_AT = '2026-11-17T08:00:00.000Z';
 
 function shift(date: string, template: string, position: string, requiredCount: number) {
@@ -66,10 +67,14 @@ const generation = {
       { id: 'DUREE_QUOTIDIENNE_MAX', maximumMinutes: 600 },
       { id: 'DUREE_HEBDOMADAIRE_MAX', maximumMinutes: 2880 },
       { id: 'VOLUME_CONTRACTUEL' },
+      { id: 'INDISPONIBILITE' },
     ],
     objective: { mode: 'STANDARD' },
   },
-  excludedEmployees: [{ employeeId: THEO, reason: 'NO_CONTRACT_COVERING_WEEK' }],
+  excludedEmployees: [
+    { employeeId: THEO, reason: 'NO_CONTRACT_COVERING_WEEK' },
+    { employeeId: INES, reason: 'ABSENCE_VALUATION_TO_DEFINE' },
+  ],
   outcome: {
     result: {
       status: 'OPTIMAL',
@@ -84,7 +89,12 @@ const generation = {
         shortfalls: [{ shiftId: shifts[4]?.id ?? '', requiredCount: 2, assignedCount: 1 }],
       },
     },
-    checkedRules: ['HABILITATION_REQUISE', 'REPOS_QUOTIDIEN_MIN', 'VOLUME_CONTRACTUEL'],
+    checkedRules: [
+      'HABILITATION_REQUISE',
+      'REPOS_QUOTIDIEN_MIN',
+      'VOLUME_CONTRACTUEL',
+      'INDISPONIBILITE',
+    ],
     solveSeconds: 0.2,
   },
 } as unknown as ScheduleGenerationV1;
@@ -125,6 +135,7 @@ const catalog = {
     person(LUCAS, 'Lucas', 'Girard'),
     person(CAMILLE, 'Camille', 'Laurent'),
     person(THEO, 'Théo', 'Marchand'),
+    person(INES, 'Inès', 'Moreau'),
   ],
 } as unknown as PlanningCatalog;
 
@@ -241,10 +252,17 @@ describe('modèle d’affichage du planning', () => {
         label: 'Volume d’heures de chaque contrat, entre son minimum et son maximum',
         reference: 'Contrat de travail',
       },
+      {
+        label: 'Aucune affectation pendant une absence déclarée',
+        reference: undefined,
+      },
     ]);
   });
 
   it('nomme les salariés écartés du calcul et la raison', () => {
-    expect(view.excluded).toEqual(['Théo Marchand']);
+    expect(view.excluded).toEqual([
+      { name: 'Théo Marchand', reason: 'aucun contrat ne couvre la semaine' },
+      { name: 'Inès Moreau', reason: 'durée d’absence à définir' },
+    ]);
   });
 });
