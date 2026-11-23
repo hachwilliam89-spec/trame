@@ -5,7 +5,7 @@
    PE le juge conforme.
 """
 
-from datetime import date
+from datetime import date, time
 from typing import Any
 from uuid import UUID
 
@@ -13,7 +13,7 @@ import pytest
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
 from ortools.sat.python import cp_model
-from week_builders import AFTERNOON, CACES_3, MORNING, WeekBuilder, day_of_week
+from week_builders import AFTERNOON, CACES_3, MORNING, WeekBuilder, day_of_week, local_instant
 
 from trame_engine.solver.scheduling import (
     Assignment,
@@ -33,13 +33,15 @@ RULE_SETS: dict[str, list[dict[str, Any]]] = {
     "DUREE_QUOTIDIENNE_MAX": [{"id": "DUREE_QUOTIDIENNE_MAX", "maximumMinutes": 600}],
     "DUREE_HEBDOMADAIRE_MAX": [{"id": "DUREE_HEBDOMADAIRE_MAX", "maximumMinutes": 1260}],
     "VOLUME_CONTRACTUEL": [{"id": "VOLUME_CONTRACTUEL"}],
-    "les six règles": [
+    "INDISPONIBILITE": [{"id": "INDISPONIBILITE"}],
+    "toutes les règles": [
         {"id": "HABILITATION_REQUISE"},
         {"id": "UN_SEUL_SHIFT"},
         {"id": "REPOS_QUOTIDIEN_MIN", "minimumMinutes": 660},
         {"id": "DUREE_QUOTIDIENNE_MAX", "maximumMinutes": 600},
         {"id": "DUREE_HEBDOMADAIRE_MAX", "maximumMinutes": 1260},
         {"id": "VOLUME_CONTRACTUEL"},
+        {"id": "INDISPONIBILITE"},
     ],
 }
 PARAMETERS = SolveParameters(time_limit_seconds=10, workers=1, seed=0)
@@ -69,6 +71,8 @@ def weeks(draw: st.DrawFn, rules: list[dict[str, Any]]) -> Week:
             UUID(int=index + 1),
             qualifications=draw(qualifications()),
             weekly_minutes=draw(weekly_volumes()),
+            unavailabilities=draw(unavailabilities()),
+            absence_minutes=draw(st.sampled_from([0, 280, 420, 2100])),
         )
     return read_week(builder.build())
 
@@ -76,6 +80,24 @@ def weeks(draw: st.DrawFn, rules: list[dict[str, Any]]) -> Week:
 def qualifications() -> st.SearchStrategy[dict[UUID, date | None]]:
     expiry = st.one_of(st.none(), st.integers(0, 5).map(day_of_week))
     return st.one_of(st.just({}), expiry.map(lambda last_day: {CACES_3: last_day}))
+
+
+def unavailabilities() -> st.SearchStrategy[tuple[tuple[str, str], ...]]:
+    """Aucune, ou jusqu'à deux absences : un jour entier, ou une matinée de 6 h à 10 h."""
+    whole_day = st.integers(0, 5).map(
+        lambda index: (
+            local_instant(day_of_week(index), time(0, 0)),
+            local_instant(day_of_week(index + 1), time(0, 0)),
+        )
+    )
+    morning = st.integers(0, 5).map(
+        lambda index: (
+            local_instant(day_of_week(index), time(6, 0)),
+            local_instant(day_of_week(index), time(10, 0)),
+        )
+    )
+    period = st.one_of(whole_day, morning)
+    return st.lists(period, max_size=2).map(tuple)
 
 
 def weekly_volumes() -> st.SearchStrategy[tuple[int, int]]:

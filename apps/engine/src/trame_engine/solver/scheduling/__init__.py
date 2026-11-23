@@ -1,4 +1,4 @@
-"""Planification d'une semaine (jalon 1, issue #69) : six règles, couverture, résolution et PE."""
+"""Planification d'une semaine (jalon 1, issue #69) : règles, couverture, résolution et PE."""
 
 from trame_engine.solver.scheduling.evaluation import (
     Evaluation,
