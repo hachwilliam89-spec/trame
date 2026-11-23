@@ -11,7 +11,7 @@ import { z } from 'zod';
 const MINUTES_PER_DAY = 1440;
 const MINUTES_PER_WEEK = 10080;
 
-/** Identifiants des règles du jalon 1 : termes métier affichés, donc en français. */
+/** Identifiants des règles : termes métier affichés, donc en français. */
 export const schedulingRuleIdV1 = z.enum([
   'HABILITATION_REQUISE',
   'UN_SEUL_SHIFT',
@@ -19,6 +19,7 @@ export const schedulingRuleIdV1 = z.enum([
   'DUREE_QUOTIDIENNE_MAX',
   'DUREE_HEBDOMADAIRE_MAX',
   'VOLUME_CONTRACTUEL',
+  'INDISPONIBILITE',
 ]);
 
 /** Le salarié détient chaque compétence exigée, valide le jour du shift (expiration incluse). */
@@ -45,8 +46,15 @@ export const maximumWeeklyDurationRuleV1 = z.object({
   maximumMinutes: z.int().min(1).max(MINUTES_PER_WEEK),
 });
 
-/** Temps effectif de la semaine entre le minimum et le maximum du contrat de chaque salarié. */
+/**
+ * Temps effectif de la semaine entre le minimum restant et le maximum du contrat de chaque
+ * salarié. Minimum restant = max(0, minimum − minutes d'absence valorisées), convention du modèle
+ * de planification (US-033), ni règle de paie ni décompte légal.
+ */
 export const contractualVolumeRuleV1 = z.object({ id: z.literal('VOLUME_CONTRACTUEL') });
+
+/** Un salarié ne tient aucun shift qui chevauche une de ses indisponibilités (US-033). */
+export const unavailabilityRuleV1 = z.object({ id: z.literal('INDISPONIBILITE') });
 
 export const schedulingRuleV1 = z.discriminatedUnion('id', [
   requiredQualificationRuleV1,
@@ -55,6 +63,7 @@ export const schedulingRuleV1 = z.discriminatedUnion('id', [
   maximumDailyDurationRuleV1,
   maximumWeeklyDurationRuleV1,
   contractualVolumeRuleV1,
+  unavailabilityRuleV1,
 ]);
 
 /** Un besoin à couvrir : un créneau, un poste, un jour. */
@@ -79,13 +88,26 @@ const qualificationV1 = z.object({
   expiresOn: z.iso.date().nullable(),
 });
 
+/**
+ * Période où le salarié est absent, début inclus, fin exclue. Sans motif : le moteur n'a pas à
+ * savoir pourquoi (US-033).
+ */
+const unavailabilityV1 = z.object({
+  startsAt: z.iso.datetime({ offset: true }),
+  endsAt: z.iso.datetime({ offset: true }),
+});
+
 const employeeV1 = z.object({
   id: z.uuid(),
   qualifications: z.array(qualificationV1).max(50),
+  /** Absences qui chevauchent les shifts du problème. Absent d'un message d'avant US-033 : aucune. */
+  unavailabilities: z.array(unavailabilityV1).max(200).default([]),
   /** Le contrat qui couvre toute la semaine (décision du 16 novembre 2026). */
   contract: z.object({
     weeklyMinutesMin: z.int().min(0).max(MINUTES_PER_WEEK),
     weeklyMinutesMax: z.int().min(1).max(MINUTES_PER_WEEK),
+    /** Minutes d'absence valorisées de la semaine (US-033), retranchées du minimum. */
+    absenceMinutes: z.int().min(0).max(MINUTES_PER_WEEK).default(0),
   }),
 });
 

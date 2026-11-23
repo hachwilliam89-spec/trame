@@ -17,9 +17,36 @@ export const scheduleGenerationStatusV1 = z.enum(['QUEUED', 'RUNNING', 'SUCCEEDE
 /** Salarié du site laissé hors du calcul, avec le motif que l'écran explique. */
 export const excludedEmployeeV1 = z.object({
   employeeId: z.uuid(),
-  /** Aucun contrat ne couvre toute la semaine (décision du 16 novembre 2026). */
-  reason: z.enum(['NO_CONTRACT_COVERING_WEEK']),
+  /**
+   * `NO_CONTRACT_COVERING_WEEK` : aucun contrat ne couvre toute la semaine (décision du 16
+   * novembre 2026). `ABSENCE_VALUATION_TO_DEFINE` : une absence de la semaine attend sa
+   * valorisation ; son minimum n'est ni gardé entier ni levé en silence (US-033).
+   */
+  reason: z.enum(['NO_CONTRACT_COVERING_WEEK', 'ABSENCE_VALUATION_TO_DEFINE']),
 });
+
+/** Minutes d'absence qu'une génération a retranchées du minimum d'un salarié, et leur calcul. */
+const absenceValuationBaseV1 = {
+  employeeId: z.uuid(),
+  absenceMinutes: z.int().min(0),
+};
+
+export const generationAbsenceValuationV1 = z.discriminatedUnion('method', [
+  /** Heures du planning de référence couvertes par les absences. */
+  z.object({
+    ...absenceValuationBaseV1,
+    method: z.literal('REFERENCE_PLANNING'),
+    referenceGenerationId: z.uuid(),
+  }),
+  /** Convention de démonstration « parts égales sur les jours d'activité ». */
+  z.object({
+    ...absenceValuationBaseV1,
+    method: z.literal('EQUAL_SHARE_OF_ACTIVITY_DAYS'),
+    weeklyMinimumMinutes: z.int().min(0),
+    activityDays: z.array(z.iso.date()).min(1).max(7),
+    dailyShareMinutes: z.number().min(0),
+  }),
+]);
 
 /**
  * Une génération et l'instantané qu'elle a calculé : créneaux, besoins, horaires, minutes
@@ -35,12 +62,18 @@ export const scheduleGenerationV1 = z.object({
   problem: schedulingProblemV1,
   parameters: solveParametersV1,
   excludedEmployees: z.array(excludedEmployeeV1),
+  /**
+   * Valorisation des absences au lancement, pour chaque salarié absent dans la semaine (US-033).
+   * Instantané : une durée changée ensuite ne modifie pas ce que la génération a utilisé.
+   */
+  absenceValuations: z.array(generationAbsenceValuationV1),
   createdAt: z.iso.datetime(),
   outcome: scheduleOutcomeV1.optional(),
   failure: scheduleFailureV1.optional(),
   finishedAt: z.iso.datetime().optional(),
 });
 
+export type GenerationAbsenceValuationV1 = z.infer<typeof generationAbsenceValuationV1>;
 export type ScheduleGenerationV1 = z.infer<typeof scheduleGenerationV1>;
 
 /** Paramètres de `GET /api/v1/schedule-generations` : le site et le lundi de la semaine. */

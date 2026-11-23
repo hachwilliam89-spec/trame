@@ -1,0 +1,83 @@
+{
+  "id": "0190f0a0-0000-7000-8000-000000000062",
+  "organizationId": "0190f0a0-0000-7000-8000-000000000001",
+  "type": "scheduling.schedule-requested.v1",
+  "occurredAt": "2026-11-16T18:30:00.000+00:00",
+  "payload": {
+    "generationId": "0190f0a0-0000-7000-8000-000000000051",
+    "problem": {
+      "weekStartsOn": "2026-11-23",
+      "timeZone": "Europe/Paris",
+      "shifts": [],
+      "employees": [
+        {
+          "id": "0190f0a0-0000-7000-8000-000000000041",
+          "qualifications": [
+            {
+              "skillId": "0190f0a0-0000-7000-8000-000000000031",
+              "expiresOn": null
+            }
+          ],
+          "contract": {
+            "weeklyMinutesMin": 1680,
+            "weeklyMinutesMax": 2100,
+            "absenceMinutes": 560
+          },
+          "unavailabilities": [
+            {
+              "startsAt": "2026-11-24T00:00:00+01:00",
+              "endsAt": "2026-11-26T00:00:00+01:00"
+            }
+          ]
+        },
+        {
+          "id": "0190f0a0-0000-7000-8000-000000000042",
+          "qualifications": [
+            {
+              "skillId": "0190f0a0-0000-7000-8000-000000000031",
+              "expiresOn": "2026-11-25"
+            }
+          ],
+          "contract": {
+            "weeklyMinutesMin": 0,
+            "weeklyMinutesMax": 1260
+          }
+        }
+      ],
+      "rules": [
+        {
+          "id": "HABILITATION_REQUISE"
+        },
+        {
+          "id": "UN_SEUL_SHIFT"
+        },
+        {
+          "id": "REPOS_QUOTIDIEN_MIN",
+          "minimumMinutes": 660
+        },
+        {
+          "id": "DUREE_QUOTIDIENNE_MAX",
+          "maximumMinutes": 600
+        },
+        {
+          "id": "DUREE_HEBDOMADAIRE_MAX",
+          "maximumMinutes": 2880
+        },
+        {
+          "id": "VOLUME_CONTRACTUEL"
+        },
+        {
+          "id": "INDISPONIBILITE"
+        }
+      ],
+      "objective": {
+        "mode": "STANDARD"
+      }
+    },
+    "parameters": {
+      "timeLimitSeconds": 30,
+      "workers": 4,
+      "seed": 0
+    }
+  }
+}

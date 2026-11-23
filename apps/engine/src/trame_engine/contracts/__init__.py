@@ -378,6 +378,7 @@ class Outcome1(BaseModel):
                 "DUREE_QUOTIDIENNE_MAX",
                 "DUREE_HEBDOMADAIRE_MAX",
                 "VOLUME_CONTRACTUEL",
+                "INDISPONIBILITE",
             ]
         ],
         Field(alias="checkedRules", min_length=1),
@@ -482,6 +483,15 @@ class Qualification(BaseModel):
     expires_on: Annotated[ExpiresOn | None, Field(alias="expiresOn")]
 
 
+class Unavailability(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,
+    )
+    starts_at: Annotated[AwareDatetime, Field(alias="startsAt")]
+    ends_at: Annotated[AwareDatetime, Field(alias="endsAt")]
+
+
 class Contract(BaseModel):
     model_config = ConfigDict(
         extra="ignore",
@@ -489,6 +499,7 @@ class Contract(BaseModel):
     )
     weekly_minutes_min: Annotated[int, Field(alias="weeklyMinutesMin", ge=0, le=10080)]
     weekly_minutes_max: Annotated[int, Field(alias="weeklyMinutesMax", ge=1, le=10080)]
+    absence_minutes: Annotated[int, Field(alias="absenceMinutes", ge=0, le=10080)] = 0
 
 
 class Employee(BaseModel):
@@ -498,6 +509,9 @@ class Employee(BaseModel):
     )
     id: UUID
     qualifications: Annotated[list[Qualification], Field(max_length=50)]
+    unavailabilities: Annotated[
+        list[Unavailability], Field(max_length=200, validate_default=True)
+    ] = []
     contract: Contract
 
 
@@ -515,6 +529,14 @@ class SingleShiftRuleV1(BaseModel):
         populate_by_name=True,
     )
     id: Literal["UN_SEUL_SHIFT"]
+
+
+class UnavailabilityRuleV1(BaseModel):
+    model_config = ConfigDict(
+        extra="ignore",
+        populate_by_name=True,
+    )
+    id: Literal["INDISPONIBILITE"]
 
 
 class DiagnosticTopologyV1(BaseModel):
@@ -546,6 +568,7 @@ class SchedulingProblemV1(BaseModel):
             | MaximumDailyDurationRuleV1
             | MaximumWeeklyDurationRuleV1
             | ContractualVolumeRuleV1
+            | UnavailabilityRuleV1
         ],
         Field(max_length=20, min_length=1),
     ]

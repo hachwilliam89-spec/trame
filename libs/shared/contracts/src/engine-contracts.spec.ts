@@ -6,6 +6,7 @@ import {
   engineContracts,
   engineContractsJsonSchema,
 } from './engine-contracts';
+import { scheduleRequestedV1 } from './scheduling/schedule-requested.v1';
 
 const fixturesDir = join(import.meta.dirname, '..', 'fixtures');
 
@@ -39,6 +40,19 @@ describe('contrats API ↔ moteur', () => {
   it.each(contracts.map(([id]) => id))('%s a des fixtures valides et invalides', (id) => {
     expect(fixtures(id, 'valid').length).toBeGreaterThan(0);
     expect(fixtures(id, 'invalid').length).toBeGreaterThan(0);
+  });
+
+  it('lit un problème v1 sans indisponibilités ni minutes d’absence, émis avant US-033', () => {
+    const [, message] = fixtures('ScheduleRequestedV1', 'valid').find(
+      ([file]) => file === 'semaine-sans-besoin.json',
+    ) ?? ['', undefined];
+
+    const parsed = scheduleRequestedV1.parse(message);
+
+    expect(parsed.payload.problem.employees[0]).toMatchObject({
+      unavailabilities: [],
+      contract: { absenceMinutes: 0 },
+    });
   });
 
   describe.each(contracts)('%s', (id, schema) => {

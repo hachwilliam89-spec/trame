@@ -137,6 +137,8 @@ use-annotated = true
 field-constraints = true
 use-standard-collections = true
 use-union-operator = true
+# Un champ avec valeur par défaut reste non nul, comme dans zod : `null` est refusé (US-033).
+strict-nullable = true
 enum-field-as-literal = "all"
 use-schema-description = true
 use-double-quotes = true
