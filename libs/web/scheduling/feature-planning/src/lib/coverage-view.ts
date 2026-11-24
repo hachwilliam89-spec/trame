@@ -4,7 +4,11 @@ import type { PlanningFacts } from './planning-facts';
 export interface CoverageRow {
   date: string;
   dayLabel: string;
+  /** `Sam.`. */
+  dayAbbreviation: string;
   shiftLabel: string;
+  /** Travail effectif d'une affectation à ce créneau. */
+  effectiveMinutes: number;
   hours: string;
   positionName: string;
   required: number;
@@ -43,7 +47,9 @@ export function coverageRows(facts: PlanningFacts): CoverageRow[] {
     return {
       date: planned.day.date,
       dayLabel: `${planned.day.name} ${planned.day.dayOfMonth}`,
+      dayAbbreviation: planned.day.abbreviation,
       shiftLabel: planned.kind.label,
+      effectiveMinutes: planned.shift.effectiveMinutes,
       hours: planned.kind.hours,
       positionName: planned.positionName,
       required,

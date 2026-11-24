@@ -1,9 +1,24 @@
 import type { ScheduleGenerationV1 } from '@trame/shared/contracts/scheduling';
 import { attemptMessage } from './planning-status';
 
-function attempt(status: ScheduleGenerationV1['status'], result?: string): ScheduleGenerationV1 {
+// Mardi 24 novembre 2026 : demandé à 20 h 04, terminé à 20 h 05, heure de Paris.
+const CREATED_AT = '2026-11-24T19:04:40.000Z';
+const FINISHED_AT = '2026-11-24T19:05:22.665Z';
+
+function attempt(
+  status: ScheduleGenerationV1['status'],
+  result?: string,
+  finishedAt: string | null = FINISHED_AT,
+): ScheduleGenerationV1 {
   const outcome = result === undefined ? undefined : { result: { status: result } };
-  return { id: 'A', status, outcome } as unknown as ScheduleGenerationV1;
+  return {
+    id: 'A',
+    status,
+    outcome,
+    problem: { timeZone: 'Europe/Paris' },
+    createdAt: CREATED_AT,
+    finishedAt: finishedAt ?? undefined,
+  } as unknown as ScheduleGenerationV1;
 }
 
 describe('message sur le dernier calcul', () => {
@@ -33,7 +48,7 @@ describe('message sur le dernier calcul', () => {
   it('dit qu’aucun planning ne respecte les règles, sans en proposer', () => {
     expect(attemptMessage(attempt('SUCCEEDED', 'INFEASIBLE'), 'idle', false)).toMatchObject({
       tone: 'warning',
-      text: 'Aucun planning ne respecte les règles pour cette semaine.',
+      text: 'Calcul du mardi 24 novembre à 20 h 05 : aucun planning ne respecte les règles pour cette semaine.',
       action: 'generate',
       actionLabel: 'Relancer le calcul',
     });
@@ -42,9 +57,16 @@ describe('message sur le dernier calcul', () => {
   it('propose de relancer quand le délai est atteint, en gardant le planning précédent', () => {
     expect(attemptMessage(attempt('SUCCEEDED', 'UNKNOWN'), 'idle', true)).toMatchObject({
       tone: 'warning',
-      text: 'Délai atteint sans solution. Le planning affiché reste celui du calcul précédent.',
+      text: 'Calcul du mardi 24 novembre à 20 h 05 : délai atteint sans solution. Le planning affiché reste celui du calcul précédent.',
       action: 'generate',
       actionLabel: 'Relancer le calcul',
+    });
+  });
+
+  it('BDD : date l’échec du dernier calcul quand le planning précédent reste affiché', () => {
+    expect(attemptMessage(attempt('SUCCEEDED', 'CANCELLED'), 'idle', true)).toMatchObject({
+      tone: 'warning',
+      text: 'Calcul du mardi 24 novembre à 20 h 05 : le calcul a été annulé. Le planning affiché reste celui du calcul précédent.',
     });
   });
 
@@ -69,8 +91,9 @@ describe('message sur le dernier calcul', () => {
   });
 
   it('signale un échec de traitement et l’API qui refuse la semaine', () => {
-    expect(attemptMessage(attempt('FAILED'), 'idle', false)).toMatchObject({
+    expect(attemptMessage(attempt('FAILED', undefined, null), 'idle', false)).toMatchObject({
       tone: 'error',
+      text: 'Calcul du mardi 24 novembre à 20 h 04 : le calcul n’a pas pu aboutir.',
       action: 'generate',
     });
     expect(attemptMessage(null, 'rejected', false)).toMatchObject({

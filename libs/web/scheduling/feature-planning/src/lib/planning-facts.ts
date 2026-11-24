@@ -25,6 +25,8 @@ export interface PlannedShift {
 
 /** Index du calcul et du catalogue, construits une fois pour toutes les vues. */
 export interface PlanningFacts {
+  /** Fuseau du site, tel que le calcul l'a reçu. */
+  timeZone: string;
   days: WeekDay[];
   shiftKinds: ShiftKind[];
   /** Dans l'ordre des jours, des créneaux de la journée, puis des postes du site. */
@@ -51,6 +53,7 @@ export function planningFacts(
     ]),
   );
   return {
+    timeZone: problem.timeZone,
     days,
     shiftKinds,
     shifts: plannedShifts(generation, catalog, days, shiftKinds, positionOrder),

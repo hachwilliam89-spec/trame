@@ -1,4 +1,13 @@
-import { durationLabel, isoWeekNumber, localTimeLabel, weekDays, weekRangeLabel } from './calendar';
+import {
+  attemptTimeLabel,
+  durationLabel,
+  isoWeekNumber,
+  localDateOf,
+  localTimeLabel,
+  shiftedWeek,
+  weekDays,
+  weekRangeLabel,
+} from './calendar';
 
 describe('calendrier du planning', () => {
   it('donne les sept jours de la semaine, du lundi au dimanche', () => {
@@ -38,5 +47,22 @@ describe('calendrier du planning', () => {
     expect(durationLabel(2100)).toBe('35 h');
     expect(durationLabel(2070)).toBe('34 h 30');
     expect(durationLabel(0)).toBe('0 h');
+  });
+
+  it('passe à la semaine précédente ou suivante, d’une année à l’autre', () => {
+    expect(shiftedWeek('2026-11-23', 1)).toBe('2026-11-30');
+    expect(shiftedWeek('2026-11-23', -1)).toBe('2026-11-16');
+    expect(shiftedWeek('2026-12-28', 1)).toBe('2027-01-04');
+  });
+
+  it('lit le jour civil d’un instant dans le fuseau du site', () => {
+    expect(localDateOf('2026-11-25T23:00:00Z', 'Europe/Paris')).toBe('2026-11-26');
+    expect(localDateOf('2026-11-25T22:59:00Z', 'Europe/Paris')).toBe('2026-11-25');
+  });
+
+  it('date une tentative de calcul à l’heure du site', () => {
+    expect(attemptTimeLabel('2026-11-24T19:05:22.665Z', 'Europe/Paris')).toBe(
+      'mardi 24 novembre à 20 h 05',
+    );
   });
 });

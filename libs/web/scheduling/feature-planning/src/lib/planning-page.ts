@@ -10,7 +10,7 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { PlanningState, readPlanningAddress } from '@trame/web/scheduling/data-access';
-import { isoWeekNumber, weekRangeLabel } from './calendar';
+import { isoWeekNumber, shiftedWeek, weekRangeLabel } from './calendar';
 import { attemptMessage } from './planning-status';
 import { planningView } from './planning-view';
 import { PlanningWeekPicker } from './planning-week-picker';
@@ -47,6 +47,8 @@ export class PlanningPage {
       siteName: catalog.site.name,
       weekNumber: isoWeekNumber(address.weekStartsOn),
       rangeLabel: weekRangeLabel(address.weekStartsOn),
+      previousWeek: { site: address.siteId, semaine: shiftedWeek(address.weekStartsOn, -1) },
+      nextWeek: { site: address.siteId, semaine: shiftedWeek(address.weekStartsOn, 1) },
     };
   });
   protected readonly view = computed(() => {

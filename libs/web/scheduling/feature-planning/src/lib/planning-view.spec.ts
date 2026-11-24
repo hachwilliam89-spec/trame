@@ -56,9 +56,25 @@ const generation = {
     timeZone: 'Europe/Paris',
     shifts,
     employees: [
-      { id: CAMILLE, qualifications: [], contract: contract(28, 35) },
-      { id: LUCAS, qualifications: [], contract: contract(28, 35) },
-      { id: NADIA, qualifications: [], contract: contract(14, 21) },
+      { id: CAMILLE, qualifications: [], contract: contract(28, 35), unavailabilities: [] },
+      {
+        id: LUCAS,
+        qualifications: [],
+        contract: { ...contract(28, 35), absenceMinutes: 420 },
+        // Absent le mardi entier : l'instantané garde la période, même supprimée depuis.
+        unavailabilities: [
+          { startsAt: '2026-11-24T00:00:00+01:00', endsAt: '2026-11-25T00:00:00+01:00' },
+        ],
+      },
+      {
+        id: NADIA,
+        qualifications: [],
+        contract: contract(14, 21),
+        // Indisponible le mardi matin seulement : son après-midi reste affecté.
+        unavailabilities: [
+          { startsAt: '2026-11-24T06:00:00+01:00', endsAt: '2026-11-24T10:00:00+01:00' },
+        ],
+      },
     ],
     rules: [
       { id: 'HABILITATION_REQUISE' },
@@ -165,6 +181,38 @@ describe('modèle d’affichage du planning', () => {
       ['Lucas Girard', 'Préparateur de commandes', '7 h', 'Contrat 28–35 h'],
       ['Nadia Guérin', 'Préparateur de commandes · Réceptionnaire', '14 h', 'Contrat 14–21 h'],
     ]);
+  });
+
+  it('BDD : lit les absences dans l’instantané, journée entière ou plage horaire, à côté des affectations', () => {
+    expect(view.team.map((row) => [row.name, row.absences, row.absenceLabel])).toEqual([
+      ['Camille Laurent', [[], [], []], undefined],
+      ['Lucas Girard', [[], ['Absence'], []], '7 h d’absence · minimum restant 21 h'],
+      ['Nadia Guérin', [[], ['Absence 06 h–10 h'], []], undefined],
+    ]);
+    expect(view.team[2]?.cells[1]?.map((cell) => cell.shiftLabel)).toEqual(['Après-midi']);
+    expect(view.team[1]?.week.map((day) => day.absences)).toEqual([
+      [],
+      ['Absence'],
+      [],
+      [],
+      [],
+      [],
+      [],
+    ]);
+  });
+
+  it('BDD : chiffre la semaine du planning affiché, avec la durée du calcul et le nombre de règles vérifiées', () => {
+    expect(view.summary).toEqual({
+      assignedPlaces: 5,
+      requiredPlaces: 6,
+      coverageLabel: expect.stringMatching(/^83,3\s?%$/),
+      missingPlaces: 1,
+      missingDetail: 'sam. matin',
+      plannedHoursLabel: '35 h',
+      checkedRulesCount: 4,
+      checkedRulesLabel: '4 règles',
+      engineLabel: 'Proposé par le moteur · 0,2 s',
+    });
   });
 
   it('montre le poste du jour dans la case seulement pour qui alterne entre deux postes', () => {
