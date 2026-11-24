@@ -35,6 +35,7 @@ const queued = {
   excludedEmployees: [
     { employeeId: '0190f0a0-0000-7000-8000-000000000049', reason: 'NO_CONTRACT_COVERING_WEEK' },
   ],
+  absenceValuations: [],
   createdAt: '2026-11-16T21:00:00Z',
 };
 
@@ -69,6 +70,49 @@ describe('contrats de la génération d’un planning', () => {
     };
 
     expect(scheduleGenerationV1.safeParse(unknownReason).success).toBe(false);
+  });
+
+  it('donne par salarié les minutes d’absence utilisées, avec la méthode et ses paramètres', () => {
+    const withAbsences = {
+      ...queued,
+      excludedEmployees: [
+        {
+          employeeId: '0190f0a0-0000-7000-8000-000000000043',
+          reason: 'ABSENCE_VALUATION_TO_DEFINE',
+        },
+      ],
+      absenceValuations: [
+        {
+          employeeId: '0190f0a0-0000-7000-8000-000000000041',
+          absenceMinutes: 280,
+          method: 'EQUAL_SHARE_OF_ACTIVITY_DAYS',
+          weeklyMinimumMinutes: 1680,
+          activityDays: [
+            '2026-11-23',
+            '2026-11-24',
+            '2026-11-25',
+            '2026-11-26',
+            '2026-11-27',
+            '2026-11-28',
+          ],
+          dailyShareMinutes: 280,
+        },
+        {
+          employeeId: '0190f0a0-0000-7000-8000-000000000042',
+          absenceMinutes: 420,
+          method: 'REFERENCE_PLANNING',
+          referenceGenerationId: '0190f0a0-0000-7000-8000-0000000000e0',
+        },
+      ],
+    };
+
+    expect(scheduleGenerationV1.safeParse(withAbsences).success).toBe(true);
+    expect(
+      scheduleGenerationV1.safeParse({
+        ...withAbsences,
+        absenceValuations: [{ ...withAbsences.absenceValuations[1], method: 'AUTRE' }],
+      }).success,
+    ).toBe(false);
   });
 
   it('montre le dernier essai et le dernier planning exploitable d’une semaine', () => {

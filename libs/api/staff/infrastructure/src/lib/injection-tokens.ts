@@ -4,6 +4,9 @@ export const ABSENCE_WEEK_REFERENCE_REPOSITORY = Symbol('ABSENCE_WEEK_REFERENCE_
 /** Port vers `scheduling` et `demand`, fourni par un module de l'application. */
 export const PLANNING_REFERENCE_SOURCE = Symbol('PLANNING_REFERENCE_SOURCE');
 
+/** Jeton de la lecture conjointe des absences et références d'une semaine. */
+export const WEEK_ABSENCES_SNAPSHOT_READER = Symbol('WEEK_ABSENCES_SNAPSHOT_READER');
+
 /** Jeton du dépôt des absences. */
 export const ABSENCE_REPOSITORY = Symbol('ABSENCE_REPOSITORY');
 

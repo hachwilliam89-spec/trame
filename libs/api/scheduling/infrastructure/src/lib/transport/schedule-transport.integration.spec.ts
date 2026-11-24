@@ -45,6 +45,7 @@ const ALL_RULES: ScheduleOutcomeV1['checkedRules'] = [
   'DUREE_QUOTIDIENNE_MAX',
   'DUREE_HEBDOMADAIRE_MAX',
   'VOLUME_CONTRACTUEL',
+  'INDISPONIBILITE',
 ];
 
 /** Lundi matin, trois caristes demandés, deux salariés habilités : un manque d'une personne. */
@@ -76,6 +77,9 @@ function weekPlanning(weeklyMinutesMin = 0): WeekPlanning {
       qualifications: [{ skillId: CACES_3, expiresOn: undefined }],
       contracts: [contract],
     })),
+    absences: [],
+    absenceValuations: [],
+    employeesWithAbsenceToDefine: [],
   };
 }
 

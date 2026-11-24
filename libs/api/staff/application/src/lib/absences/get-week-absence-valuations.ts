@@ -1,14 +1,11 @@
-import {
-  type Absence,
-  type AbsenceValuation,
-  type AbsenceWeekReference,
-  valueAbsencesOfWeek,
-  weekBounds,
-} from '@trame/api/staff/domain';
+import { weekBounds } from '@trame/api/staff/domain';
 import { SiteNotFoundError } from '../not-found.errors';
 import type { AbsenceWeekReferenceRepository } from '../ports/absence-week-reference.repository';
 import type { AbsenceRepository } from '../ports/absence.repository';
 import type { OrganizationCatalog } from '../ports/organization-catalog';
+import { type EmployeeAbsenceValuation, valuationsOf } from './week-absence-valuations';
+
+export type { EmployeeAbsenceValuation } from './week-absence-valuations';
 
 export interface GetWeekAbsenceValuationsQuery {
   organizationId: string;
@@ -17,18 +14,9 @@ export interface GetWeekAbsenceValuationsQuery {
   weekStartsOn: Temporal.PlainDate;
 }
 
-/** Valorisation des absences d'un employé sur la semaine, et la référence qui la fonde. */
-export interface EmployeeAbsenceValuation {
-  readonly employeeId: string;
-  /** `undefined` : aucune référence figée, la valorisation reste « à définir ». */
-  readonly reference: AbsenceWeekReference | undefined;
-  readonly valuation: AbsenceValuation;
-}
-
 /**
- * Valorise les absences de chaque employé du site qui en a dans la semaine (US-033). Les
- * générations s'en servent pour le minimum restant, et l'écran pour les heures d'absence.
- * Triées par employé.
+ * Valorise les absences de chaque employé du site qui en a dans la semaine (US-033), pour les
+ * heures d'absence de l'écran. Triées par employé.
  */
 export class GetWeekAbsenceValuations {
   constructor(
@@ -54,25 +42,6 @@ export class GetWeekAbsenceValuations {
       query.siteId,
       query.weekStartsOn,
     );
-    const valuations: EmployeeAbsenceValuation[] = [];
-    for (const [employeeId, absencesOfEmployee] of groupByEmployee(absences)) {
-      const reference = references.find((candidate) => candidate.employeeId === employeeId);
-      valuations.push({
-        employeeId,
-        reference,
-        valuation: valueAbsencesOfWeek(reference, absencesOfEmployee),
-      });
-    }
-    return valuations.sort((first, second) => first.employeeId.localeCompare(second.employeeId));
+    return valuationsOf(absences, references);
   }
-}
-
-function groupByEmployee(absences: readonly Absence[]): Map<string, Absence[]> {
-  const byEmployee = new Map<string, Absence[]>();
-  for (const absence of absences) {
-    const absencesOfEmployee = byEmployee.get(absence.employeeId) ?? [];
-    absencesOfEmployee.push(absence);
-    byEmployee.set(absence.employeeId, absencesOfEmployee);
-  }
-  return byEmployee;
 }

@@ -9,3 +9,4 @@ export { InMemoryPlanningReferenceSource } from './testing/in-memory-planning-re
 export { InMemoryContractRepository } from './testing/in-memory-contract.repository';
 export { InMemoryEmployeeRepository } from './testing/in-memory-employee.repository';
 export { InMemoryOrganizationCatalog } from './testing/in-memory-organization-catalog';
+export { InMemoryWeekAbsencesSnapshotReader } from './testing/in-memory-week-absences-snapshot-reader';

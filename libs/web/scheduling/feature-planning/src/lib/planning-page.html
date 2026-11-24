@@ -64,10 +64,8 @@
 </section>
 <section class="team" aria-labelledby="planning-team-title">
   <tr-team-grid [view]="view" [(selection)]="selection" />
-  @if (view.excluded.length > 0) {
-  <p class="meta excluded">
-    Hors du calcul, aucun contrat ne couvrant la semaine : {{ view.excluded.join(', ') }}.
-  </p>
+  @for (excluded of view.excluded; track $index) {
+  <p class="meta excluded">Hors du calcul : {{ excluded.name }}, {{ excluded.reason }}.</p>
   }
 </section>
 } } @case ('forbidden') {

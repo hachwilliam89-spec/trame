@@ -3,7 +3,8 @@ peut pas vérifier seul (identifiants uniques, fin après début, minimum ≤ ma
 """
 
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
+from uuid import UUID
 
 from trame_engine import contracts
 from trame_engine.solver.scheduling.rules.base import SchedulingRule
@@ -13,7 +14,14 @@ from trame_engine.solver.scheduling.rules.maximum_weekly_duration import Maximum
 from trame_engine.solver.scheduling.rules.minimum_daily_rest import MinimumDailyRest
 from trame_engine.solver.scheduling.rules.required_qualification import RequiredQualification
 from trame_engine.solver.scheduling.rules.single_shift import SingleShift
-from trame_engine.solver.scheduling.week import Employee, InvalidProblemError, Shift, Week
+from trame_engine.solver.scheduling.rules.unavailability import Unavailability
+from trame_engine.solver.scheduling.week import (
+    Employee,
+    InvalidProblemError,
+    Shift,
+    UnavailablePeriod,
+    Week,
+)
 
 type ContractRule = (
     contracts.RequiredQualificationRuleV1
@@ -22,6 +30,7 @@ type ContractRule = (
     | contracts.MaximumDailyDurationRuleV1
     | contracts.MaximumWeeklyDurationRuleV1
     | contracts.ContractualVolumeRuleV1
+    | contracts.UnavailabilityRuleV1
 )
 
 
@@ -67,23 +76,39 @@ def _read_employee(employee: contracts.Employee) -> Employee:
         qualification_expiry=expiry,
         weekly_minutes_min=contract.weekly_minutes_min,
         weekly_minutes_max=contract.weekly_minutes_max,
+        unavailabilities=tuple(
+            _read_unavailability(employee.id, period) for period in employee.unavailabilities
+        ),
+        absence_minutes=contract.absence_minutes,
     )
+
+
+def _read_unavailability(employee_id: UUID, period: contracts.Unavailability) -> UnavailablePeriod:
+    if period.ends_at <= period.starts_at:
+        msg = f"Une indisponibilité du salarié {employee_id} finit avant de commencer."
+        raise InvalidProblemError(msg)
+    return UnavailablePeriod(starts_at=period.starts_at, ends_at=period.ends_at)
+
+
+# Règles sans paramètre : leur identifiant suffit à les construire.
+_RULES_WITHOUT_PARAMETERS: dict[str, Callable[[], SchedulingRule]] = {
+    "HABILITATION_REQUISE": RequiredQualification,
+    "UN_SEUL_SHIFT": SingleShift,
+    "VOLUME_CONTRACTUEL": ContractualVolume,
+    "INDISPONIBILITE": Unavailability,
+}
 
 
 def _read_rule(rule: ContractRule) -> SchedulingRule:
     match rule:
-        case contracts.RequiredQualificationRuleV1():
-            return RequiredQualification()
-        case contracts.SingleShiftRuleV1():
-            return SingleShift()
         case contracts.MinimumDailyRestRuleV1(minimum_minutes=minutes):
             return MinimumDailyRest(minimum_minutes=minutes)
         case contracts.MaximumDailyDurationRuleV1(maximum_minutes=minutes):
             return MaximumDailyDuration(maximum_minutes=minutes)
         case contracts.MaximumWeeklyDurationRuleV1(maximum_minutes=minutes):
             return MaximumWeeklyDuration(maximum_minutes=minutes)
-        case contracts.ContractualVolumeRuleV1():
-            return ContractualVolume()
+        case _:
+            return _RULES_WITHOUT_PARAMETERS[rule.id]()
 
 
 def _ensure_unique(kind: str, identifiers: Iterable[str]) -> None:

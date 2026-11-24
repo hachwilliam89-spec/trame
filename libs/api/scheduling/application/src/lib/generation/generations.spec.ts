@@ -64,8 +64,32 @@ function weekPlanning(siteId: string, requiredCount = 2): WeekPlanning {
         contracts: [],
       },
     ],
+    absences: [],
+    absenceValuations: [],
+    employeesWithAbsenceToDefine: [],
   };
 }
+
+const CAMILLE = '0190f0a0-0000-7000-8000-000000000041';
+
+/** Camille absente le lundi entier, valorisée 7 h sur la génération de référence. */
+const CAMILLE_ABSENT_ON_MONDAY = {
+  absences: [
+    {
+      employeeId: CAMILLE,
+      startsAt: Temporal.Instant.from('2026-11-22T23:00:00Z'),
+      endsAt: Temporal.Instant.from('2026-11-23T23:00:00Z'),
+    },
+  ],
+  absenceValuations: [
+    {
+      employeeId: CAMILLE,
+      absenceMinutes: 420,
+      method: 'REFERENCE_PLANNING' as const,
+      referenceGenerationId: '0190f0a0-0000-7000-8000-0000000000e0',
+    },
+  ],
+};
 
 describe('Lancer la génération du planning d’une semaine', () => {
   let generations: InMemoryScheduleGenerations;
@@ -109,6 +133,38 @@ describe('Lancer la génération du planning d’une semaine', () => {
       payload: { generationId: generation.id, parameters: generation.parameters },
     });
     expect(message.payload.problem).toEqual(generation.problem);
+  });
+
+  it('BDD : garde avec la génération les absences envoyées au moteur et leurs valorisations', async () => {
+    planning.define(organizationId, { ...weekPlanning(SITE_ID), ...CAMILLE_ABSENT_ON_MONDAY });
+
+    const generation = await launch('request-1');
+
+    expect(generation.problem.employees[0]).toMatchObject({
+      id: CAMILLE,
+      unavailabilities: [
+        { startsAt: '2026-11-23T00:00:00+01:00', endsAt: '2026-11-24T00:00:00+01:00' },
+      ],
+      contract: { absenceMinutes: 420 },
+    });
+    expect(generation.absenceValuations).toEqual(CAMILLE_ABSENT_ON_MONDAY.absenceValuations);
+    const message = scheduleRequestedV1.parse(generations.messages()[0]);
+    expect(message.payload.problem.rules).toContainEqual({ id: 'INDISPONIBILITE' });
+  });
+
+  it('BDD : écarte un salarié dont l’absence attend sa valorisation', async () => {
+    planning.define(organizationId, {
+      ...weekPlanning(SITE_ID),
+      employeesWithAbsenceToDefine: [CAMILLE],
+    });
+
+    const generation = await launch('request-1');
+
+    expect(generation.excludedEmployees).toContainEqual({
+      employeeId: CAMILLE,
+      reason: 'ABSENCE_VALUATION_TO_DEFINE',
+    });
+    expect(generation.problem.employees).toEqual([]);
   });
 
   it('Double clic : la même clé rend la génération d’origine, même si les besoins ont changé', async () => {

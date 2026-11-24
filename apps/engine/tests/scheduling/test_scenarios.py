@@ -154,6 +154,7 @@ def test_le_resultat_liste_les_regles_verifiees_et_la_duree_du_calcul() -> None:
         "DUREE_QUOTIDIENNE_MAX",
         "DUREE_HEBDOMADAIRE_MAX",
         "VOLUME_CONTRACTUEL",
+        "INDISPONIBILITE",
     )
     assert outcome.solve_seconds >= 0
 

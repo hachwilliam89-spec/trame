@@ -15,6 +15,7 @@ import {
   requiredQualificationRuleV1,
   schedulingProblemV1,
   singleShiftRuleV1,
+  unavailabilityRuleV1,
 } from './scheduling/scheduling-problem.v1';
 
 /**
@@ -47,6 +48,7 @@ export const engineContractParts = {
   MaximumDailyDurationRuleV1: maximumDailyDurationRuleV1,
   MaximumWeeklyDurationRuleV1: maximumWeeklyDurationRuleV1,
   ContractualVolumeRuleV1: contractualVolumeRuleV1,
+  UnavailabilityRuleV1: unavailabilityRuleV1,
   QueueDeclarationV1: queueDeclarationV1,
 } as const satisfies Record<string, z.ZodType>;
 

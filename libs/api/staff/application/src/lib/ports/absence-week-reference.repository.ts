@@ -26,6 +26,12 @@ export interface AbsenceWeekReferenceRepository {
   ): Promise<AbsenceWeekReference[]>;
 
   /**
+   * Fige ces références, sauf pour un salarié et une semaine qui en ont déjà une : la première
+   * figée, même par une requête concurrente, est gardée.
+   */
+  saveIfAbsent(references: readonly AbsenceWeekReference[]): Promise<void>;
+
+  /**
    * Enregistre la durée que `reference` donne au jour `day`, sans réécrire celles des autres
    * jours : deux managers qui valorisent deux jours en même temps gardent chacun la leur. Rien
    * n'est écrit si le jour n'a plus d'absence au moment de l'écriture.

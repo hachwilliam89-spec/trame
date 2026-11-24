@@ -1,6 +1,11 @@
-import type { SchedulingProblemV1, SchedulingRuleV1 } from '@trame/shared/contracts';
+import type {
+  GenerationAbsenceValuationV1,
+  SchedulingProblemV1,
+  SchedulingRuleV1,
+} from '@trame/shared/contracts';
 import type { ExcludedEmployee } from './schedule-generation';
 import type {
+  PlanningAbsence,
   PlanningContract,
   PlanningEmployee,
   PlanningShift,
@@ -33,12 +38,20 @@ export const MILESTONE_1_RULES: readonly SchedulingRuleV1[] = [
   { id: 'VOLUME_CONTRACTUEL' },
 ];
 
+/** Les règles d'une génération : celles du jalon 1, puis les indisponibilités (US-033). */
+export const SCHEDULING_RULES: readonly SchedulingRuleV1[] = [
+  ...MILESTONE_1_RULES,
+  { id: 'INDISPONIBILITE' },
+];
+
 const ISO_MONDAY = 1;
 const DAYS_AFTER_MONDAY = 6;
 
 export interface ComposedProblem {
   readonly problem: SchedulingProblemV1;
   readonly excludedEmployees: readonly ExcludedEmployee[];
+  /** Valorisations des salariés du problème, gardées avec la génération. */
+  readonly absenceValuations: readonly GenerationAbsenceValuationV1[];
 }
 
 export function ensureWeekStartsOnMonday(weekStartsOn: Temporal.PlainDate): void {
@@ -65,7 +78,12 @@ export function composeSchedulingProblem(planning: WeekPlanning): ComposedProble
       excludedEmployees.push({ employeeId: employee.id, reason: 'NO_CONTRACT_COVERING_WEEK' });
       continue;
     }
-    employees.push(toProblemEmployee(employee, contract));
+    // Son minimum ne serait ni juste entier, ni juste levé en silence (US-033).
+    if (planning.employeesWithAbsenceToDefine.includes(employee.id)) {
+      excludedEmployees.push({ employeeId: employee.id, reason: 'ABSENCE_VALUATION_TO_DEFINE' });
+      continue;
+    }
+    employees.push(toProblemEmployee(employee, contract, planning));
   }
   const shifts = [...planning.shifts]
     .sort(byStartThenId)
@@ -76,10 +94,13 @@ export function composeSchedulingProblem(planning: WeekPlanning): ComposedProble
       timeZone: planning.timeZone,
       shifts,
       employees,
-      rules: [...MILESTONE_1_RULES],
+      rules: [...SCHEDULING_RULES],
       objective: { mode: 'STANDARD' },
     },
     excludedEmployees,
+    absenceValuations: planning.absenceValuations.filter((valuation) =>
+      employees.some((candidate) => candidate.id === valuation.employeeId),
+    ),
   };
 }
 
@@ -102,19 +123,53 @@ function contractCoveringWeek(
 function toProblemEmployee(
   employee: PlanningEmployee,
   contract: PlanningContract,
+  planning: WeekPlanning,
 ): SchedulingProblemV1['employees'][number] {
   const qualifications = employee.qualifications.map((qualification) => ({
     skillId: qualification.skillId,
     expiresOn: qualification.expiresOn?.toString() ?? null,
   }));
+  const valuation = planning.absenceValuations.find(
+    (candidate) => candidate.employeeId === employee.id,
+  );
   return {
     id: employee.id,
     qualifications,
+    unavailabilities: unavailabilitiesOf(employee.id, planning),
     contract: {
       weeklyMinutesMin: contract.weeklyMinutesMin,
       weeklyMinutesMax: contract.weeklyMinutesMax,
+      absenceMinutes: valuation?.absenceMinutes ?? 0,
     },
   };
+}
+
+/**
+ * Les absences du salarié qui chevauchent un créneau du problème, entières : une absence du lundi
+ * suivant doit encore interdire un créneau du dimanche qui finit le lundi matin.
+ */
+function unavailabilitiesOf(
+  employeeId: string,
+  planning: WeekPlanning,
+): SchedulingProblemV1['employees'][number]['unavailabilities'] {
+  const unavailabilities: SchedulingProblemV1['employees'][number]['unavailabilities'] = [];
+  for (const absence of planning.absences) {
+    if (absence.employeeId === employeeId && overlapsAnyShift(absence, planning.shifts)) {
+      unavailabilities.push({
+        startsAt: withSiteOffset(absence.startsAt, planning.timeZone),
+        endsAt: withSiteOffset(absence.endsAt, planning.timeZone),
+      });
+    }
+  }
+  return unavailabilities;
+}
+
+function overlapsAnyShift(absence: PlanningAbsence, shifts: readonly PlanningShift[]): boolean {
+  return shifts.some(
+    (shift) =>
+      Temporal.Instant.compare(absence.startsAt, shift.endsAt) < 0 &&
+      Temporal.Instant.compare(shift.startsAt, absence.endsAt) < 0,
+  );
 }
 
 function toProblemShift(

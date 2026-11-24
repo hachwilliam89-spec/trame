@@ -53,3 +53,22 @@ def test_la_duree_quotidienne_se_compte_sur_le_jour_civil_du_changement_d_heure(
     )
 
     assert verdict_for_both(builder, "dimanche-matin", "dimanche-apres-midi") == "INFEASIBLE"
+
+
+def test_une_absence_sur_la_nuit_du_passage_a_l_heure_d_hiver_se_compare_en_instants() -> None:
+    """Le 25 octobre 2026, 02:30 (+02:00) précède 02:30 (+01:00) d'une heure : seuls les
+    instants comptent, pas l'heure affichée."""
+    sunday = date(2026, 10, 25)
+    builder = (
+        WeekBuilder(week_starts_on=date(2026, 10, 19), rules=[{"id": "INDISPONIBILITE"}])
+        .shift("dimanche-tot", sunday, (time(2, 0), time(5, 0)))
+        .employee(
+            CARISTE,
+            unavailabilities=(("2026-10-25T00:00:00+02:00", "2026-10-25T02:00:00+01:00"),),
+        )
+    )
+    week = read_week(builder.build())
+    early = frozenset({Assignment("dimanche-tot", CARISTE)})
+
+    # Le shift commence à 02:00 (+02:00), une heure avant la fin de l'absence à 02:00 (+01:00).
+    assert evaluate_schedule(week, early).verdict == "INFEASIBLE"

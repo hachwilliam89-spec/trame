@@ -2,6 +2,7 @@ import { type Prisma, dateToInstant, dateToPlainDate } from '@trame/api/database
 import type { ScheduleGeneration } from '@trame/api/scheduling/domain';
 import {
   excludedEmployeeV1,
+  generationAbsenceValuationV1,
   scheduleFailureV1,
   scheduleGenerationStatusV1,
   scheduleOutcomeV1,
@@ -11,6 +12,7 @@ import {
 import { z } from 'zod';
 
 const excludedEmployeesV1 = z.array(excludedEmployeeV1);
+const absenceValuationsV1 = z.array(generationAbsenceValuationV1);
 
 /** Les colonnes JSON sont relues par leurs contrats : une ligne altérée ne passe pas inaperçue. */
 export function toScheduleGeneration(record: Prisma.ScheduleGenerationModel): ScheduleGeneration {
@@ -23,6 +25,7 @@ export function toScheduleGeneration(record: Prisma.ScheduleGenerationModel): Sc
     problem: schedulingProblemV1.parse(record.problem),
     parameters: solveParametersV1.parse(record.parameters),
     excludedEmployees: excludedEmployeesV1.parse(record.excludedEmployees),
+    absenceValuations: absenceValuationsV1.parse(record.absenceValuations),
     createdAt: dateToInstant(record.createdAt),
     ...(record.outcome === null ? {} : { outcome: scheduleOutcomeV1.parse(record.outcome) }),
     ...(record.failure === null ? {} : { failure: scheduleFailureV1.parse(record.failure) }),

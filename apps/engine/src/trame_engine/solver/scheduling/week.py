@@ -35,6 +35,17 @@ class Shift:
 
 
 @dataclass(frozen=True, slots=True)
+class UnavailablePeriod:
+    """Une période où le salarié est absent, début inclus, fin exclue (US-033)."""
+
+    starts_at: datetime
+    ends_at: datetime
+
+    def overlaps(self, shift: Shift) -> bool:
+        return self.starts_at < shift.ends_at and shift.starts_at < self.ends_at
+
+
+@dataclass(frozen=True, slots=True)
 class Employee:
     """Un salarié, désigné par son identifiant seulement."""
 
@@ -43,6 +54,18 @@ class Employee:
     qualification_expiry: Mapping[UUID, date | None]
     weekly_minutes_min: int
     weekly_minutes_max: int
+    unavailabilities: tuple[UnavailablePeriod, ...] = ()
+    # Minutes d'absence valorisées de la semaine, retranchées du minimum (US-033).
+    absence_minutes: int = 0
+
+    @property
+    def remaining_minutes_min(self) -> int:
+        """Le minimum moins les absences, jamais négatif : convention du modèle, ni paie ni
+        décompte légal."""
+        return max(0, self.weekly_minutes_min - self.absence_minutes)
+
+    def is_available_for(self, shift: Shift) -> bool:
+        return not any(period.overlaps(shift) for period in self.unavailabilities)
 
     def is_qualified_for(self, shift: Shift) -> bool:
         """Toutes les compétences exigées, chacune encore valide le jour du shift."""

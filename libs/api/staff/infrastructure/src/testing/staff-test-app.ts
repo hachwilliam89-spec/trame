@@ -8,6 +8,7 @@ import {
   InMemoryEmployeeRepository,
   InMemoryOrganizationCatalog,
   InMemoryPlanningReferenceSource,
+  InMemoryWeekAbsencesSnapshotReader,
 } from '@trame/api/staff/application/testing';
 import { type Actor, AuthModule } from '@trame/platform/auth';
 import {
@@ -22,6 +23,7 @@ import request from 'supertest';
 import {
   ABSENCE_REPOSITORY,
   ABSENCE_WEEK_REFERENCE_REPOSITORY,
+  WEEK_ABSENCES_SNAPSHOT_READER,
   CONTRACT_REPOSITORY,
   EMPLOYEE_REPOSITORY,
   ORGANIZATION_CATALOG,
@@ -101,6 +103,7 @@ export async function createStaffTestApp(): Promise<StaffTestApp> {
   const planningReference = new InMemoryPlanningReferenceSource();
   const employees = new InMemoryEmployeeRepository();
   const references = new InMemoryAbsenceWeekReferenceRepository(employees);
+  const absences = new InMemoryAbsenceRepository(employees, references);
   const moduleRef = await Test.createTestingModule({
     imports: [
       ProblemDetailsModule,
@@ -122,9 +125,11 @@ export async function createStaffTestApp(): Promise<StaffTestApp> {
     .overrideProvider(CONTRACT_REPOSITORY)
     .useValue(new InMemoryContractRepository())
     .overrideProvider(ABSENCE_REPOSITORY)
-    .useValue(new InMemoryAbsenceRepository(employees, references))
+    .useValue(absences)
     .overrideProvider(ABSENCE_WEEK_REFERENCE_REPOSITORY)
     .useValue(references)
+    .overrideProvider(WEEK_ABSENCES_SNAPSHOT_READER)
+    .useValue(new InMemoryWeekAbsencesSnapshotReader(absences, references))
     .compile();
 
   const app = moduleRef.createNestApplication({ logger: false });

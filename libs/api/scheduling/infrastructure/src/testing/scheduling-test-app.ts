@@ -96,6 +96,9 @@ function weekOf(siteId: string): WeekPlanning {
         ],
       },
     ],
+    absences: [],
+    absenceValuations: [],
+    employeesWithAbsenceToDefine: [],
   };
 }
 

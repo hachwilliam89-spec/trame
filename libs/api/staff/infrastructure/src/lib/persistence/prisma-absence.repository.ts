@@ -1,14 +1,9 @@
 import { Injectable } from '@nestjs/common';
-import {
-  type DatabaseClient,
-  type Prisma,
-  Database,
-  dateToInstant,
-  instantToDate,
-} from '@trame/api/database';
+import { Database, instantToDate } from '@trame/api/database';
 import type { AbsenceRepository } from '@trame/api/staff/application';
-import { Absence, type AbsenceReason, type AbsenceWeekReference } from '@trame/api/staff/domain';
-import { toAbsenceWeekReferenceRecord } from './absence-week-reference-record';
+import type { Absence, AbsenceWeekReference } from '@trame/api/staff/domain';
+import { toAbsence, toAbsenceRecord } from './absence-record';
+import { freezeReferences } from './freeze-references';
 import {
   discardValuationsOfDaysWithoutAbsence,
   lockValuedDaysOfWeeks,
@@ -28,7 +23,7 @@ export class PrismaAbsenceRepository implements AbsenceRepository {
   async add(absence: Absence, referencesToFreeze: readonly AbsenceWeekReference[]): Promise<void> {
     await this.database.transaction(async (transaction) => {
       await transaction.absence.create({ data: toAbsenceRecord(absence) });
-      await freeze(transaction, referencesToFreeze);
+      await freezeReferences(transaction, referencesToFreeze);
     });
   }
 
@@ -62,7 +57,7 @@ export class PrismaAbsenceRepository implements AbsenceRepository {
       if (count !== 1) {
         return false;
       }
-      await freeze(transaction, referencesToFreeze);
+      await freezeReferences(transaction, referencesToFreeze);
       await discardValuationsOfDaysWithoutAbsence(
         transaction,
         absence.organizationId,
@@ -132,43 +127,4 @@ export class PrismaAbsenceRepository implements AbsenceRepository {
     });
     return records.map(toAbsence);
   }
-}
-
-function toAbsenceRecord(absence: Absence): Prisma.AbsenceUncheckedCreateInput {
-  return {
-    id: absence.id,
-    organizationId: absence.organizationId,
-    employeeId: absence.employeeId,
-    startsAt: instantToDate(absence.startsAt),
-    endsAt: instantToDate(absence.endsAt),
-    reason: absence.reason,
-    createdAt: instantToDate(absence.createdAt),
-  };
-}
-
-/** `skipDuplicates` : la première référence figée pour le salarié et la semaine l'emporte. */
-async function freeze(
-  transaction: DatabaseClient,
-  referencesToFreeze: readonly AbsenceWeekReference[],
-): Promise<void> {
-  if (referencesToFreeze.length === 0) {
-    return;
-  }
-  await transaction.absenceWeekReference.createMany({
-    data: referencesToFreeze.map(toAbsenceWeekReferenceRecord),
-    skipDuplicates: true,
-  });
-}
-
-function toAbsence(record: Prisma.AbsenceModel): Absence {
-  return Absence.create({
-    id: record.id,
-    organizationId: record.organizationId,
-    employeeId: record.employeeId,
-    startsAt: dateToInstant(record.startsAt),
-    endsAt: dateToInstant(record.endsAt),
-    // La base n'accepte que les quatre catégories, et le domaine les vérifie à nouveau.
-    reason: record.reason as AbsenceReason,
-    createdAt: dateToInstant(record.createdAt),
-  });
 }

@@ -273,6 +273,8 @@ model ScheduleGeneration {
   problem           Json     @db.JsonB
   parameters        Json     @db.JsonB
   excludedEmployees Json     @map("excluded_employees") @db.JsonB
+  /// Valorisation des absences au lancement (US-033) ; vide pour une génération plus ancienne.
+  absenceValuations Json     @default("[]") @map("absence_valuations") @db.JsonB
   createdAt         DateTime @map("created_at") @db.Timestamptz(3)
 
   outcome      Json?     @db.JsonB

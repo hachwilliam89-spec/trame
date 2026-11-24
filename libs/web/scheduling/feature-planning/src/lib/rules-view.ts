@@ -56,5 +56,10 @@ function ruleView(rule: SchedulingRuleV1): CheckedRuleView {
         label: 'Volume d’heures de chaque contrat, entre son minimum et son maximum',
         reference: 'Contrat de travail',
       };
+    case 'INDISPONIBILITE':
+      return {
+        label: 'Aucune affectation pendant une absence déclarée',
+        reference: undefined,
+      };
   }
 }

@@ -12,6 +12,12 @@ export {
 } from './lib/absences/set-absence-day-valuation';
 export { DeclareAbsence, type DeclareAbsenceCommand } from './lib/absences/declare-absence';
 export { DeleteAbsence, type DeleteAbsenceCommand } from './lib/absences/delete-absence';
+export { PendingWeekReferences } from './lib/absences/pending-week-references';
+export {
+  PrepareWeekAbsences,
+  type PrepareWeekAbsencesCommand,
+  type WeekAbsences,
+} from './lib/absences/prepare-week-absences';
 export { ListWeekAbsences, type ListWeekAbsencesQuery } from './lib/absences/list-week-absences';
 export { UpdateAbsence, type UpdateAbsenceCommand } from './lib/absences/update-absence';
 export { CreateContract, type CreateContractCommand } from './lib/contracts/create-contract';
@@ -37,3 +43,7 @@ export type {
   ReferencePlanning,
 } from './lib/ports/planning-reference-source';
 export type { OrganizationCatalog } from './lib/ports/organization-catalog';
+export type {
+  WeekAbsencesSnapshot,
+  WeekAbsencesSnapshotReader,
+} from './lib/ports/week-absences-snapshot.reader';

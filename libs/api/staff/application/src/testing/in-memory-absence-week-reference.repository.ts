@@ -76,6 +76,12 @@ export class InMemoryAbsenceWeekReferenceRepository implements AbsenceWeekRefere
     return 'SAVED';
   }
 
+  async saveIfAbsent(references: readonly AbsenceWeekReference[]): Promise<void> {
+    for (const reference of references) {
+      this.addIfAbsent(reference);
+    }
+  }
+
   /** Efface la durée d'un jour, comme le fait la base quand ce jour n'a plus d'absence. */
   discardDayValuation(organizationId: string, employeeId: string, valuedDay: ValuedDay): void {
     const key = keyOf(organizationId, employeeId, valuedDay.weekStartsOn);

@@ -6,6 +6,7 @@ import type {
 } from '@trame/api/staff/application';
 import type { AbsenceWeekReference, EqualShareReference } from '@trame/api/staff/domain';
 import { toAbsenceWeekReference } from './absence-week-reference-record';
+import { freezeReferences } from './freeze-references';
 import { lockEqualShareReference, setValuationOfDayWithAbsence } from './day-valuation-statements';
 
 /** Références de valorisation dans `staff.absence_week_references`. */
@@ -40,6 +41,10 @@ export class PrismaAbsenceWeekReferenceRepository implements AbsenceWeekReferenc
       orderBy: { employeeId: 'asc' },
     });
     return records.map(toAbsenceWeekReference);
+  }
+
+  async saveIfAbsent(references: readonly AbsenceWeekReference[]): Promise<void> {
+    await freezeReferences(this.database.client, references);
   }
 
   async saveDayValuation(

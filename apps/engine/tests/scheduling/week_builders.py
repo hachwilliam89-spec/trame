@@ -28,6 +28,7 @@ DEFAULT_RULES: list[dict[str, Any]] = [
     {"id": "DUREE_QUOTIDIENNE_MAX", "maximumMinutes": 600},
     {"id": "DUREE_HEBDOMADAIRE_MAX", "maximumMinutes": 2880},
     {"id": "VOLUME_CONTRACTUEL"},
+    {"id": "INDISPONIBILITE"},
 ]
 
 
@@ -77,7 +78,11 @@ class WeekBuilder:
         employee_id: UUID,
         qualifications: dict[UUID, date | None] | None = None,
         weekly_minutes: tuple[int, int] = (0, 2100),
+        *,
+        unavailabilities: tuple[tuple[str, str], ...] = (),
+        absence_minutes: int = 0,
     ) -> WeekBuilder:
+        """`unavailabilities` : début et fin ISO 8601 avec décalage, fin exclue."""
         held = qualifications if qualifications is not None else {CACES_3: None}
         minimum, maximum = weekly_minutes
         self.employees.append(
@@ -87,7 +92,15 @@ class WeekBuilder:
                     {"skillId": str(skill), "expiresOn": None if expiry is None else str(expiry)}
                     for skill, expiry in held.items()
                 ],
-                "contract": {"weeklyMinutesMin": minimum, "weeklyMinutesMax": maximum},
+                "unavailabilities": [
+                    {"startsAt": starts_at, "endsAt": ends_at}
+                    for starts_at, ends_at in unavailabilities
+                ],
+                "contract": {
+                    "weeklyMinutesMin": minimum,
+                    "weeklyMinutesMax": maximum,
+                    "absenceMinutes": absence_minutes,
+                },
             }
         )
         return self
