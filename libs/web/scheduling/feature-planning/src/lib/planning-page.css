@@ -486,19 +486,22 @@ tr-planning-page .engine-pill::before {
   border-radius: 50%;
   background: var(--brand-warp);
 }
+/*
+ * Séparateurs dessinés par chaque carte, et non par le fond de la grille : sur deux ou trois
+ * colonnes, la case vide qui suit le dernier chiffre garde ainsi la couleur des cartes.
+ */
 tr-planning-page .week-facts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 1px;
   margin: 16px 0 0;
   border: 1px solid var(--line);
   border-radius: 12px;
   overflow: hidden;
-  background: var(--line);
+  background: var(--surface);
 }
 tr-planning-page .week-facts > div {
   padding: 12px 14px;
-  background: var(--surface);
+  box-shadow: 0 0 0 0.5px var(--line);
 }
 tr-planning-page .week-facts dt {
   color: var(--muted);
