@@ -6,6 +6,8 @@ export interface CoverageRow {
   dayLabel: string;
   /** `Sam.`. */
   dayAbbreviation: string;
+  /** Identifie le créneau : deux créneaux d'un même jour peuvent porter le même libellé. */
+  shiftTemplateId: string;
   shiftLabel: string;
   /** Travail effectif d'une affectation à ce créneau. */
   effectiveMinutes: number;
@@ -48,6 +50,7 @@ export function coverageRows(facts: PlanningFacts): CoverageRow[] {
       date: planned.day.date,
       dayLabel: `${planned.day.name} ${planned.day.dayOfMonth}`,
       dayAbbreviation: planned.day.abbreviation,
+      shiftTemplateId: planned.shift.shiftTemplateId,
       shiftLabel: planned.kind.label,
       effectiveMinutes: planned.shift.effectiveMinutes,
       hours: planned.kind.hours,

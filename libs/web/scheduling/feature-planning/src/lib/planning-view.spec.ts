@@ -297,7 +297,7 @@ describe('modèle d’affichage du planning', () => {
         reference: 'C. trav., art. L3131-1',
       },
       {
-        label: 'Volume d’heures de chaque contrat, entre son minimum et son maximum',
+        label: 'Heures planifiées entre le minimum restant après absences et le maximum du contrat',
         reference: 'Contrat de travail',
       },
       {

@@ -21,7 +21,7 @@ export interface WeekSummary {
   engineLabel: string | undefined;
 }
 
-type GapSlot = Pick<CoverageRow, 'date' | 'dayAbbreviation' | 'shiftLabel'>;
+type GapSlot = Pick<CoverageRow, 'date' | 'dayAbbreviation' | 'shiftTemplateId' | 'shiftLabel'>;
 
 const SECONDS = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 });
 const SECONDS_PER_MINUTE = 60;
@@ -53,10 +53,13 @@ export function weekSummary(
   };
 }
 
-/** Le créneau du manque, s'il n'y en a qu'un ; sinon le nombre de créneaux touchés. */
+/**
+ * Le créneau du manque, s'il n'y en a qu'un ; sinon le nombre de créneaux touchés. Un créneau est
+ * un jour et un modèle de créneau, jamais un libellé ; plusieurs postes en manque n'en font qu'un.
+ */
 export function missingDetail(gaps: readonly GapSlot[]): string | undefined {
   const slots = new Map<string, GapSlot>();
-  for (const gap of gaps) slots.set(`${gap.date}/${gap.shiftLabel}`, gap);
+  for (const gap of gaps) slots.set(`${gap.date}/${gap.shiftTemplateId}`, gap);
   const [first] = slots.values();
   if (first === undefined) return undefined;
   if (slots.size > 1) return `sur ${slots.size} créneaux`;
@@ -70,8 +73,12 @@ export function engineLabel(solveSeconds: number): string {
 
 function solveDurationLabel(solveSeconds: number): string {
   if (solveSeconds < SHORTEST_SHOWN_SECONDS) return 'moins de 0,1 s';
-  if (solveSeconds < SECONDS_PER_MINUTE) return `${SECONDS.format(solveSeconds)} s`;
-  const minutes = Math.floor(solveSeconds / SECONDS_PER_MINUTE);
-  const seconds = Math.round(solveSeconds - minutes * SECONDS_PER_MINUTE);
+  // Arrondir avant de décomposer : 59,96 s s'écrirait sinon « 60 s », et 119,9 s « 1 min 60 s ».
+  const tenthsOfSecond = Math.round(solveSeconds * 10) / 10;
+  if (tenthsOfSecond < SECONDS_PER_MINUTE) return `${SECONDS.format(tenthsOfSecond)} s`;
+  const totalSeconds = Math.round(solveSeconds);
+  const minutes = Math.floor(totalSeconds / SECONDS_PER_MINUTE);
+  const seconds = totalSeconds % SECONDS_PER_MINUTE;
+  if (seconds === 0) return `${minutes} min`;
   return `${minutes} min ${seconds} s`;
 }
