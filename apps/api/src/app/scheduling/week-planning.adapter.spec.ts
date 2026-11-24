@@ -18,7 +18,9 @@ import {
   InMemorySiteRepository,
   InMemorySkillRepository,
 } from '@trame/api/organization/application/testing';
-import { composeSchedulingProblem } from '@trame/api/scheduling/domain';
+import { StartScheduleGeneration } from '@trame/api/scheduling/application';
+import { InMemoryScheduleGenerations } from '@trame/api/scheduling/application/testing';
+import { composeSchedulingProblem, NoCoverageNeedError } from '@trame/api/scheduling/domain';
 import {
   AbsenceWeekReferenceFreezer,
   CreateContract,
@@ -39,6 +41,7 @@ import {
   InMemoryWeekAbsencesSnapshotReader,
 } from '@trame/api/staff/application/testing';
 import { FixedClock } from '@trame/platform/clock';
+import { IdempotencyKey } from '@trame/platform/idempotency';
 import { SequentialIdGenerator } from '@trame/platform/ids';
 import { OrganizationPlanningReader } from './organization-planning.reader';
 import { StaffPlanningReader } from './staff-planning.reader';
@@ -204,6 +207,7 @@ async function setUp() {
     planningReferences,
     defineNeeds,
     declareDriverAbsent,
+    ids,
   };
 }
 
@@ -282,8 +286,28 @@ describe('Lecture d’une semaine pour la génération (organization, demand, st
       expect(problem.rules).toContainEqual({ id: 'INDISPONIBILITE' });
     });
 
-    it('BDD : une absence partielle sans durée signale le salarié « à définir »', async () => {
-      const { adapter, site, driver, planningReferences, defineNeeds, declareDriverAbsent } =
+    it('BDD : semaine sans jour d’activité, la valorisation reste « à définir » et le lancement est refusé faute de besoins', async () => {
+      const { adapter, site, driver, declareDriverAbsent, ids } = await setUp();
+      await declareDriverAbsent('2026-11-30T00:00', '2026-12-01T00:00');
+      const generations = new InMemoryScheduleGenerations();
+      const start = new StartScheduleGeneration(generations, adapter, clock, ids);
+      const key = IdempotencyKey.of('semaine-sans-besoin');
+
+      const planning = await adapter.read(ORGANIZATION_A, site.id, WEEK_OF_30_NOVEMBER);
+      const launch = start.execute({
+        organizationId: ORGANIZATION_A,
+        siteId: site.id,
+        weekStartsOn: WEEK_OF_30_NOVEMBER,
+        key,
+      });
+
+      expect(planning?.employeesWithAbsenceToDefine).toEqual([driver.id]);
+      await expect(launch).rejects.toThrow(NoCoverageNeedError);
+      expect(await generations.findByKey(ORGANIZATION_A, key)).toBeUndefined();
+    });
+
+    it('BDD : une absence partielle sans durée exclut le salarié de la génération, avec ce motif', async () => {
+      const { adapter, site, driver, planningReferences, defineNeeds, declareDriverAbsent, ids } =
         await setUp();
       await defineNeeds(WEEK_OF_30_NOVEMBER, sixDaysFrom(WEEK_OF_30_NOVEMBER));
       planningReferences.setActivityDays(
@@ -292,11 +316,25 @@ describe('Lecture d’une semaine pour la génération (organization, demand, st
         sixDaysFrom(WEEK_OF_30_NOVEMBER),
       );
       await declareDriverAbsent('2026-11-30T06:00', '2026-11-30T10:00');
+      const start = new StartScheduleGeneration(
+        new InMemoryScheduleGenerations(),
+        adapter,
+        clock,
+        ids,
+      );
 
-      const planning = await adapter.read(ORGANIZATION_A, site.id, WEEK_OF_30_NOVEMBER);
+      const generation = await start.execute({
+        organizationId: ORGANIZATION_A,
+        siteId: site.id,
+        weekStartsOn: WEEK_OF_30_NOVEMBER,
+        key: IdempotencyKey.of('jour-partiel-sans-duree'),
+      });
 
-      expect(planning?.employeesWithAbsenceToDefine).toEqual([driver.id]);
-      expect(planning?.absenceValuations).toEqual([]);
+      expect(generation.excludedEmployees).toEqual([
+        { employeeId: driver.id, reason: 'ABSENCE_VALUATION_TO_DEFINE' },
+      ]);
+      expect(generation.problem.employees).toEqual([]);
+      expect(generation.absenceValuations).toEqual([]);
     });
 
     it('lit l’absence du lundi suivant qui touche le créneau de nuit du dimanche', async () => {

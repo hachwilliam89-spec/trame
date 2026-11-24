@@ -497,7 +497,7 @@ Scénario: Habilitation expirée
 - Minimum restant de la semaine = max(0, minimum contractuel − minutes d'absence valorisées). C'est une convention du modèle de planification, cadrée pour la démo : ni une règle de paie, ni un décompte légal des absences. Heures planifiées et heures d'absence s'affichent séparément.
 - **Avec un planning de référence.** La référence d'un salarié pour une semaine est figée à sa première absence de la semaine : la dernière génération réussie à cet instant, avec ses affectations et leurs pauses. Aucune génération ne la change ensuite ; le planning publié deviendra la référence prioritaire (US-080). Les minutes valorisées sont le temps de ces affectations couvert par l'union des absences actives, pauses effectivement recouvertes retranchées, sans prorata. Un repos ne réduit rien, et chaque minute ne compte qu'une fois : supprimer une absence ne retire pas les minutes qu'une autre couvre encore.
 - **Sans planning de référence.** Convention de démonstration « parts égales sur les jours d'activité », nommée dans le résultat avec ses paramètres. Part journalière = minimum contractuel ÷ jours où le site a des besoins dans la semaine, figée à la déclaration. Un jour entier d'absence vaut sa part ; un jour couvert en partie demande une durée explicite, par salarié et par jour, plafonnée à la part. Elle ne se donne qu'à un jour qu'une absence couvre en partie, et vaut pour la couverture du jour à la saisie : si les absences de ce jour la changent, la durée est redemandée. Des absences remaniées qui couvrent le jour de la même façon la gardent, tant que le jour n'est jamais resté sans absence : la suppression ou la modification qui laisse un jour vide efface sa durée dans la même transaction.
-- **Valorisation « à définir ».** Semaine sans jour d'activité, ou jour partiel sans durée : la valorisation est signalée « à définir », et retentée à chaque saisie ou modification d'une absence du salarié dans la semaine. L'absence reste enregistrée. À la génération, le salarié est exclu de la semaine avec le motif `ABSENCE_VALUATION_TO_DEFINE`, au lieu d'un minimum gardé entier ou levé en silence. La répartition contractuelle viendra avec les jours travaillables d'US-032.
+- **Valorisation « à définir ».** Semaine sans jour d'activité, ou jour partiel sans durée : la valorisation est signalée « à définir », et retentée à chaque saisie ou modification d'une absence du salarié dans la semaine. L'absence reste enregistrée. À la génération, un salarié dont un jour partiel attend sa durée est exclu de la semaine avec le motif `ABSENCE_VALUATION_TO_DEFINE`, au lieu d'un minimum gardé entier ou levé en silence. Une semaine sans jour d'activité n'a pas de besoin : son lancement est refusé, et dès que des besoins existent, la référence se fige au lancement. La répartition contractuelle viendra avec les jours travaillables d'US-032.
 - **À la génération.** Les références encore « à définir » sont retentées au lancement, pour la seule semaine générée. Absences et valorisations sont ensuite lues dans un même état cohérent. Le problème envoyé au moteur porte, pour chaque salarié, ses minutes d'absence valorisées et ses indisponibilités : les absences qui chevauchent un créneau du problème, sans être bornées à la semaine (un créneau de nuit du dimanche peut finir le lundi suivant). La génération garde les valorisations utilisées et leur calcul.
 - Les instants sont stockés en UTC et lus dans le fuseau du site (ADR-0019). Une absence se saisit à la minute (secondes à zéro, sans fraction) : c'est la précision des créneaux et des minutes valorisées, et rien n'est tronqué au stockage. La fin est exclue : une journée entière d'absence va de minuit à minuit le lendemain, et une absence couvre un créneau dès qu'elle en chevauche une partie.
 
@@ -668,7 +668,14 @@ Scénario: Semaine sans jour d'activité
   Étant donné aucune génération et aucun besoin pour la semaine du 30 novembre
   Quand le manager déclare Camille Laurent absente le lundi 30
   Alors l'absence est enregistrée, avec une valorisation « à définir » signalée
-  Et une génération de cette semaine l'exclut, avec ce motif, au lieu de compter son absence pour zéro
+  Et le lancement d'une génération de cette semaine est refusé faute de besoins, sans compter son absence pour zéro
+
+Scénario: Jour partiel sans durée à la génération
+  Étant donné des besoins du lundi 30 novembre au samedi 5 décembre
+  Et Camille Laurent absente le lundi 30 de 6 h à 10 h, sans durée donnée
+  Quand le manager lance la génération de la semaine du 30 novembre
+  Alors Camille Laurent en est exclue avec le motif « durée d'absence à définir »
+  Et son minimum n'est ni gardé entier, ni levé en silence
 
 Scénario: Besoins ajoutés après la déclaration
   Étant donné Camille Laurent déclarée absente le lundi 30 novembre, sans besoin ni génération pour cette semaine
