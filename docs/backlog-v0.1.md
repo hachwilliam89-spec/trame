@@ -857,6 +857,7 @@ Scénario: Délai de prévenance
 - Pattern envisagé : **Commande**. Chaque modification (affecter, retirer, déplacer un shift) est un objet qui porte son inverse : la pile d'annulation, la mise à jour optimiste et son retour arrière en cas d'erreur reposent sur le même objet, traduit en requête d'évaluation pour la PE en US-072.
 - Conforme à la maquette « Trame — planning moderne » (US-012) et performante avec 40 employés × 7 jours : en-tête de semaine et navigation, chiffres de la semaine, couverture par créneau en tête de chaque jour, salariés groupés par poste, heures face aux bornes du contrat, recherche d'un salarié, panneau du créneau choisi, thèmes clair et sombre, mobile.
 - Intégrée par tranches, après chaque capacité back du jalon 2. Les actions dont le back n'existe pas encore ne sont pas affichées.
+- Découpage validé le 24 novembre, une PR par tranche : (1) en-tête, navigation entre semaines, pastille du moteur, chiffres de la semaine (« Contraintes du moteur respectées » et le nombre de règles de `outcome.checkedRules`), heures face au contrat et absences, lues dans l'instantané de la génération affichée (#114) ; (2) grille : couverture en tête de chaque jour, groupes par poste le plus souvent occupé, habilitations et leur échéance, recherche, vues Semaine, Jour et Par poste ; (3) panneau du créneau, mobile, thème sombre et parcours Playwright avec axe sur Chromium, Firefox et WebKit. « Publier la semaine » et « Pourquoi ce manque / Pistes » attendent leur back.
 
 ### US-072 — Drag & drop avec PE
 
