@@ -1,5 +1,6 @@
 import type { ScheduleGenerationV1 } from '@trame/shared/contracts/scheduling';
 import type { PlanningRequest } from '@trame/web/scheduling/data-access';
+import { attemptTimeLabel } from './calendar';
 
 /** Ce que l'écran dit du dernier calcul, et l'action qu'il propose. */
 export interface AttemptMessage {
@@ -59,31 +60,39 @@ function attemptOutcome(attempt: ScheduleGenerationV1, kept: string): AttemptMes
   if (attempt.status === 'QUEUED') return message('neutral', 'Calcul demandé…');
   if (attempt.status === 'RUNNING') return message('neutral', 'Calcul en cours…' + kept);
   if (attempt.status === 'FAILED') {
-    return message('error', 'Le calcul n’a pas pu aboutir.' + kept, 'generate', RELAUNCH);
+    return failure(attempt, 'error', 'Le calcul n’a pas pu aboutir.' + kept);
   }
   switch (attempt.outcome?.result.status) {
     case 'OPTIMAL':
     case 'FEASIBLE':
       return message('neutral', 'Planning proposé.', 'generate', 'Recalculer');
     case 'INFEASIBLE':
-      return message(
+      return failure(
+        attempt,
         'warning',
         'Aucun planning ne respecte les règles pour cette semaine.' + kept,
-        'generate',
-        RELAUNCH,
       );
     case 'UNKNOWN':
-      return message('warning', 'Délai atteint sans solution.' + kept, 'generate', RELAUNCH);
+      return failure(attempt, 'warning', 'Délai atteint sans solution.' + kept);
     case 'CANCELLED':
-      return message('warning', 'Le calcul a été annulé.' + kept, 'generate', RELAUNCH);
+      return failure(attempt, 'warning', 'Le calcul a été annulé.' + kept);
     default:
-      return message(
-        'error',
-        'Le résultat du calcul est indisponible.' + kept,
-        'generate',
-        RELAUNCH,
-      );
+      return failure(attempt, 'error', 'Le résultat du calcul est indisponible.' + kept);
   }
+}
+
+/**
+ * Un calcul sans planning, daté à l'heure du site : il reste visible, même quand le planning
+ * précédent est affiché avec ses propres chiffres.
+ */
+function failure(
+  attempt: ScheduleGenerationV1,
+  tone: AttemptMessage['tone'],
+  text: string,
+): AttemptMessage {
+  const when = attemptTimeLabel(attempt.finishedAt ?? attempt.createdAt, attempt.problem.timeZone);
+  const sentence = text.charAt(0).toLowerCase() + text.slice(1);
+  return message(tone, `Calcul du ${when} : ${sentence}`, 'generate', RELAUNCH);
 }
 
 function message(

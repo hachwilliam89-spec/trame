@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { ApplicationRef, signal } from '@angular/core';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
 import { BehaviorSubject } from 'rxjs';
 import type { ScheduleGenerationV1 } from '@trame/shared/contracts/scheduling';
@@ -63,18 +63,23 @@ function generation(
         {
           id: CAMILLE,
           qualifications: [],
-          contract: { weeklyMinutesMin: 1680, weeklyMinutesMax: 2100 },
+          contract: { weeklyMinutesMin: 1680, weeklyMinutesMax: 2100, absenceMinutes: 0 },
+          unavailabilities: [],
         },
         {
           id: NADIA,
           qualifications: [],
-          contract: { weeklyMinutesMin: 840, weeklyMinutesMax: 1260 },
+          contract: { weeklyMinutesMin: 840, weeklyMinutesMax: 1260, absenceMinutes: 0 },
+          unavailabilities: [],
         },
       ],
       rules: [{ id: 'REPOS_QUOTIDIEN_MIN', minimumMinutes: 660 }],
       objective: { mode: 'STANDARD' },
     },
     excludedEmployees: [],
+    absenceValuations: [],
+    createdAt: '2026-11-24T19:04:40.000Z',
+    finishedAt: '2026-11-24T19:05:22.665Z',
     outcome: {
       result:
         result === 'OPTIMAL' ? { status: result, schedule } : { status: result, schedule: null },
@@ -82,6 +87,32 @@ function generation(
       solveSeconds: 0.2,
     },
   } as unknown as ScheduleGenerationV1;
+}
+
+/**
+ * La génération telle qu'elle a été calculée : Camille absente tout le lundi (7 h valorisées),
+ * Nadia indisponible le mardi matin. Ces absences ont pu être supprimées depuis : l'écran ne lit
+ * que l'instantané.
+ */
+function withAbsences(shown: ScheduleGenerationV1): ScheduleGenerationV1 {
+  const [camille, nadia] = shown.problem.employees;
+  if (camille === undefined || nadia === undefined) throw new Error('Deux salariés attendus.');
+  const employees = [
+    {
+      ...camille,
+      contract: { ...camille.contract, absenceMinutes: 420 },
+      unavailabilities: [
+        { startsAt: '2026-11-23T00:00:00+01:00', endsAt: '2026-11-24T00:00:00+01:00' },
+      ],
+    },
+    {
+      ...nadia,
+      unavailabilities: [
+        { startsAt: '2026-11-24T06:00:00+01:00', endsAt: '2026-11-24T10:00:00+01:00' },
+      ],
+    },
+  ];
+  return { ...shown, problem: { ...shown.problem, employees } };
 }
 
 const catalog = {
@@ -281,7 +312,7 @@ describe('Page Planning', () => {
     const page = await render();
 
     expect(text(page.querySelector('[role="status"]'))).toContain(
-      'Aucun planning ne respecte les règles pour cette semaine. Le planning affiché reste celui du calcul précédent.',
+      'aucun planning ne respecte les règles pour cette semaine. Le planning affiché reste celui du calcul précédent.',
     );
     expect(page.querySelectorAll('.week-grid tbody tr').length).toBe(2);
   });
@@ -293,7 +324,7 @@ describe('Page Planning', () => {
     const page = await render();
 
     expect(text(page.querySelector('[role="status"]'))).toContain(
-      'Aucun planning ne respecte les règles',
+      'aucun planning ne respecte les règles',
     );
     expect(page.querySelector('.week-grid')).toBeNull();
     expect(page.querySelector('.coverage')).toBeNull();
@@ -355,5 +386,96 @@ describe('Page Planning', () => {
     profile?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await fixture.whenStable();
     expect(page.querySelector('.employee-profile')).toBeNull();
+  });
+
+  describe('en-tête, chiffres et absences (US-071, tranche 1)', () => {
+    function facts(page: HTMLElement): string[][] {
+      return Array.from(page.querySelectorAll('.week-facts > div')).map((fact) => [
+        text(fact.querySelector('dt')),
+        text(fact.querySelector('dd')),
+      ]);
+    }
+
+    it('BDD : chiffre la semaine générée et annonce la durée du calcul', async () => {
+      const page = await render();
+
+      expect(text(page.querySelector('.engine-pill'))).toBe('Proposé par le moteur · 0,2 s');
+      expect(facts(page)).toEqual([
+        ['Places pourvues', '3 / 5'],
+        ['Couverture', expect.stringMatching(/^60\s?%$/)],
+        ['Manques', '2 · sam. matin'],
+        ['Heures planifiées', '21 h'],
+        ['Contraintes du moteur respectées', '1 règle'],
+      ]);
+    });
+
+    it('BDD : lit les absences dans l’instantané, et les garde tant que la génération est la même', async () => {
+      const shown = withAbsences(generation('A', 'OPTIMAL'));
+      planning.latestSchedule.set(shown);
+      planning.latestAttempt.set(shown);
+
+      const page = await render();
+
+      const camille = rowOf(page, 'Camille Laurent');
+      const camilleMonday = camille?.querySelectorAll('td')[0];
+      expect(text(camilleMonday)).toBe('Absence');
+      expect(text(camille?.querySelector('.weekly-hours'))).toBe(
+        '7 h planifiées · 7 h d’absence · minimum restant 21 h Contrat 28–35 h',
+      );
+      const nadiaTuesday = rowOf(page, 'Nadia Guérin')?.querySelectorAll('td')[1];
+      expect(text(nadiaTuesday?.querySelector('.absence'))).toBe('Absence 06 h–10 h');
+      expect(text(nadiaTuesday?.querySelector('button.shift'))).toContain('Après-midi');
+
+      planning.latestAttempt.set(generation('B', 'INFEASIBLE'));
+      await TestBed.inject(ApplicationRef).whenStable();
+      expect(text(rowOf(page, 'Camille Laurent')?.querySelectorAll('td')[0])).toBe('Absence');
+    });
+
+    it('BDD : sans planning exploitable, aucun chiffre ni « Contraintes du moteur respectées »', async () => {
+      planning.latestAttempt.set(generation('B', 'INFEASIBLE'));
+      planning.latestSchedule.set(null);
+
+      const page = await render();
+
+      expect(page.querySelector('.week-facts')).toBeNull();
+      expect(page.querySelector('.engine-pill')).toBeNull();
+      expect(text(page.querySelector('[role="status"]'))).toContain(
+        'Calcul du mardi 24 novembre à 20 h 05 : aucun planning ne respecte les règles',
+      );
+    });
+
+    it('BDD : après un échec, la pastille et les chiffres restent ceux du planning affiché, et l’échec est daté', async () => {
+      const failed = generation('B', 'INFEASIBLE');
+      planning.latestAttempt.set({
+        ...failed,
+        outcome: failed.outcome === undefined ? undefined : { ...failed.outcome, solveSeconds: 30 },
+      });
+
+      const page = await render();
+
+      expect(text(page.querySelector('.engine-pill'))).toBe('Proposé par le moteur · 0,2 s');
+      expect(facts(page)[0]).toEqual(['Places pourvues', '3 / 5']);
+      expect(text(page.querySelector('[role="status"]'))).toContain(
+        'Calcul du mardi 24 novembre à 20 h 05 : aucun planning ne respecte les règles pour cette semaine. Le planning affiché reste celui du calcul précédent.',
+      );
+    });
+
+    it('BDD : passe à la semaine précédente ou suivante par l’adresse', async () => {
+      const page = await render();
+
+      const previous = page.querySelector('a[aria-label="Semaine précédente"]');
+      const next = page.querySelector('a[aria-label="Semaine suivante"]');
+      expect(previous?.getAttribute('href')).toBe(`/planning?site=${SITE}&semaine=2026-11-16`);
+      expect(next?.getAttribute('href')).toBe(`/planning?site=${SITE}&semaine=2026-11-30`);
+    });
+
+    it('BDD isolation : le site d’une autre organisation est introuvable', async () => {
+      planning.phase.set('missing');
+
+      const page = await render();
+
+      expect(text(page.querySelector('h1'))).toBe('Site introuvable');
+      expect(page.querySelector('.week-facts')).toBeNull();
+    });
   });
 });

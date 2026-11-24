@@ -11,6 +11,22 @@
 @switch (planning.phase()) { @case ('ready') { @if (heading(); as heading) {
 <header class="week-heading">
   <div class="week-number" aria-hidden="true">{{ heading.weekNumber }}</div>
+  <nav class="week-steps" aria-label="Changer de semaine">
+    <a
+      class="week-step"
+      routerLink="/planning"
+      [queryParams]="heading.previousWeek"
+      aria-label="Semaine précédente"
+      ><span aria-hidden="true">‹</span></a
+    >
+    <a
+      class="week-step"
+      routerLink="/planning"
+      [queryParams]="heading.nextWeek"
+      aria-label="Semaine suivante"
+      ><span aria-hidden="true">›</span></a
+    >
+  </nav>
   <div>
     <p class="week-label">
       {{ heading.siteName }} · Planning de la semaine
@@ -19,8 +35,11 @@
     <h1>{{ heading.rangeLabel }}</h1>
     @if (view(); as view) {
     <p class="week-status">
+      @if (view.summary.engineLabel; as engineLabel) {
+      <span class="engine-pill">{{ engineLabel }}</span>
+      } @else {
       <strong>Planning proposé</strong>
-      @if (view.daysWithoutNeeds.length > 0) {
+      } @if (view.daysWithoutNeeds.length > 0) {
       <span aria-hidden="true"> · </span>Aucun besoin planifié : {{ view.daysWithoutNeeds.join(', ')
       }} }
     </p>
@@ -39,6 +58,32 @@
   }
 </header>
 } @if (view(); as view) {
+<dl class="week-facts" aria-label="Chiffres de la semaine">
+  <div>
+    <dt>Places pourvues</dt>
+    <dd>{{ view.summary.assignedPlaces }}<small> / {{ view.summary.requiredPlaces }}</small></dd>
+  </div>
+  <div>
+    <dt>Couverture</dt>
+    <dd>{{ view.summary.coverageLabel }}</dd>
+  </div>
+  <div [class.has-gap]="view.summary.missingPlaces > 0">
+    <dt>Manques</dt>
+    <dd>
+      {{ view.summary.missingPlaces }}@if (view.summary.missingDetail; as detail) {<small>
+        · {{ detail }}</small
+      >}
+    </dd>
+  </div>
+  <div>
+    <dt>Heures planifiées</dt>
+    <dd>{{ view.summary.plannedHoursLabel }}</dd>
+  </div>
+  <div>
+    <dt>Contraintes du moteur respectées</dt>
+    <dd>{{ view.summary.checkedRulesLabel }}</dd>
+  </div>
+</dl>
 <div id="planning-rules" class="rules" [hidden]="!rulesOpen()">
   <p><strong>Ce que le moteur a vérifié pour ce planning</strong></p>
   <ul aria-label="Règles appliquées">

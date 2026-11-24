@@ -1,4 +1,5 @@
 import type { SchedulingProblemV1 } from '@trame/shared/contracts/scheduling';
+import { absencesOn, weeklyHours } from './absence-view';
 import { durationLabel, type WeekDay } from './calendar';
 import type { PlannedShift, PlanningFacts } from './planning-facts';
 
@@ -25,9 +26,13 @@ export interface TeamRow {
   positionsLabel: string;
   /** Les affectations de chaque jour affiché, dans l'ordre de la grille. */
   cells: TeamCell[][];
+  /** Les absences de chaque jour affiché, lues dans l'instantané : `Absence 06 h–10 h`. */
+  absences: string[][];
   /** Les sept jours de la semaine, pour la vue Employé. */
   week: EmployeeDay[];
   plannedLabel: string;
+  /** `7 h d’absence · minimum restant 21 h`, ou `undefined` sans absence valorisée. */
+  absenceLabel: string | undefined;
   contractLabel: string;
 }
 
@@ -36,6 +41,7 @@ export interface EmployeeDay {
   date: string;
   dayLabel: string;
   cells: TeamCell[];
+  absences: string[];
   /** `Non planifié`, ou `Aucun besoin planifié` pour un jour sans besoin. */
   note: string;
 }
@@ -69,19 +75,28 @@ function teamRow(
     plannedMinutes += planned.shift.effectiveMinutes;
   }
   const cellsOn = (day: WeekDay) => cellsByDate.get(day.date) ?? [];
-  const { weeklyMinutesMin, weeklyMinutesMax } = employee.contract;
+  const absencesOnDay = (day: WeekDay) =>
+    absencesOn(employee.unavailabilities, day.date, facts.timeZone);
+  const hours = weeklyHours(employee.contract, plannedMinutes);
   return {
     employeeId: employee.id,
     name,
     positionsLabel: positionNames.length === 0 ? 'Non planifié' : positionNames.join(' · '),
     cells: displayedDays.map(cellsOn),
-    week: facts.days.map((day) => employeeDay(day, cellsOn(day), displayedDays)),
-    plannedLabel: durationLabel(plannedMinutes),
-    contractLabel: `Contrat ${contractRange(weeklyMinutesMin, weeklyMinutesMax)}`,
+    absences: displayedDays.map(absencesOnDay),
+    week: facts.days.map((day) => ({
+      ...employeeDay(day, cellsOn(day), displayedDays),
+      absences: absencesOnDay(day),
+    })),
+    ...hours,
   };
 }
 
-function employeeDay(day: WeekDay, cells: TeamCell[], displayedDays: WeekDay[]): EmployeeDay {
+function employeeDay(
+  day: WeekDay,
+  cells: TeamCell[],
+  displayedDays: WeekDay[],
+): Omit<EmployeeDay, 'absences'> {
   const hasNeeds = displayedDays.some((displayed) => displayed.date === day.date);
   return {
     date: day.date,
@@ -114,13 +129,6 @@ function positionsHeld(worked: PlannedShift[], facts: PlanningFacts): string[] {
   return [...positions.entries()]
     .sort(([left], [right]) => order(left) - order(right))
     .map(([, positionName]) => positionName);
-}
-
-/** `28–35 h`, ou `35 h` quand le minimum égale le maximum. */
-function contractRange(minimumMinutes: number, maximumMinutes: number): string {
-  if (minimumMinutes === maximumMinutes) return durationLabel(maximumMinutes);
-  const minimum = durationLabel(minimumMinutes).replace(/ h$/, '');
-  return `${minimum}–${durationLabel(maximumMinutes)}`;
 }
 
 /** Par premier poste tenu, puis par nom ; les salariés non planifiés à la fin. */

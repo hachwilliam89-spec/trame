@@ -53,7 +53,9 @@
       </th>
       @for (entry of visibleDays(); track entry.day.date) {
       <td>
-        @for (cell of row.cells[entry.index]; track cell.shiftId) {
+        @for (absence of row.absences[entry.index]; track absence) {
+        <span class="absence">{{ absence }}</span>
+        } @for (cell of row.cells[entry.index]; track cell.shiftId) {
         <button
           type="button"
           [class]="'shift tone-' + cell.tone"
@@ -65,15 +67,18 @@
           <span class="shift-position">{{ cell.positionName }}</span>
           }
         </button>
-        } @empty {
+        } @if (isUnplanned(row, entry.index)) {
         <span class="rest meta" aria-hidden="true">—</span>
         <span class="visually-hidden">Non planifié</span>
         }
       </td>
       }
       <td class="weekly-hours">
-        <strong>{{ row.plannedLabel }}</strong>
-        <span class="meta">{{ row.contractLabel }}</span>
+        <strong>{{ row.plannedLabel }}</strong><span class="planned-word">&#32;planifiées</span>
+        @if (row.absenceLabel; as absenceLabel) {
+        <span class="absence-hours">&#32;· {{ absenceLabel }}</span>
+        }
+        <span class="meta">&#32;{{ row.contractLabel }}</span>
       </td>
     </tr>
     @if (openEmployeeId() === row.employeeId) {
@@ -93,7 +98,10 @@
               Fermer
             </button>
           </header>
-          <p class="employee-hours">{{ row.plannedLabel }} planifiées · {{ row.contractLabel }}</p>
+          <p class="employee-hours">
+            {{ row.plannedLabel }} planifiées @if (row.absenceLabel; as absenceLabel) { · {{
+            absenceLabel }} } · {{ row.contractLabel }}
+          </p>
           <table class="employee-week">
             <caption class="visually-hidden">
               Affectations de {{ row.name }}, semaine {{ view().weekNumber }}
@@ -109,12 +117,14 @@
               <tr>
                 <th scope="row">{{ day.dayLabel }}</th>
                 <td>
-                  @for (cell of day.cells; track cell.shiftId) {
+                  @for (absence of day.absences; track absence) {
+                  <div class="employee-assignment employee-absence"><span>{{ absence }}</span></div>
+                  } @for (cell of day.cells; track cell.shiftId) {
                   <div class="employee-assignment">
                     <span>{{ cell.shiftLabel }} · {{ cell.positionName }}</span>
                     <span class="meta">{{ cell.hours }}</span>
                   </div>
-                  } @empty {
+                  } @if (day.cells.length === 0 && day.absences.length === 0) {
                   <span class="meta">{{ day.note }}</span>
                   }
                 </td>

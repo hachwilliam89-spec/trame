@@ -53,7 +53,8 @@ function ruleView(rule: SchedulingRuleV1): CheckedRuleView {
       };
     case 'VOLUME_CONTRACTUEL':
       return {
-        label: 'Volume d’heures de chaque contrat, entre son minimum et son maximum',
+        // Le moteur retranche les minutes d'absence valorisées du minimum (US-033).
+        label: 'Heures planifiées entre le minimum restant après absences et le maximum du contrat',
         reference: 'Contrat de travail',
       };
     case 'INDISPONIBILITE':

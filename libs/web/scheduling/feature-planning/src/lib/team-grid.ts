@@ -83,6 +83,13 @@ export class TeamGrid {
     this.selectedCell.set({ employeeId: row.employeeId, date, shiftId: cell.shiftId });
   }
 
+  /** Ni affectation ni absence ce jour-là. */
+  protected isUnplanned(row: TeamRow, dayIndex: number): boolean {
+    const cells = row.cells[dayIndex] ?? [];
+    const absences = row.absences[dayIndex] ?? [];
+    return cells.length === 0 && absences.length === 0;
+  }
+
   protected isInspected(row: TeamRow, cell: TeamCell): boolean {
     const selected = this.selectedCell();
     return selected?.employeeId === row.employeeId && selected.shiftId === cell.shiftId;

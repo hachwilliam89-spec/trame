@@ -11,6 +11,7 @@ import {
 import { planningFacts, type ShiftKind } from './planning-facts';
 import { checkedRules, type CheckedRuleView } from './rules-view';
 import { teamRows, type TeamRow } from './team-view';
+import { weekSummary, type WeekSummary } from './week-summary';
 
 /** Jour affiché dans la grille. */
 export interface DisplayedDay extends WeekDay {
@@ -30,6 +31,7 @@ export interface PlanningView {
   shiftKinds: ShiftKind[];
   team: TeamRow[];
   coverage: CoverageSummary;
+  summary: WeekSummary;
   coverageByDay: DayCoverage[];
   rules: CheckedRuleView[];
   /** Salariés du site écartés du calcul, avec la raison. */
@@ -61,6 +63,7 @@ export function planningView(
     .filter((day) => datesWithNeeds.has(day.date))
     .map((day) => ({ ...day, optionLabel: `${day.name} ${day.dayOfMonth} ${day.shortMonth}` }));
   const rows = coverageRows(facts);
+  const coverage = coverageSummary(rows);
   return {
     siteName: catalog.site.name,
     weekNumber: isoWeekNumber(generation.weekStartsOn),
@@ -71,7 +74,8 @@ export function planningView(
       .map((day) => day.name.toLowerCase()),
     shiftKinds: facts.shiftKinds,
     team: teamRows(generation.problem.employees, facts, days),
-    coverage: coverageSummary(rows),
+    coverage,
+    summary: weekSummary(generation, rows, coverage),
     coverageByDay: coverageByDay(rows, facts),
     rules: checkedRules(generation.outcome?.checkedRules ?? [], generation.problem),
     excluded: generation.excludedEmployees.map((excluded) => ({

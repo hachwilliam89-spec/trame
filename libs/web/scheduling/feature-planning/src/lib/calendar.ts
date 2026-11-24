@@ -52,6 +52,12 @@ export function weekDays(weekStartsOn: string): WeekDay[] {
   return days;
 }
 
+/** Le lundi d'une autre semaine : `-1` pour la précédente, `1` pour la suivante. */
+export function shiftedWeek(weekStartsOn: string, weeks: number): string {
+  const monday = toUtcMidnight(weekStartsOn) + weeks * DAYS_IN_WEEK * DAY_IN_MILLISECONDS;
+  return isoDateOf(civilDateOf(monday));
+}
+
 /** Numéro ISO 8601 : la semaine 1 est celle qui contient le premier jeudi de l'année. */
 export function isoWeekNumber(weekStartsOn: string): number {
   const thursday = toUtcMidnight(weekStartsOn) + 3 * DAY_IN_MILLISECONDS;
@@ -79,6 +85,30 @@ export function weekRangeLabel(weekStartsOn: string): string {
 export function localTimeLabel(instant: string, timeZone: string): string {
   const { hour, minute } = localClock(instant, timeZone);
   return minute === '00' ? `${hour} h` : `${hour} h ${minute}`;
+}
+
+/** Jour civil ISO d'un instant dans le fuseau du site : `2026-11-26`. */
+export function localDateOf(instant: string, timeZone: string): string {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone,
+  }).formatToParts(new Date(instant));
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((candidate) => candidate.type === type)?.value ?? '';
+  return `${part('year')}-${part('month')}-${part('day')}`;
+}
+
+/** Moment d'une tentative de calcul, à l'heure du site : `mardi 24 novembre à 20 h 05`. */
+export function attemptTimeLabel(instant: string, timeZone: string): string {
+  const day = new Intl.DateTimeFormat('fr-FR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone,
+  }).format(new Date(instant));
+  return `${day} à ${localTimeLabel(instant, timeZone)}`;
 }
 
 /** Minutes écoulées depuis minuit, à l'heure locale du site : de quoi ordonner les créneaux. */
