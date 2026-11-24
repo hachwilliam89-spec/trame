@@ -45,6 +45,7 @@ const ALL_RULES: ScheduleOutcomeV1['checkedRules'] = [
   'DUREE_QUOTIDIENNE_MAX',
   'DUREE_HEBDOMADAIRE_MAX',
   'VOLUME_CONTRACTUEL',
+  'INDISPONIBILITE',
 ];
 
 /** Lundi matin, trois caristes demandés, deux salariés habilités : un manque d'une personne. */
